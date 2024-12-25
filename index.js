@@ -136,13 +136,13 @@ const bodySchema = Joi.object({
 // Protect the /app/addThing endpoint for admins and staff
 app.post(
     "/app/addThing",
-    // validateJwt,
-    // authorizeRoles("admin", "staff"), // Allow only admin and staff
+    validateJwt,
+    authorizeRoles("admin", "staff"), // Allow only admin and staff
     async (req, res) => {
-        // const { error } = bodySchema.validate(req.body);
-        // if (error) {
-        //     return res.status(400).json({ message: "Invalid input data", error: error.details });
-        // }
+        const { error } = bodySchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ message: "Invalid input data", error: error.details });
+        }
 
         const { thing, attributes} = req.body;
         const connection = await db.getConnection();
@@ -160,8 +160,8 @@ app.post(
                  VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     thing.thingName,
-                    // req.user.username, // Using the authenticated user's username
-                    "admin",
+                    req.user.username, // Using the authenticated user's username
+                    // "admin",
                     thing.batchId,
                     thing.model,
                     thing.serialno,
@@ -200,8 +200,8 @@ app.post(
                             thing.serialno,
                             counter,
                             // null,
-                            "admin",
-                            // req.user.username,
+                            // "admin",
+                            req.user.username,
                             true,
                             null,
                             null,
@@ -219,8 +219,8 @@ app.post(
                 `INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
                  VALUES (?, CURRENT_TIMESTAMP, ?, ?)`,
                 [thingResult.insertId, 
-                    // req.user.username,
-                    "admin",
+                    req.user.username,
+                    // "admin",
                      "new"]
             );
 
@@ -253,11 +253,11 @@ app.post(
     async (req, res) => {
 
         try {
-            const { name,created_by  } = req.body;// Destructure the required fields from the request body
-            // const created_by=  req.user.username;
+            const { name } = req.body;// Destructure the required fields from the request body
+            const created_by=  req.user.username;
             // const created_by= 1;
-            // const user_id= req.user.id;
-            const user_id= 1;
+            const user_id= req.user.id;
+            // const user_id= 1;
     
             // Check if required data is provided
             if (!name || !created_by) {
@@ -292,8 +292,8 @@ app.get(
     '/app/display/homes/',
      async (req, res) => {          
     try {
-        // const userId = req.user.id; // Get the user_id from the URL parameter
-        const userId = 1; // Get the user_id from the URL parameter
+        const userId = req.user.id; // Get the user_id from the URL parameter
+        // const userId = 1; // for checking
 
         // Query to fetch homes by user_id
         const query = `
@@ -325,8 +325,8 @@ app.get(
 app.put('/app/update/home/:id', async (req, res) => {
     try {
         const homeId = req.params.id; // Get home ID from URL parameter
-        const { name, created_by} = req.body; 
-        // const created_by=  req.user.username// Extract fields to update from request body
+        const { name} = req.body; 
+        const created_by=  req.user.username// Extract fields to update from request body
 
         // Validate input
         if (!name && !created_by) {
@@ -533,21 +533,21 @@ app.post(
         const floor_id = req.params.floor_id;
         console.log(floor_id)
         const {name, alias_name,  } = req.body;
-        // const image_url=req.file;
+        const image_url=req.file;
           
-        // // Define S3 upload parameters
-        //  const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
-        //  const params = {
-        //  Bucket: process.env.S3_BUCKET_NAME,
-        //  Key: fileKey,
-        //  Body: file.buffer,
-        //  ContentType: file.mimetype,
-        //  ACL: 'public-read', // Make the file publicly readable
-        // };
+        // Define S3 upload parameters
+         const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
+         const params = {
+         Bucket: process.env.S3_BUCKET_NAME,
+         Key: fileKey,
+         Body: file.buffer,
+         ContentType: file.mimetype,
+         ACL: 'public-read', // Make the file publicly readable
+        };
 
-        //  // Upload file to S3
-        //  const uploadResult = await s3.upload(params).promise();
-        //  const fileUrl = uploadResult.Location;
+         // Upload file to S3
+         const uploadResult = await s3.upload(params).promise();
+         const fileUrl = uploadResult.Location;
 
         // Validate input
         if (!floor_id || !name) {
@@ -565,8 +565,8 @@ app.post(
             floor_id,
             name,
             alias_name || null, // Optional field
-            // fileUrl || null   // Optional field
-             null   // Optional field
+            fileUrl || null   // Optional field
+            //  null   // Optional field
         ]);
 
         // Respond with success message and inserted room ID
