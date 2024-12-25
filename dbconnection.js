@@ -1,7 +1,7 @@
 const mysql = require('mysql2/promise'); // Use `mysql2/promise` for async/await support
 
 const db = mysql.createPool({
-    host: 'localhost',
+    host: 'local',
     user: 'root',
     password: '',
     database: 'aizoteq',
