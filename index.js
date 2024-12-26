@@ -133,9 +133,14 @@ const bodySchema = Joi.object({
     attributes: attributesSchema,
 });
 
+
+const { swaggerUi, specs } = require("./swagger");
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
 app.get('/',(req,res)=>{
     res.send('working EC2 ')
 })
+
 // Protect the /app/addThing endpoint for admins and staff
 app.post(
     "/app/addThing",
