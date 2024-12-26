@@ -402,26 +402,27 @@ app.post(
     async (req, res) => {
     try {
         const home_id = req.params.home_id;
-        const {name } = req.body; // Destructure the required fields from the request body
+        const { name } = req.body; // Destructure the required fields from the request body
 
         // Check if required data is provided
         if (!home_id || !name) {
             return res.status(400).json({ error: 'home_id and name are required' });
         }
 
-        // Insert query
+        // Insert query with PostgreSQL
         const query = `
             INSERT INTO floor (home_id, name) 
-            VALUES ($1, $2)
+            VALUES ($1, $2) 
+            RETURNING id
         `;
 
         // Execute the query
-        const [result] = await db.query(query, [home_id, name]);
+        const result = await db.query(query, [home_id, name]);
 
         // Respond with success message and the inserted row ID
         res.status(201).json({
             message: 'Floor added successfully',
-            floorId: result.insertId // Retrieve the ID of the inserted row
+            floorId: result.rows[0].id // Retrieve the ID of the inserted row
         });
     } catch (error) {
         console.error(error);
