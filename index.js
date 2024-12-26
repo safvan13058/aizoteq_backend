@@ -147,98 +147,94 @@ app.post(
             return res.status(400).json({ message: "Invalid input data", error: error.details });
         }
 
-        const { thing, attributes} = req.body;
-        const connection = await db.getConnection();
+        const { thing, attributes } = req.body;
+        const client = await db.connect(); // Get a client connection
 
         try {
-            await connection.beginTransaction();
+            await client.query("BEGIN"); // Start transaction
 
-            // create security key for thing 
-            const securityKey= await SecurityKey(thing.serialno)
-            console.log(securityKey)
+            // Create security key for thing
+            const securityKey = await SecurityKey(thing.serialno);
+            console.log(securityKey);
 
             // Insert Thing
-            const [thingResult] = await connection.query(
-                `INSERT INTO things (thingName, createdBy, batchId, model, serialno, type,securityKey)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    thing.thingName,
-                    req.user.username, // Using the authenticated user's username
-                    // "admin",
-                    thing.batchId,
-                    thing.model,
-                    thing.serialno,
-                    thing.type,
-                    securityKey
-                ]
-            );
-              console.log(thingResult)
+            const thingQuery = `
+                INSERT INTO things (thingName, createdBy, batchId, model, serialno, type, securityKey)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING id
+            `;
+            const thingResult = await client.query(thingQuery, [
+                thing.thingName,
+                req.user.username, // Using the authenticated user's username
+                thing.batchId,
+                thing.model,
+                thing.serialno,
+                thing.type,
+                securityKey
+            ]);
+            const thingId = thingResult.rows[0].id; // Retrieve the inserted thing ID
+            console.log(thingResult);
+
             // Insert Attributes and Devices
             let counter = 1;
             for (const attr of attributes) {
                 // Insert ThingAttributes
-                await connection.query(
-                    `INSERT INTO ThingAttributes (thingId, attributeName, attributeValue)
-                     VALUES (?, ?, ?)`,
-                    [thingResult.insertId, attr.attributeName, attr.attributeValue]
-                );
+                const attributeQuery = `
+                    INSERT INTO ThingAttributes (thingId, attributeName, attributeValue)
+                    VALUES ($1, $2, $3)
+                `;
+                await client.query(attributeQuery, [thingId, attr.attributeName, attr.attributeValue]);
 
                 // Validate and Insert Devices
                 const totalDevices = parseInt(attr.attributeValue, 10);
-                if (totalDevices > 100) { // Limit the number of devices
-                    throw new Error(
-                        `Too many devices requested for attribute ${attr.attributeName}`
-                    );
+                if (totalDevices > 100) {
+                    throw new Error(`Too many devices requested for attribute ${attr.attributeName}`);
                 }
 
                 for (let i = 1; i <= totalDevices; i++) {
                     const deviceId = `${thing.serialno}_${counter}`;
                     const name = `${attr.attributeName}_${i}`;
-                    await connection.query(
-                        `INSERT INTO Devices (thingId, deviceId, macAddress, hubIndex,  createdBy, enable, status, icon, name, type)
-                         VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
-                        [    
-                            thingResult.insertId,
-                            deviceId,
-                            thing.serialno,
-                            counter,
-                            // null,
-                            // "admin",
-                            req.user.username,
-                            true,
-                            null,
-                            null,
-                            name,
-                            attr.attributeName
-                        ]
-                    );
+                    const deviceQuery = `
+                        INSERT INTO Devices (thingId, deviceId, macAddress, hubIndex, createdBy, enable, status, icon, name, type)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    `;
+                    await client.query(deviceQuery, [
+                        thingId,
+                        deviceId,
+                        thing.serialno,
+                        counter,
+                        req.user.username,
+                        true,
+                        null,
+                        null,
+                        name,
+                        attr.attributeName
+                    ]);
 
                     counter++;
                 }
             }
 
             // Insert into AdminStock
-            await connection.query(
-                `INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
-                 VALUES (?, CURRENT_TIMESTAMP, ?, ?)`,
-                [thingResult.insertId, 
-                    req.user.username,
-                    // "admin",
-                     "new"]
-            );
+            const adminStockQuery = `
+                INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
+                VALUES ($1, CURRENT_TIMESTAMP, $2, $3)
+            `;
+            await client.query(adminStockQuery, [thingId, req.user.username, "new"]);
 
             // Commit transaction
-            await connection.commit();
+            await client.query("COMMIT");
             res.status(201).json({ message: "Data inserted successfully" });
         } catch (error) {
-            if (connection) await connection.rollback();
+            if (client) await client.query("ROLLBACK"); // Rollback transaction on error
             console.error(error);
             res.status(500).json({ message: "An error occurred", error: error.message });
         } finally {
-            if (connection) connection.release();
+            if (client) client.release(); // Release the client back to the pool
         }
     }
 );
+
 
 
 // --------only for demo=------------
@@ -254,73 +250,71 @@ app.use(cors());
 app.post(
     '/app/add/home/',
     async (req, res) => {
-
         try {
-            const { name } = req.body;// Destructure the required fields from the request body
-            const created_by=  req.user.username;
-            // const created_by= 1;
-            const user_id= req.user.id;
-            // const user_id= 1;
-    
+            const { name } = req.body; // Destructure the required fields from the request body
+            const created_by = req.user.username; // Authenticated user's username
+            const user_id = req.user.id; // Authenticated user's ID
+
             // Check if required data is provided
             if (!name || !created_by) {
                 return res.status(400).json({ error: 'name and created_by are required' });
             }
-    
+
             // Insert query
             const query = `
-                INSERT INTO home (name, created_by,userid) 
-                VALUES (?, ?, ?)
+                INSERT INTO home (name, created_by, userid) 
+                VALUES ($1, $2, $3)
+                RETURNING id
             `;
-    
+
             // Execute the query
-            const [result] = await db.execute(query, [name, created_by,user_id]);
-    
+            const result = await db.query(query, [name, created_by, user_id]);
+
             // Respond with success message and the inserted row ID
             res.status(201).json({
                 message: 'Home added successfully',
-                homeId: result.insertId // Retrieve the ID of the inserted row
+                homeId: result.rows[0].id // Retrieve the ID of the inserted row
             });
         } catch (error) {
             console.error(error);
             res.status(500).json({ error: 'An error occurred while adding the home' });
         }
+    }
+);
 
-
-});
 
 //display home
 app.get(
-    // '/app/display/homes/:user_id',
     '/app/display/homes/',
-     async (req, res) => {          
-    try {
-        const userId = req.user.id; // Get the user_id from the URL parameter
-        // const userId = 1; // for checking
+    async (req, res) => {          
+        try {
+            const userId = req.user.id; // Get the user_id from the authenticated user
+            // const userId = 1; // for testing
 
-        // Query to fetch homes by user_id
-        const query = `
-            SELECT * 
-            FROM home
-            WHERE userid = ?
-        `;
+            // Query to fetch homes by user_id
+            const query = `
+                SELECT * 
+                FROM home
+                WHERE userid = $1
+            `;
 
-        // Execute the query
-        const [rows] = await db.execute(query, [userId]);
+            // Execute the query
+            const result = await db.query(query, [userId]);
 
-        // If no homes are found, return a 404
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'No homes found for this user' });
+            // If no homes are found, return a 404
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'No homes found for this user' });
+            }
+
+            // Respond with the homes
+            res.status(200).json(result.rows);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while fetching homes' });
         }
-
-        // Respond with the homes
-        res.status(200).json(rows);
-        
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while fetching homes' });
     }
-});
+);
+
 
 
 
@@ -328,8 +322,8 @@ app.get(
 app.put('/app/update/home/:id', async (req, res) => {
     try {
         const homeId = req.params.id; // Get home ID from URL parameter
-        const { name} = req.body; 
-        const created_by=  req.user.username// Extract fields to update from request body
+        const { name } = req.body; 
+        const created_by = req.user.username; // Extract fields to update from request body
 
         // Validate input
         if (!name && !created_by) {
@@ -340,11 +334,11 @@ app.put('/app/update/home/:id', async (req, res) => {
         const updates = [];
         const values = [];
         if (name) {
-            updates.push('name = ?');
+            updates.push('name = $' + (values.length + 1));
             values.push(name);
         }
         if (created_by) {
-            updates.push('created_by = ?');
+            updates.push('created_by = $' + (values.length + 1));
             values.push(created_by);
         }
         values.push(homeId); // Add homeId for the WHERE clause
@@ -352,13 +346,13 @@ app.put('/app/update/home/:id', async (req, res) => {
         const query = `
             UPDATE home
             SET ${updates.join(', ')}
-            WHERE id = ?
+            WHERE id = $${values.length}
         `;
 
         // Execute the update query
-        const [result] = await db.execute(query, values);
+        const result = await db.query(query, values);
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Home not found or no changes made' });
         }
 
@@ -369,6 +363,7 @@ app.put('/app/update/home/:id', async (req, res) => {
     }
 });
 
+
 // Delete Home
 app.delete('/app/delete/home/:id', async (req, res) => {
     try {
@@ -377,13 +372,13 @@ app.delete('/app/delete/home/:id', async (req, res) => {
         // Delete query
         const query = `
             DELETE FROM home
-            WHERE id = ?
+            WHERE id = $1
         `;
 
         // Execute the query
-        const [result] = await db.execute(query, [homeId]);
+        const result = await db.query(query, [homeId]);
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Home not found' }); // No home with the specified ID
         }
 
@@ -395,45 +390,54 @@ app.delete('/app/delete/home/:id', async (req, res) => {
 });
 
 
+
 // ADD floor
 
 app.post(
-    '/app/add/floor/:home_id', 
+    '/app/add/floor/:home_id',
     async (req, res) => {
-    try {
-        const home_id = req.params.home_id;
-        const {name } = req.body; // Destructure the required fields from the request body
+        try {
+            const home_id = req.params.home_id;
+            const { name } = req.body; // Destructure the required fields from the request body
 
-        // Check if required data is provided
-        if (!home_id || !name) {
-            return res.status(400).json({ error: 'home_id and name are required' });
+            // Check if required data is provided
+            if (!home_id || !name) {
+                return res.status(400).json({ error: 'home_id and name are required' });
+            }
+
+            // Insert query with RETURNING clause to get the inserted row ID
+            const query = `
+                INSERT INTO floor (home_id, name) 
+                VALUES ($1, $2)
+                RETURNING id
+            `;
+
+            // Execute the query
+            const result = await db.query(query, [home_id, name]);
+
+            // Respond with success message and the inserted row ID
+            res.status(201).json({
+                message: 'Floor added successfully',
+                floorId: result.rows[0].id // Retrieve the ID of the inserted row
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while adding the floor' });
         }
-
-        // Insert query
-        const query = `
-            INSERT INTO floor (home_id, name) 
-            VALUES ($1, $2)
-        `;
-
-        // Execute the query
-        const [result] = await db.query(query, [home_id, name]);
-
-        // Respond with success message and the inserted row ID
-        res.status(201).json({
-            message: 'Floor added successfully',
-            floorId: result.insertId // Retrieve the ID of the inserted row
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while adding the floor' });
     }
-});
+);
+
 
     
 // Display floor
 app.get('/app/display/floors/:home_id', async (req, res) => {
     try {
-        const homeId = req.params.home_id;  // Extract home ID from the request URL
+        const homeId = req.params.home_id; // Extract home ID from the request URL
+
+        // Validate input
+        if (!homeId) {
+            return res.status(400).json({ error: 'home_id is required' });
+        }
 
         // Query to fetch floors by home_id
         const query = `SELECT * FROM floor WHERE home_id = $1`;
@@ -447,22 +451,21 @@ app.get('/app/display/floors/:home_id', async (req, res) => {
         }
 
         // Respond with the list of floors
-        console.log(result.rows);
         res.status(200).json(result.rows);
     } catch (error) {
-        console.error(error);
+        console.error('Error fetching floors:', error.message);
         res.status(500).json({ error: 'An error occurred while fetching floors' });
     }
 });
+
 
 //Update Floor
 app.put('/app/update/floors/:id', async (req, res) => {
     try {
         const floorId = req.params.id;  // Extract floor ID from the request URL
-        const { name, home_id } = req.body;  // Extract fields to update from the request body
-
+        const { name} = req.body;  // Extract fields to update from the request body
         // Validate input
-        if (!name && !home_id) {
+        if (!name) {
             return res.status(400).json({ error: 'At least one of name or home_id must be provided' });
         }
 
@@ -473,10 +476,6 @@ app.put('/app/update/floors/:id', async (req, res) => {
         if (name) {
             updates.push('name = ?');
             values.push(name);
-        }
-        if (home_id) {
-            updates.push('home_id = ?');
-            values.push(home_id);
         }
 
         values.push(floorId);  // Add floorId for the WHERE clause
@@ -504,18 +503,15 @@ app.put('/app/update/floors/:id', async (req, res) => {
 //Delete Floor
 app.delete('/app/delete/floors/:id', async (req, res) => {
     try {
-        const floorId = req.params.id;  // Extract floor ID from the request URL
+        const floorId = req.params.id; // Extract floor ID from the request URL
 
-        // Delete query
-        const query = `
-            DELETE FROM floor
-            WHERE id = ?
-        `;
+        // Delete query with parameterized input
+        const query = 'DELETE FROM floor WHERE id = $1';
 
         // Execute the query
-        const [result] = await db.query(query, [floorId]);
+        const result = await db.query(query, [floorId]);
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ message: 'Floor not found' });
         }
 
@@ -527,67 +523,61 @@ app.delete('/app/delete/floors/:id', async (req, res) => {
 });
 
 //ADD room
-app.post(
-    '/app/add/room/:floor_id',
-    upload.single('image'),
-    async (req, res) => {
-        try {
-            const floor_id = req.params.floor_id;
-            console.log(floor_id);
-            const { name, alias_name } = req.body;
+app.post('/app/add/room/:floor_id', upload.single('image'), async (req, res) => {
+    try {
+        const floor_id = req.params.floor_id;
+        const { name, alias_name } = req.body;
 
-            // Validate input
-            if (!floor_id || !name) {
-                return res.status(400).json({ error: 'floor_id and name are required' });
-            }
-
-            // Placeholder for S3 file upload (if needed in the future)
-            // Uncomment and integrate the following logic if S3 upload is required.
-            /*
-            const file = req.file;
-            let fileUrl = null;
-            if (file) {
-                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
-                const params = {
-                    Bucket: process.env.S3_BUCKET_NAME,
-                    Key: fileKey,
-                    Body: file.buffer,
-                    ContentType: file.mimetype,
-                    ACL: 'public-read', // Make the file publicly readable
-                };
-
-                const uploadResult = await s3.upload(params).promise();
-                fileUrl = uploadResult.Location; // S3 file URL
-            }
-            */
-
-            // Insert query with PostgreSQL
-            const query = `
-                INSERT INTO room (floor_id, name, alias_name, image_url,home_id) 
-                VALUES ($1, $2, $3, $4,$5) 
-                RETURNING id
-            `;
-
-            // Execute the query
-            const result = await db.query(query, [
-                floor_id,
-                name,
-                alias_name || null, // Optional field
-                null ,// Replace with `fileUrl` if integrating S3
-                1
-            ]);
-
-            // Respond with success message and inserted room ID
-            res.status(201).json({
-                message: 'Room added successfully',
-                roomId: result.rows[0].id // Retrieve the ID of the inserted row
-            });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'An error occurred while adding the room' });
+        // Validate input
+        if (!floor_id || !name) {
+            return res.status(400).json({ error: 'floor_id and name are required' });
         }
+
+        // Placeholder for S3 file upload (if needed in the future)
+        let fileUrl = null;
+        if (req.file) {
+            // const file=req.file
+            // const fileKey = images/${Date.now()}-${file.originalname}; // Unique file name
+            // const params = {
+            //     Bucket: process.env.S3_BUCKET_NAME,
+            //     Key: fileKey,
+            //     Body: file.buffer,
+            //     ContentType: file.mimetype,
+            //     ACL: 'public-read', // Make the file publicly readable
+            // };
+
+            // const uploadResult = await s3.upload(params).promise();
+            // fileUrl = uploadResult.Location; // S3 file URL
+        };// Implement S3 upload logic here and set fileUrl accordingly
+
+        // Insert query with PostgreSQL
+        const query = `
+            INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING id
+        `;
+
+        const values = [
+            floor_id,
+            name,
+            alias_name || null, // Optional field
+            fileUrl, // Replace with actual file URL if integrating S3
+            1 // Replace with actual home_id if available
+        ];
+
+        // Execute the query
+        const result = await db.query(query, values);
+
+        // Respond with success message and inserted room ID
+        res.status(201).json({
+            message: 'Room added successfully',
+            roomId: result.rows[0].id // Retrieve the ID of the inserted row
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while adding the room' });
     }
-);
+});
 
 
 
@@ -596,16 +586,13 @@ app.delete('/app/delete/room/:id', async (req, res) => {
     try {
         const roomId = req.params.id; // Get the room ID from the URL parameter
 
-        // Delete query
-        const query = `
-            DELETE FROM room
-            WHERE id = ?
-        `;
+        // Delete query with parameterized input
+        const query = 'DELETE FROM room WHERE id = $1';
 
         // Execute the query
-        const [result] = await db.execute(query, [roomId]);
+        const result = await db.query(query, [roomId]);
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Room not found' }); // No room with the specified ID
         }
 
@@ -616,29 +603,26 @@ app.delete('/app/delete/room/:id', async (req, res) => {
     }
 });
 
+
 //Display room
 
 app.get('/app/display/rooms/:floor_id', async (req, res) => {
     try {
-        const floorId = req.params.floor_id;  // Extract floor ID from the request URL
+        const floorId = req.params.floor_id; // Extract floor ID from the request URL
 
-        // Query to fetch rooms
-        const query = `
-            SELECT * 
-            FROM room 
-            WHERE floor_id = ?
-        `;
+        // Query to fetch rooms with parameterized input
+        const query = 'SELECT * FROM room WHERE floor_id = $1';
 
         // Execute the query
-        const [rooms] = await db.execute(query, [floorId]);
+        const result = await db.query(query, [floorId]);
 
-        if (rooms.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ message: 'No rooms found for this floor' });
         }
-         console.log(rooms)
+
         res.status(200).json({
             message: 'Rooms retrieved successfully',
-            rooms: rooms
+            rooms: result.rows
         });
     } catch (error) {
         console.error(error);
@@ -647,47 +631,50 @@ app.get('/app/display/rooms/:floor_id', async (req, res) => {
 });
 
 
+
 // Update room
 app.put('/app/update/rooms/:id', upload.single('image'), async (req, res) => {
     try {
         const roomId = req.params.id; // Extract room ID from the request URL
-        const { name, alias_name, image_url } = req.body; // Extract fields from the request body
+        const { name, alias_name } = req.body; // Extract fields from the request body
+        const file = req.file; // Extract the uploaded file
 
         // Validate input
-        if (!name && !alias_name && !image_url) {
-            return res.status(400).json({ error: 'At least one of name, alias_name, or image_url must be provided' });
+        if (!name && !alias_name && !file) {
+            return res.status(400).json({ error: 'At least one of name, alias_name, or image must be provided' });
         }
-        
-        if( image_url){
-        // Define S3 upload parameters
-        const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
-        const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileKey,
-        Body: file.buffer,
-        ContentType: file.mimetype,
-        ACL: 'public-read', // Make the file publicly readable
-       };
 
-        // Upload file to S3
-        const uploadResult = await s3.upload(params).promise();
-        var fileUrl = uploadResult.Location;
+        let fileUrl;
+        if (file) {
+            // Define S3 upload parameters
+            const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                ACL: 'public-read', // Make the file publicly readable
+            };
+
+            // Upload file to S3
+            const uploadResult = await s3.upload(params).promise();
+            fileUrl = uploadResult.Location;
         }
 
         // Build dynamic query
         const updates = [];
         const values = [];
-        
+
         if (name) {
-            updates.push('name = ?');
+            updates.push('name = $' + (values.length + 1));
             values.push(name);
         }
         if (alias_name) {
-            updates.push('alias_name = ?');
+            updates.push('alias_name = $' + (values.length + 1));
             values.push(alias_name);
         }
         if (fileUrl) {
-            updates.push('image_url = ?');
+            updates.push('image_url = $' + (values.length + 1));
             values.push(fileUrl);
         }
 
@@ -696,13 +683,13 @@ app.put('/app/update/rooms/:id', upload.single('image'), async (req, res) => {
         const query = `
             UPDATE room
             SET ${updates.join(', ')}
-            WHERE id = ?
+            WHERE id = $${values.length}
         `;
 
         // Execute the query
-        const [result] = await db.execute(query, values);
+        const result = await db.query(query, values);
 
-        if (result.affectedRows === 0) {
+        if (result.rowCount === 0) {
             return res.status(404).json({ error: 'Room not found or no changes made' });
         }
 
@@ -713,6 +700,7 @@ app.put('/app/update/rooms/:id', upload.single('image'), async (req, res) => {
     }
 });
 
+
 // display things with id
 app.get('/api/display/things/:id', async (req, res) => {
     const id = req.params.id;
@@ -720,16 +708,16 @@ app.get('/api/display/things/:id', async (req, res) => {
         const query = `
             SELECT * 
             FROM things 
-            WHERE id = ?
+            WHERE id = $1
         `;
 
-        const [result] = await db.execute(query, [id]);
+        const result = await db.query(query, [id]);
 
-        if (result.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Thing not found' });
         }
 
-        res.status(200).json(result[0]);
+        res.status(200).json(result.rows[0]);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal Server Error' });
@@ -737,27 +725,31 @@ app.get('/api/display/things/:id', async (req, res) => {
 });
 
 
+
  //display all things
-  app.get('/api/display/things', async (req, res) => {
+ app.get('/api/display/things', async (req, res) => {
     try {
-      const result = await db.query('SELECT * FROM things'); // Fetch all records
-      res.status(200).json(result[0]); // Send result as JSON
+        const result = await db.query('SELECT * FROM things'); // Fetch all records
+        res.status(200).json(result.rows); // Send result as JSON
     } catch (error) {
-      console.error('Error fetching things:', error); // Log the error for debugging
-      res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+        console.error('Error fetching things:', error); // Log the error for debugging
+        res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
     }
-  });
+});
+
 
  //display thingattribute with thingid
  app.get('/api/display/thingattribute/:thingid', async (req, res) => {
     const thingid = req.params.thingid; // Get the thingid from the route parameter
     try {
-        // Execute the query with a proper WHERE clause
-        const [result] = await db.query('SELECT * FROM thingattributes WHERE thingid = ?', [thingid]);
+        // Execute the query with a parameterized WHERE clause
+        const query = 'SELECT * FROM thingattributes WHERE thingid = $1';
+        const values = [thingid];
+        const result = await pool.query(query, values);
 
-        if (result.length > 0) {
+        if (result.rows.length > 0) {
             // Send the result as JSON if records are found
-            res.status(200).json(result);
+            res.status(200).json(result.rows);
         } else {
             // Handle the case where no records match
             res.status(404).json({ message: 'No records found' });
@@ -774,43 +766,63 @@ app.get('/api/display/things/:id', async (req, res) => {
 
 //display devices with thingid
 app.get('/api/display/devices/:thingid', async (req, res) => {
-    const thingid = req.params.thingid; // Get the thingid from the route parameter
+    const thingid = req.params.thingid; // Extract the thingid from the route parameter
     try {
-        const result = await db.query('SELECT * FROM devi  ces WHERE thingid = ?', [thingid]); 
-        if (result.length > 0) {
-            res.status(200).json(result[0]); // Send the result as JSON if records are found
+        // Execute the query with a parameterized WHERE clause
+        const query = 'SELECT * FROM devices WHERE thingid = $1';
+        const values = [thingid];
+        const result = await db.query(query, values);
+
+        if (result.rows.length > 0) {
+            // Send the result as JSON if records are found
+            res.status(200).json(result.rows);
         } else {
-            res.status(404).json({ message: 'No records found' });// Handle case where no records match
+            // Handle the case where no records match
+            res.status(404).json({ message: 'No records found' });
         }
     } catch (error) {
-        console.error('Error fetching things:', error.message); // Log the error for debugging
-        res.status(500).json({ error: 'Internal Server Error' }); // Respond with a generic error
+        // Log the error for debugging
+        console.error('Error fetching devices:', error.message);
+
+        // Respond with a generic error
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 //display thing that new,rework,failed,etc.....
 app.get('/api/display/test/:type', async (req, res) => {
     try {
         // Get the 'type' parameter from the request URL
-        const type = req.params.type;
+        const { type } = req.params;
 
         // Perform the database query
-        const result = await db.query('SELECT * FROM things WHERE type = ?', [type]);
+        const query = 'SELECT * FROM things WHERE type = $1';
+        const values = [type];
+        const result = await db.query(query, values);
 
         // Send the result back to the client
-        res.status(200).json({
-            success: true,
-            data: result[0]
-        });
+        if (result.rows.length > 0) {
+            res.status(200).json({
+                success: true,
+                data: result.rows[0],
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: 'No records found',
+            });
+        }
     } catch (error) {
         // Handle any errors
         console.error('Error fetching data from the database:', error);
         res.status(500).json({
             success: false,
-            message: 'An error occurred while fetching data'
+            message: 'An error occurred while fetching data',
         });
     }
 });
+
 
 //display things with  status
 app.get('/api/display/status/:status', async (req, res) => {
@@ -819,9 +831,10 @@ app.get('/api/display/status/:status', async (req, res) => {
         const status = req.params.status;
 
         // Perform the first database query to fetch adminstock entries
-        const [results] = await db.query('SELECT * FROM adminstock WHERE status = ?', [status]);
+        const queryAdminStock = 'SELECT * FROM adminstock WHERE status = $1';
+        const resultAdminStock = await db.query(queryAdminStock, [status]);
 
-        if (results.length === 0) {
+        if (resultAdminStock.rows.length === 0) {
             // If no records are found for the given status, return a 404
             return res.status(404).json({
                 success: false,
@@ -829,19 +842,21 @@ app.get('/api/display/status/:status', async (req, res) => {
             });
         }
 
-        console.log('AdminStock Results:', results);
+        console.log('AdminStock Results:', resultAdminStock.rows);
 
         // Extract thingIds from the results
-        const thingIds = results.map(item => item.thingId);
+        const thingIds = resultAdminStock.rows.map(item => item.thingid); // Use `thingid` in PostgreSQL
+
         console.log('Extracted Thing IDs:', thingIds);
 
         // Perform the second query to fetch data from the `things` table for all matching thingIds
-        const [datas] = await db.query('SELECT * FROM things WHERE id IN (?)', [thingIds]);
+        const queryThings = 'SELECT * FROM things WHERE id = ANY($1)';
+        const resultThings = await db.query(queryThings, [thingIds]);
 
         // Send the result back to the client
         res.status(200).json({
             success: true,
-            data: datas,
+            data: resultThings.rows,
         });
     } catch (error) {
         // Handle any errors
@@ -855,92 +870,102 @@ app.get('/api/display/status/:status', async (req, res) => {
 });
 
 
+
 // share access to customer with macAddress and securityKey
 app.post('/api/access/customer/:roomid', async (req, res) => {
-    const connection = await db.getConnection(); // Get a transactional connection
+    const client = await db.connect(); // Get a client from the pool
     try {
         const roomid = req.params.roomid;
-        const user_id = 1; 
-        const { securitykey, serialno } = req.body; 
-        
-        await connection.beginTransaction();
+        const user_id = 1; // Replace with actual user ID
+        const { securitykey, serialno } = req.body;
 
-        const [verify] = await connection.query(
-            'SELECT * FROM things WHERE serialno = ? AND securityKey = ?',
-            [serialno, securitykey]
-        );
+        await client.query('BEGIN'); // Start a transaction
 
-        if (!verify || verify.length === 0) {
+        // Verify the thing
+        const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
+        const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
+
+        if (verifyResult.rows.length === 0) {
             return res.status(404).json({ message: "Thing not found or invalid security key" });
         }
 
-        const thing_id = verify[0].id; 
-        const key = verify[0].securityKey; 
+        const thing_id = verifyResult.rows[0].id;
+        const key = verifyResult.rows[0].securitykey;
 
-        await connection.query(
-            'INSERT INTO customer_access (user_id, email, thing_id, securitykey) VALUES (?, ?, ?, ?)',
-            [user_id, null, thing_id, key]
-        );
+        // Insert into customer_access
+        const insertAccessQuery = `
+            INSERT INTO customer_access (user_id, email, thing_id, securitykey)
+            VALUES ($1, $2, $3, $4)
+        `;
+        await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
 
-        const [room_device] = await connection.query(
-            'SELECT deviceid FROM devices WHERE thingId = ?', 
-            [thing_id]
-        );
-        console.log(thing_id)
-        console.log(room_device)
+        // Retrieve device IDs
+        const deviceQuery = 'SELECT deviceid FROM devices WHERE thingid = $1';
+        const deviceResult = await client.query(deviceQuery, [thing_id]);
 
-        const device_ids = room_device.map(item => item.deviceid);
-        console.log(device_ids)
-        for (const device_id of device_ids) {
-            await connection.query(
-                'INSERT INTO room_device (room_id, device_id) VALUES (?, ?)',
-                [roomid, device_id]
-            );
+        if (deviceResult.rows.length === 0) {
+            return res.status(404).json({ message: "No devices found for the given thing" });
         }
 
-        await connection.commit();
+        const device_ids = deviceResult.rows.map(item => item.deviceid);
+
+        // Insert into room_device
+        const roomDeviceQuery = `
+            INSERT INTO room_device (room_id, device_id)
+            VALUES ($1, $2)
+        `;
+        for (const device_id of device_ids) {
+            await client.query(roomDeviceQuery, [roomid, device_id]);
+        }
+
+        await client.query('COMMIT'); // Commit the transaction
         res.status(201).json({ message: "Access shared successfully" });
     } catch (error) {
-        if (connection) await connection.rollback();
+        await client.query('ROLLBACK'); // Rollback the transaction on error
         console.error("Error sharing access:", error);
         res.status(500).json({ message: "Internal server error" });
     } finally {
-        if (connection) connection.release();
+        client.release(); // Release the client back to the pool
     }
 });
+
 
 
 //display devices with roomsid
 
 app.get('/api/display/device/rooms/:roomid', async (req, res) => {
+    const client = await db.connect(); // Get a client from the pool
     try {
         const roomid = req.params.roomid;
 
         // Fetch device IDs associated with the room
-        const [device_ids] = await db.query('SELECT device_id FROM room_device WHERE room_id = ?', [roomid]);
+        const deviceIdsQuery = 'SELECT device_id FROM room_device WHERE room_id = $1';
+        const deviceIdsResult = await client.query(deviceIdsQuery, [roomid]);
 
-        if (device_ids.length === 0) {
+        if (deviceIdsResult.rows.length === 0) {
             return res.status(404).json({ message: 'No devices found for this room.' });
         }
 
         // Extract device IDs
-        const deviceIds = device_ids.map(item => item.device_id);
+        const deviceIds = deviceIdsResult.rows.map(item => item.device_id);
 
         // Dynamically generate placeholders for the device IDs
-        const placeholders = deviceIds.map(() => '?').join(',');
+        const placeholders = deviceIds.map((_, index) => `$${index + 1}`).join(',');
         const query = `SELECT * FROM devices WHERE deviceid IN (${placeholders})`;
 
         // Fetch device details
-        const [devices] = await db.query(query, deviceIds);
+        const devicesResult = await client.query(query, deviceIds);
 
         // Return the device data
-        console.log(devices)
-        res.status(200).json({ devices });
+        res.status(200).json({ devices: devicesResult.rows });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'An error occurred while fetching devices.', error });
+    } finally {
+        client.release(); // Release the client back to the pool
     }
 });
+
 
 
 
