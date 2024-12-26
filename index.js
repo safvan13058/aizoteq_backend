@@ -402,27 +402,26 @@ app.post(
     async (req, res) => {
     try {
         const home_id = req.params.home_id;
-        const { name } = req.body; // Destructure the required fields from the request body
+        const {name } = req.body; // Destructure the required fields from the request body
 
         // Check if required data is provided
         if (!home_id || !name) {
             return res.status(400).json({ error: 'home_id and name are required' });
         }
 
-        // Insert query with PostgreSQL
+        // Insert query
         const query = `
             INSERT INTO floor (home_id, name) 
-            VALUES ($1, $2) 
-            RETURNING id
+            VALUES ($1, $2)
         `;
 
         // Execute the query
-        const result = await db.query(query, [home_id, name]);
+        const [result] = await db.query(query, [home_id, name]);
 
         // Respond with success message and the inserted row ID
         res.status(201).json({
             message: 'Floor added successfully',
-            floorId: result.rows[0].id // Retrieve the ID of the inserted row
+            floorId: result.insertId // Retrieve the ID of the inserted row
         });
     } catch (error) {
         console.error(error);
@@ -530,58 +529,65 @@ app.delete('/app/delete/floors/:id', async (req, res) => {
 //ADD room
 app.post(
     '/app/add/room/:floor_id',
-     upload.single('image'),
-     async (req, res) => {
-    try {
-        const floor_id = req.params.floor_id;
-        console.log(floor_id)
-        const {name, alias_name,  } = req.body;
-        // const image_url=req.file;
-          
-        // Define S3 upload parameters
-        //  const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
-        //  const params = {
-        //  Bucket: process.env.S3_BUCKET_NAME,
-        //  Key: fileKey,
-        //  Body: file.buffer,
-        //  ContentType: file.mimetype,
-        //  ACL: 'public-read', // Make the file publicly readable
-        // };
+    upload.single('image'),
+    async (req, res) => {
+        try {
+            const floor_id = req.params.floor_id;
+            console.log(floor_id);
+            const { name, alias_name } = req.body;
 
-        //  // Upload file to S3
-        //  const uploadResult = await s3.upload(params).promise();
-        //  const fileUrl = uploadResult.Location;
+            // Validate input
+            if (!floor_id || !name) {
+                return res.status(400).json({ error: 'floor_id and name are required' });
+            }
 
-        // Validate input
-        if (!floor_id || !name) {
-            return res.status(400).json({ error: 'home_id, floor_id, and name are required' });
+            // Placeholder for S3 file upload (if needed in the future)
+            // Uncomment and integrate the following logic if S3 upload is required.
+            /*
+            const file = req.file;
+            let fileUrl = null;
+            if (file) {
+                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+                const params = {
+                    Bucket: process.env.S3_BUCKET_NAME,
+                    Key: fileKey,
+                    Body: file.buffer,
+                    ContentType: file.mimetype,
+                    ACL: 'public-read', // Make the file publicly readable
+                };
+
+                const uploadResult = await s3.upload(params).promise();
+                fileUrl = uploadResult.Location; // S3 file URL
+            }
+            */
+
+            // Insert query with PostgreSQL
+            const query = `
+                INSERT INTO room (floor_id, name, alias_name, image_url) 
+                VALUES ($1, $2, $3, $4) 
+                RETURNING id
+            `;
+
+            // Execute the query
+            const result = await db.query(query, [
+                floor_id,
+                name,
+                alias_name || null, // Optional field
+                null // Replace with `fileUrl` if integrating S3
+            ]);
+
+            // Respond with success message and inserted room ID
+            res.status(201).json({
+                message: 'Room added successfully',
+                roomId: result.rows[0].id // Retrieve the ID of the inserted row
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while adding the room' });
         }
-
-        // Insert query
-        const query = `
-            INSERT INTO room (floor_id, name, alias_name, image_url) 
-            VALUES (?, ?, ?, ?)
-        `;
-
-        // Execute the query
-        const [result] = await db.query(query, [
-            floor_id,
-            name,
-            alias_name || null, // Optional field
-            // fileUrl || null   // Optional field
-             null   // Optional field
-        ]);
-
-        // Respond with success message and inserted room ID
-        res.status(201).json({
-            message: 'Room added successfully',
-            roomId: result.insertId // Retrieve the ID of the inserted row
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while adding the room' });
     }
-});
+);
+
 
 
 //Delete Room
