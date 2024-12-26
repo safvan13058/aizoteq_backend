@@ -133,6 +133,9 @@ const bodySchema = Joi.object({
     attributes: attributesSchema,
 });
 
+app.get('/',(req,res)=>{
+    res.send('working')
+})
 // Protect the /app/addThing endpoint for admins and staff
 app.post(
     "/app/addThing",
@@ -935,7 +938,7 @@ app.get('/api/display/device/rooms/:roomid', async (req, res) => {
 
 
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT,
     '0.0.0.0',
      () => {
