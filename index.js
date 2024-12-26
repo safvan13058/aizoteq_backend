@@ -416,7 +416,7 @@ app.post(
         `;
 
         // Execute the query
-        const [result] = await db.execute(query, [home_id, name]);
+        const [result] = await db.query(query, [home_id, name]);
 
         // Respond with success message and the inserted row ID
         res.status(201).json({
