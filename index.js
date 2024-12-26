@@ -436,7 +436,7 @@ app.get('/app/display/floors/:home_id', async (req, res) => {
         const homeId = req.params.home_id;  // Extract home ID from the request URL
 
         // Query to fetch floors by home_id
-        const query = `SELECT * FROM floor WHERE home_id = $1`;
+        const query = `SELECT * FROM floor WHERE home_id = ?`;
 
         // Execute the query
         const result = await db.query(query, [homeId]);
