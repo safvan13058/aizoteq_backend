@@ -13,7 +13,7 @@ const db = new Pool({
     // connectionTimeoutMillis: 2000,              // Timeout if connection cannot be established
     ssl: {
         rejectUnauthorized: true,               // Ensures the server certificate is verified
-        // ca: fs.readFileSync('/path/to/ca-cert.pem').toString() // Optional CA cert for RDS/Aurora
+        ca: fs.readFileSync('\global-bundle.pem').toString() // Optional CA cert for RDS/Aurora
     }
 });
 
