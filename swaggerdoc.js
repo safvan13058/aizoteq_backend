@@ -1,142 +1,198 @@
 const Swaggerdoc = {
-    "/app/addThing": {
-      post: {
-        summary: "Add a new thing",
-        description: "Create a thing with associated attributes and devices, and insert it into the stock.",
-        tags: ["Things"],
-        requestBody: {
-          required: true,
-          content: {
-            "application/json": {
-              schema: {
+   "/app/addThing": {
+  post: {
+    summary: "Add a new thing",
+    description: "Create a thing with associated attributes and devices, and insert it into the stock.",
+    tags: ["Things"], 
+    security: [
+      {
+        bearerAuth: []  // Ensure you have defined `bearerAuth` for JWT authentication globally
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              thing: {
                 type: "object",
                 properties: {
-                  thing: {
-                    type: "object",
-                    properties: {
-                      thingName: { type: "string" },
-                      batchId: { type: "string" },
-                      model: { type: "string" },
-                      serialno: { type: "string" },
-                      type: { type: "string" },
-                    },
-                  },
-                  attributes: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        attributeName: { type: "string" },
-                        attributeValue: { type: "string" },
-                      },
-                    },
-                  },
+                  thingName: { type: "string" },
+                  batchId: { type: "string" },
+                  model: { type: "string" },
+                  serialno: { type: "string" },
+                  type: { type: "string" }
                 },
+                required: ["thingName", "serialno", "type"]  // Assuming these are required
               },
+              attributes: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    attributeName: { type: "string" },
+                    attributeValue: { type: "string" }
+                  },
+                  required: ["attributeName", "attributeValue"]  // Assuming these are required
+                }
+              }
             },
-          },
-        },
-        responses: {
-          201: {
-            description: "Thing successfully created",
-          },
-          400: {
-            description: "Invalid input data",
-          },
-          500: {
-            description: "Internal server error",
-          },
-        },
-      },
+            required: ["thing", "attributes"],  // The `thing` and `attributes` are required in the request body
+            example: {
+              "thing": {
+                "thingName": "Smart Thermostat",
+                "batchId": "12345",
+                "model": "ST-1000",
+                "serialno": "1234567890",
+                "type": "thermostat"
+              },
+              "attributes": [
+                {
+                  "attributeName": "temperature",
+                  "attributeValue": "5"
+                }
+              ]
+            }
+          }
+        }
+      }
     },
+    responses: {
+      201: {
+        description: "Thing successfully created",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                message: { type: "string", example: "Data inserted successfully" }
+              }
+            }
+          }
+        }
+      },
+      400: {
+        description: "Invalid input data",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                message: { type: "string", example: "Invalid input data" }
+              }
+            }
+          }
+        }
+      },
+      500: {
+        description: "Internal server error",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                message: { type: "string", example: "An error occurred" },
+                error: { type: "string", example: "Error details" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
 
 
     "/app/add/home/": {
-        post: {
-          summary: "Add a new home",
-          description: "Create a new home entry in the database with the specified name and user details.",
-          tags: ["Homes"],
-          security: [
-            {
-              bearerAuth: [], // Include this if your API uses JWT
+  post: {
+    summary: "Add a new home",
+    description: "Create a new home entry in the database with the specified name. The created_by field is automatically set based on the authenticated user's information.",
+    tags: ["Homes"],
+    security: [
+      {
+        bearerAuth: []  // Ensure that your security scheme is defined globally for JWT
+      }
+    ],
+    requestBody: {
+      required: true,
+      content: {
+        "application/json": {
+          schema: {
+            type: "object",
+            properties: {
+              name: {
+                type: "string",
+                description: "Name of the home"
+              }
             },
-          ],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  properties: {
-                    name: {
-                      type: "string",
-                      description: "Name of the home",
-                    },
-                  },
-                  required: ["name"],
+            required: ["name"],
+            example: {
+              name: "My Sweet Home"
+            }
+          }
+        }
+      }
+    },
+    responses: {
+      201: {
+        description: "Home added successfully",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                message: {
+                  type: "string",
+                  example: "Home added successfully"
                 },
-                example: {
-                  name: "My Sweet Home",
-                },
-              },
-            },
-          },
-          responses: {
-            201: {
-              description: "Home added successfully",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      message: {
-                        type: "string",
-                        example: "Home added successfully",
-                      },
-                      homeId: {
-                        type: "integer",
-                        example: 1,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            400: {
-              description: "Bad Request - Missing or invalid data",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      error: {
-                        type: "string",
-                        example: "name and created_by are required",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            500: {
-              description: "Internal Server Error",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      error: {
-                        type: "string",
-                        example: "An error occurred while adding the home",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+                homeId: {
+                  type: "integer",
+                  example: 1
+                }
+              }
+            }
+          }
+        }
       },
+      400: {
+        description: "Bad Request - Missing or invalid data",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                error: {
+                  type: "string",
+                  example: "name and created_by are required"
+                }
+              }
+            }
+          }
+        }
+      },
+      500: {
+        description: "Internal Server Error",
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                error: {
+                  type: "string",
+                  example: "An error occurred while adding the home"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
+
     //   ------------------------
     "/app/display/homes/": {
         get: {

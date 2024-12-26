@@ -254,6 +254,8 @@ app.use(cors());
 //ADD home
 app.post(
     '/app/add/home/',
+    validateJwt,
+    authorizeRoles('customer'),
     async (req, res) => {
         try {
             const { name } = req.body; // Destructure the required fields from the request body
@@ -291,6 +293,8 @@ app.post(
 //display home
 app.get(
     '/app/display/homes/',
+    validateJwt,
+    authorizeRoles('customer'),
     async (req, res) => {          
         try {
             const userId = req.user.id; // Get the user_id from the authenticated user
@@ -324,7 +328,9 @@ app.get(
 
 
 // Update Home
-app.put('/app/update/home/:id', async (req, res) => {
+app.put('/app/update/home/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const homeId = req.params.id; // Get home ID from URL parameter
         const { name } = req.body; 
@@ -370,7 +376,9 @@ app.put('/app/update/home/:id', async (req, res) => {
 
 
 // Delete Home
-app.delete('/app/delete/home/:id', async (req, res) => {
+app.delete('/app/delete/home/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const homeId = req.params.id; // Get the home ID from the URL parameter
 
@@ -400,6 +408,8 @@ app.delete('/app/delete/home/:id', async (req, res) => {
 
 app.post(
     '/app/add/floor/:home_id',
+    validateJwt,
+    authorizeRoles('customer'),
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
@@ -435,7 +445,9 @@ app.post(
 
     
 // Display floor
-app.get('/app/display/floors/:home_id', async (req, res) => {
+app.get('/app/display/floors/:home_id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const homeId = req.params.home_id; // Extract home ID from the request URL
 
@@ -465,7 +477,9 @@ app.get('/app/display/floors/:home_id', async (req, res) => {
 
 
 //Update Floor
-app.put('/app/update/floors/:id', async (req, res) => {
+app.put('/app/update/floors/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const floorId = req.params.id;  // Extract floor ID from the request URL
         const { name} = req.body;  // Extract fields to update from the request body
@@ -506,7 +520,9 @@ app.put('/app/update/floors/:id', async (req, res) => {
 });
 
 //Delete Floor
-app.delete('/app/delete/floors/:id', async (req, res) => {
+app.delete('/app/delete/floors/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const floorId = req.params.id; // Extract floor ID from the request URL
 
@@ -528,7 +544,10 @@ app.delete('/app/delete/floors/:id', async (req, res) => {
 });
 
 //ADD room
-app.post('/app/add/room/:floor_id', upload.single('image'), async (req, res) => {
+app.post('/app/add/room/:floor_id', 
+    validateJwt,
+    authorizeRoles('customer'),
+    upload.single('image'), async (req, res) => {
     try {
         const floor_id = req.params.floor_id;
         const { name, alias_name } = req.body;
@@ -587,7 +606,9 @@ app.post('/app/add/room/:floor_id', upload.single('image'), async (req, res) => 
 
 
 //Delete Room
-app.delete('/app/delete/room/:id', async (req, res) => {
+app.delete('/app/delete/room/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const roomId = req.params.id; // Get the room ID from the URL parameter
 
@@ -611,7 +632,9 @@ app.delete('/app/delete/room/:id', async (req, res) => {
 
 //Display room
 
-app.get('/app/display/rooms/:floor_id', async (req, res) => {
+app.get('/app/display/rooms/:floor_id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const floorId = req.params.floor_id; // Extract floor ID from the request URL
 
@@ -638,7 +661,9 @@ app.get('/app/display/rooms/:floor_id', async (req, res) => {
 
 
 // Update room
-app.put('/app/update/rooms/:id', upload.single('image'), async (req, res) => {
+app.put('/app/update/rooms/:id',
+    validateJwt,
+    authorizeRoles('customer'), upload.single('image'), async (req, res) => {
     try {
         const roomId = req.params.id; // Extract room ID from the request URL
         const { name, alias_name } = req.body; // Extract fields from the request body
@@ -707,7 +732,9 @@ app.put('/app/update/rooms/:id', upload.single('image'), async (req, res) => {
 
 
 // display things with id
-app.get('/api/display/things/:id', async (req, res) => {
+app.get('/api/display/things/:id',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     const id = req.params.id;
     try {
         const query = `
@@ -732,7 +759,9 @@ app.get('/api/display/things/:id', async (req, res) => {
 
 
  //display all things
- app.get('/api/display/things', async (req, res) => {
+ app.get('/api/display/things',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     try {
         const result = await db.query('SELECT * FROM things'); // Fetch all records
         res.status(200).json(result.rows); // Send result as JSON
@@ -744,7 +773,9 @@ app.get('/api/display/things/:id', async (req, res) => {
 
 
  //display thingattribute with thingid
- app.get('/api/display/thingattribute/:thingid', async (req, res) => {
+ app.get('/api/display/thingattribute/:thingid',
+    validateJwt,
+    authorizeRoles('admin','staff'), async (req, res) => {
     const thingid = req.params.thingid; // Get the thingid from the route parameter
     try {
         // Execute the query with a parameterized WHERE clause
@@ -770,7 +801,9 @@ app.get('/api/display/things/:id', async (req, res) => {
 
 
 //display devices with thingid
-app.get('/api/display/devices/:thingid', async (req, res) => {
+app.get('/api/display/devices/:thingid', 
+    validateJwt,
+    authorizeRoles('admin','staff'),async (req, res) => {
     const thingid = req.params.thingid; // Extract the thingid from the route parameter
     try {
         // Execute the query with a parameterized WHERE clause
@@ -796,7 +829,9 @@ app.get('/api/display/devices/:thingid', async (req, res) => {
 
 
 //display thing that new,rework,failed,etc.....
-app.get('/api/display/test/:type', async (req, res) => {
+app.get('/api/display/test/:type',
+    validateJwt,
+    authorizeRoles('admin','staff'), async (req, res) => {
     try {
         // Get the 'type' parameter from the request URL
         const { type } = req.params;
@@ -830,7 +865,9 @@ app.get('/api/display/test/:type', async (req, res) => {
 
 
 //display things with  status
-app.get('/api/display/status/:status', async (req, res) => {
+app.get('/api/display/status/:status',
+    validateJwt,
+    authorizeRoles('admin','staff'), async (req, res) => {
     try {
         // Get the 'status' parameter from the request URL
         const status = req.params.status;
@@ -877,7 +914,9 @@ app.get('/api/display/status/:status', async (req, res) => {
 
 
 // share access to customer with macAddress and securityKey
-app.post('/api/access/customer/:roomid', async (req, res) => {
+app.post('/api/access/customer/:roomid',
+    validateJwt,
+    authorizeRoles('customer'), async (req, res) => {
     const client = await db.connect(); // Get a client from the pool
     try {
         const roomid = req.params.roomid;
@@ -938,7 +977,9 @@ app.post('/api/access/customer/:roomid', async (req, res) => {
 
 //display devices with roomsid
 
-app.get('/api/display/device/rooms/:roomid', async (req, res) => {
+app.get('/api/display/device/rooms/:roomid', 
+    validateJwt,
+    authorizeRoles('customer'),async (req, res) => {
     const client = await db.connect(); // Get a client from the pool
     try {
         const roomid = req.params.roomid;
