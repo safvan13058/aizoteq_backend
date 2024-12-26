@@ -134,7 +134,7 @@ const bodySchema = Joi.object({
 });
 
 app.get('/',(req,res)=>{
-    res.send('working')
+    res.send('working post')
 })
 // Protect the /app/addThing endpoint for admins and staff
 app.post(
