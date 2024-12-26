@@ -434,22 +434,21 @@ app.post(
 app.get('/app/display/floors/:home_id', async (req, res) => {
     try {
         const homeId = req.params.home_id;  // Extract home ID from the request URL
-        
+
         // Query to fetch floors by home_id
-        const query = `SELECT * FROM floor WHERE home_id = ?`;
-        
+        const query = `SELECT * FROM floor WHERE home_id = $1`;
+
         // Execute the query
-        const [floors] = await db.execute(query, [homeId]);
+        const result = await db.query(query, [homeId]);
 
         // Check if floors exist
-        if (floors.length === 0) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ message: 'No floors found for the specified home' });
         }
 
         // Respond with the list of floors
-        console.log(floors)
-        res.status(200).json(floors);
-        
+        console.log(result.rows);
+        res.status(200).json(result.rows);
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'An error occurred while fetching floors' });
