@@ -563,8 +563,8 @@ app.post(
 
             // Insert query with PostgreSQL
             const query = `
-                INSERT INTO room (floor_id, name, alias_name, image_url) 
-                VALUES ($1, $2, $3, $4) 
+                INSERT INTO room (floor_id, name, alias_name, image_url,home_id) 
+                VALUES ($1, $2, $3, $4,$5) 
                 RETURNING id
             `;
 
@@ -573,7 +573,8 @@ app.post(
                 floor_id,
                 name,
                 alias_name || null, // Optional field
-                null // Replace with `fileUrl` if integrating S3
+                null ,// Replace with `fileUrl` if integrating S3
+                null
             ]);
 
             // Respond with success message and inserted room ID
