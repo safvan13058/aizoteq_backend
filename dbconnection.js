@@ -6,7 +6,7 @@ const db = new Pool({
     host: 'database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com', // AWS RDS or Aurora endpoint
     user: 'postgres',                      // Your database username
     password: 'Aizo12345',                  // Your database password
-    database: 'database-1',                     // Your database name
+    database: 'postgres',                     // Your database name
     port: 5432,                                 // Default PostgreSQL port
     max: 10,                                    // Maximum number of connections in the pool
     // idleTimeoutMillis: 30000,                   // Close idle connections after 30 seconds
