@@ -574,7 +574,7 @@ app.post(
                 name,
                 alias_name || null, // Optional field
                 null ,// Replace with `fileUrl` if integrating S3
-                "home"
+                1
             ]);
 
             // Respond with success message and inserted room ID
