@@ -412,7 +412,7 @@ app.post(
         // Insert query
         const query = `
             INSERT INTO floor (home_id, name) 
-            VALUES (?, ?)
+            VALUES ($1, $2)
         `;
 
         // Execute the query
@@ -436,7 +436,7 @@ app.get('/app/display/floors/:home_id', async (req, res) => {
         const homeId = req.params.home_id;  // Extract home ID from the request URL
 
         // Query to fetch floors by home_id
-        const query = `SELECT * FROM floor WHERE home_id = ?`;
+        const query = `SELECT * FROM floor WHERE home_id = $1`;
 
         // Execute the query
         const result = await db.query(query, [homeId]);
