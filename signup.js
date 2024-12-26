@@ -22,139 +22,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider({
 
 
 
-signup.post('app/customer/signup', async (req, res) => {
-    const { userName, password, email, phoneNumber, fullName } = req.body;
-    const secretHash = calculateSecretHash(userName);
-    if (!userName || !password || !email) {
-        return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-     // Assuming these values are coming from the request body
-
-const params = {
-    ClientId: process.env.clientId,  // Replace with your Cognito app client ID
-    Username: userName,
-    Password: password,
-    UserAttributes: [
-        { Name: 'email', Value: email }, // Email is required
-        { Name: 'given_name', Value: userName }, // Name attribute
-        { Name: 'phone_number', Value: phoneNumber }, // Add phone number
-        { Name: 'name', Value: fullName }, // Full name attribute (You can use formatted name if needed)
-    ],
-    SecretHash: secretHash,  // Add the calculated SECRET_HASH here
-};
-
-    try {
-        // Sign up the user in Cognito
-        const signUpResponse = await cognito.signUp(params).promise();
-        const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
-
-        // Insert user details into MySQL database
-        const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES (?, ?, ?, ?)';
-        db.query(query, [jwtsub, userName, jwtsub, 'customer'], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: 'Error storing user in database', error: err.message });
-            }
-
-            res.status(201).json({
-                message: 'User signed up successfully',
-                userSub: jwtsub,
-            });
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
-    }
-});
-
-signup.post('app/staff/signup', async (req, res) => {
-    
-    const { userName, password, email, phoneNumber, fullName } = req.body;
-    const secretHash = calculateSecretHash(userName);
-    if (!userName || !password || !email) {
-        return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-     // Assuming these values are coming from the request body
-
-const params = {
-    ClientId: process.env.clientId,  // Replace with your Cognito app client ID
-    Username: userName,
-    Password: password,
-    UserAttributes: [
-        { Name: 'email', Value: email }, // Email is required
-        { Name: 'given_name', Value: userName }, // Name attribute
-        { Name: 'phone_number', Value: phoneNumber }, // Add phone number
-        { Name: 'name', Value: fullName }, // Full name attribute (You can use formatted name if needed)
-    ],
-    SecretHash: secretHash,  // Add the calculated SECRET_HASH here
-};
-    try {
-        // Sign up the user in Cognito
-        const signUpResponse = await cognito.signUp(params).promise();
-        const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
-
-        // Insert user details into MySQL database
-        const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES (?, ?, ?, ?)';
-        db.query(query, [jwtsub, userName, jwtsub, 'staff'], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: 'Error storing user in database', error: err.message });
-            }
-
-            res.status(201).json({
-                message: 'User signed up successfully',
-                userSub: jwtsub,
-            });
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
-    }
-});
-
-signup.post('dashboard/admin/signup', async (req, res) => {
-    const { userName, password, email, phoneNumber, fullName } = req.body;
-    const secretHash = calculateSecretHash(userName);
-    if (!userName || !password || !email) {
-        return res.status(400).json({ message: 'Missing required fields' });
-    }
-
-     // Assuming these values are coming from the request body
-
-const params = {
-    ClientId: process.env.clientId,  // Replace with your Cognito app client ID
-    Username: userName,
-    Password: password,
-    UserAttributes: [
-        { Name: 'email', Value: email }, // Email is required
-        { Name: 'given_name', Value: userName }, // Name attribute
-        { Name: 'phone_number', Value: phoneNumber }, // Add phone number
-        { Name: 'name', Value: fullName }, // Full name attribute (You can use formatted name if needed)
-    ],
-    SecretHash: secretHash,  // Add the calculated SECRET_HASH here
-};
-
-    try {
-        // Sign up the user in Cognito
-        const signUpResponse = await cognito.signUp(params).promise();
-        const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
-
-        // Insert user details into MySQL database
-        const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES (?, ?, ?, ?)';
-        db.query(query, [jwtsub, userName, jwtsub, 'admin'], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: 'Error storing user in database', error: err.message });
-            }
-
-            res.status(201).json({
-                message: 'User signed up successfully',
-                userSub: jwtsub,
-            });
-        });
-    } catch (err) {
-        res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
-    }
-});
-
-signup.post('dashboard/dealer/signup', async (req, res) => {
+async function handleSignup(req, res, role) {
     const { userName, password, email, phoneNumber, fullName } = req.body;
     const secretHash = calculateSecretHash(userName);
 
@@ -163,16 +31,16 @@ signup.post('dashboard/dealer/signup', async (req, res) => {
     }
 
     const params = {
-        ClientId: process.env.clientId,  // Replace with your Cognito app client ID
+        ClientId: process.env.clientId,
         Username: userName,
         Password: password,
         UserAttributes: [
-            { Name: 'email', Value: email }, // Email is required
-            { Name: 'given_name', Value: userName }, // Name attribute
-            { Name: 'phone_number', Value: phoneNumber }, // Add phone number
-            { Name: 'name', Value: fullName }, // Full name attribute (You can use formatted name if needed)
+            { Name: 'email', Value: email },
+            { Name: 'given_name', Value: userName },
+            { Name: 'phone_number', Value: phoneNumber },
+            { Name: 'name', Value: fullName },
         ],
-        SecretHash: secretHash,  // Add the calculated SECRET_HASH here
+        SecretHash: secretHash,
     };
 
     try {
@@ -180,21 +48,40 @@ signup.post('dashboard/dealer/signup', async (req, res) => {
         const signUpResponse = await cognito.signUp(params).promise();
         const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
 
-        // Insert user details into MySQL database
-        const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES (?, ?, ?, ?)';
-        db.query(query, [jwtsub, userName, jwtsub, 'dealer'], (err, result) => {
-            if (err) {
-                return res.status(500).json({ message: 'Error storing user in database', error: err.message });
-            }
+        // Insert user details into PostgreSQL database
+        const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES ($1, $2, $3, $4)';
+        const values = [jwtsub, userName, jwtsub, role];
 
-            res.status(201).json({
-                message: 'User signed up successfully',
-                userSub: jwtsub,
-            });
+        await db.query(query, values);
+
+        res.status(201).json({
+            message: 'User signed up successfully',
+            userSub: jwtsub,
         });
     } catch (err) {
         res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
     }
+}
+
+// Customer sign-up
+signup.post('/app/customer/signup', async (req, res) => {
+    await handleSignup(req, res, 'customer');
 });
 
-module.exports=signup;
+// Staff sign-up
+signup.post('/app/staff/signup', async (req, res) => {
+    await handleSignup(req, res, 'staff');
+});
+
+// Admin sign-up
+signup.post('/dashboard/admin/signup', async (req, res) => {
+    await handleSignup(req, res, 'admin');
+});
+
+// Dealer sign-up
+signup.post('/dashboard/dealer/signup', async (req, res) => {
+    await handleSignup(req, res, 'dealer');
+});
+
+module.exports = signup;
+
