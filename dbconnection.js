@@ -11,10 +11,10 @@ const db = new Pool({
     max: 10,                                    // Maximum number of connections in the pool
     // idleTimeoutMillis: 30000,                   // Close idle connections after 30 seconds
     // connectionTimeoutMillis: 2000,              // Timeout if connection cannot be established
-    // ssl: {
-    //     rejectUnauthorized: true,               // Ensures the server certificate is verified
-    //     ca: fs.readFileSync('/path/to/ca-cert.pem').toString() // Optional CA cert for RDS/Aurora
-    // }
+    ssl: {
+        rejectUnauthorized: true,               // Ensures the server certificate is verified
+        // ca: fs.readFileSync('/path/to/ca-cert.pem').toString() // Optional CA cert for RDS/Aurora
+    }
 });
 
 // Export the pool for use in other modules
