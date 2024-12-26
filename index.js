@@ -488,7 +488,7 @@ app.put('/app/update/floors/:id', async (req, res) => {
         `;
 
         // Execute the update query
-        const [result] = await db.execute(query, values);
+        const [result] = await db.query(query, values);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Floor not found or no changes made' });
@@ -513,7 +513,7 @@ app.delete('/app/delete/floors/:id', async (req, res) => {
         `;
 
         // Execute the query
-        const [result] = await db.execute(query, [floorId]);
+        const [result] = await db.query(query, [floorId]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ message: 'Floor not found' });
@@ -535,21 +535,21 @@ app.post(
         const floor_id = req.params.floor_id;
         console.log(floor_id)
         const {name, alias_name,  } = req.body;
-        const image_url=req.file;
+        // const image_url=req.file;
           
         // Define S3 upload parameters
-         const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
-         const params = {
-         Bucket: process.env.S3_BUCKET_NAME,
-         Key: fileKey,
-         Body: file.buffer,
-         ContentType: file.mimetype,
-         ACL: 'public-read', // Make the file publicly readable
-        };
+        //  const fileKey = `images/${Date.now()}-${image_url.originalname}`; // Unique file name
+        //  const params = {
+        //  Bucket: process.env.S3_BUCKET_NAME,
+        //  Key: fileKey,
+        //  Body: file.buffer,
+        //  ContentType: file.mimetype,
+        //  ACL: 'public-read', // Make the file publicly readable
+        // };
 
-         // Upload file to S3
-         const uploadResult = await s3.upload(params).promise();
-         const fileUrl = uploadResult.Location;
+        //  // Upload file to S3
+        //  const uploadResult = await s3.upload(params).promise();
+        //  const fileUrl = uploadResult.Location;
 
         // Validate input
         if (!floor_id || !name) {
@@ -563,12 +563,12 @@ app.post(
         `;
 
         // Execute the query
-        const [result] = await db.execute(query, [
+        const [result] = await db.query(query, [
             floor_id,
             name,
             alias_name || null, // Optional field
-            fileUrl || null   // Optional field
-            //  null   // Optional field
+            // fileUrl || null   // Optional field
+             null   // Optional field
         ]);
 
         // Respond with success message and inserted room ID
