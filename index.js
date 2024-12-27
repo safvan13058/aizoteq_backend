@@ -7,14 +7,13 @@ const jwksClient = require('jwks-rsa');
 const { promisify } = require('util');
 const Joi = require('joi');
 const signup=require('./signup')
-
 app.use('/signup',signup);
 app.use(express.json());
 // app.use(bodyParser.json());
 // Cognito settings
 const COGNITO_REGION = process.env.COGNITO_REGION;
 const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // Updated with your user pool ID
-const COGNITO_ISSUER = `https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+const COGNITO_ISSUER =`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
 const client = jwksClient({
     jwksUri: `${COGNITO_ISSUER}/.well-known/jwks.json`,  // JWK URI for your pool
 });
@@ -134,8 +133,7 @@ const bodySchema = Joi.object({
 });
 
 
-const { swaggerUi, specs } = require("./swagger");
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
 
 app.get('/',(req,res)=>{
     res.send('working EC2 ')
@@ -1013,7 +1011,7 @@ app.get('/api/display/device/rooms/:roomid',
 });
 
 
-
+module.exports={validateJwt,authorizeRoles};
 
 
 const PORT = process.env.PORT || 3002;

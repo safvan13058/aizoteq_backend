@@ -83,5 +83,8 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
     await handleSignup(req, res, 'dealer');
 });
 
+
+
+
 module.exports = signup;
 
