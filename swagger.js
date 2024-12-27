@@ -10,7 +10,7 @@ const options = {
   },
   servers: [
     {
-      url: "http://localhost:3000",
+      url: "http://13.200.215.17:3002",
     },
   ],
   paths: {
