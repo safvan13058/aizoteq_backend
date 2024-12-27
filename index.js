@@ -6,8 +6,12 @@ require('dotenv').config();
 const jwksClient = require('jwks-rsa');
 const { promisify } = require('util');
 const Joi = require('joi');
+const login = require('./login');
 const signup=require('./signup')
+
 app.use('/signup',signup);
+app.use('/signup',login);
+
 app.use(express.json());
 // app.use(bodyParser.json());
 // Cognito settings

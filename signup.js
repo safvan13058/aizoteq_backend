@@ -6,6 +6,8 @@ require('dotenv').config();
 signup.use(express.json());
 const crypto = require('crypto');
 
+
+
 // Your Cognito App client ID and secret
 const clientId = process.env.clientId;
 const clientSecret = process.env.clientSecret;
@@ -84,6 +86,66 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 });
 
 
+// Verify OTP using only the OTP code
+// Verify OTP API
+signup.post('/verify-otp', async (req, res) => {
+    const { username, otp } = req.body;
+
+    if (!username || !otp) {
+        return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
+    }
+
+    const params = {
+        ClientId: process.env.CLIENT_ID,
+        Username: username,
+        ConfirmationCode: otp,
+        SecretHash: calculateSecretHash(username),
+    };
+
+    try {
+        await cognito.confirmSignUp(params).promise();
+        res.status(200).json({ message: 'OTP verified successfully' });
+    } catch (err) {
+        if (err.code === 'CodeMismatchException') {
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+        if (err.code === 'ExpiredCodeException') {
+            return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
+        }
+        res.status(500).json({ message: 'Error during OTP verification', error: err.message });
+    }
+});
+
+const rateLimit = require('express-rate-limit');
+// Rate limiter for Resend OTP
+const resendOtpLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 3, // Limit each IP to 3 requests per window
+    message: 'Too many requests, please try again later.',
+});
+
+// Resend OTP API
+signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ message: 'Missing required field: username' });
+    }
+
+    const params = {
+        ClientId: process.env.CLIENT_ID,
+        Username: username,
+        SecretHash: calculateSecretHash(username),
+    };
+
+    try {
+        await cognito.resendConfirmationCode(params).promise();
+        res.status(200).json({ message: 'OTP resent successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error during OTP resend', error: err.message });
+    }
+
+});
 
 
 module.exports = signup;
