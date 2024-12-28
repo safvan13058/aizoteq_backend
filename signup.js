@@ -6,6 +6,7 @@ require('dotenv').config();
 signup.use(express.json());
 const crypto = require('crypto');
 
+
 const session = require('express-session');
 // Configure session middleware
 signup.use(session({
@@ -15,6 +16,11 @@ signup.use(session({
     cookie: { secure: false, maxAge: 60000 } // For production, set `secure: true` with HTTPS
 }));
 
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.COGNITO_REGION,
+});
 
 // Your Cognito App client ID and secret
 const clientId = process.env.clientId;
