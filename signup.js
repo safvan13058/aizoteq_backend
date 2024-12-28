@@ -64,30 +64,23 @@ async function handleSignup(req, res, role) {
 
     try {
         console.log(userName, password, email, phoneNumber, fullName)
-        console.log("workingss")
         // Sign up the user in Cognito
         const signUpResponse = await cognito.signUp(params).promise();
         const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
-        console.log('working')
+        
        
         // Insert user details into PostgreSQL database
         const query = 'INSERT INTO Users (userName, jwtsub, userRole) VALUES ($1, $2, $3)';
         const values = [userName, jwtsub, role];
-        console.log('workingsss')
 
         await db.query(query, values);
-        console.log('db working')
 
         req.session.username = userName; // Store username in session
-        console.log('session')
 
-        res.status(201).json({
-            
+        res.status(201).json({ 
             message: 'User signed up successfully',
             userSub: jwtsub,
         });
-        console.log(jwtsub)
-        console.log('all working')
     } catch (err) {
         console.error('Cognito sign-up error:', err.message, err.code);
         res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
@@ -121,6 +114,9 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
     const { otp } = req.body;
+
+    console.log("get otp")
+    console.log(req.session.username)
     
 
     if (!req.session.username|| !otp) {
@@ -135,9 +131,12 @@ signup.post('/verify-otp', async (req, res) => {
     };
 
     try {
+        console.log("working")
         await cognito.confirmSignUp(params).promise();
+        console.log("workings")
         req.session.destroy();
         res.status(200).json({ message: 'OTP verified successfully' });
+        console.log('OTP verified successfully' )
     } catch (err) {
         if (err.code === 'CodeMismatchException') {
             return res.status(400).json({ message: 'Invalid OTP' });
