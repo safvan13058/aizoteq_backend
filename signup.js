@@ -66,6 +66,7 @@ async function handleSignup(req, res, role) {
         // Insert user details into PostgreSQL database
         const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES ($1, $2, $3, $4)';
         const values = [jwtsub, userName, jwtsub, role];
+        console.log('workingss')
 
         await db.query(query, values);
 
