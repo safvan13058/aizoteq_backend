@@ -40,9 +40,10 @@ async function handleSignup(req, res, role) {
     if (!userName || !password || !email) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
-
+    console.log(process.env.clientId)
     const params = {
-        ClientId: process.env.clientId,
+        // ClientId: process.env.clientId,
+        ClientId:"4kj4ptqrflqnd54p7unli2gko9",
         Username: userName,
         Password: password,
         UserAttributes: [
@@ -55,6 +56,7 @@ async function handleSignup(req, res, role) {
     };
 
     try {
+        console.log(userName, password, email, phoneNumber, fullName)
         // Sign up the user in Cognito
         const signUpResponse = await cognito.signUp(params).promise();
         const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
