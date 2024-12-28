@@ -60,7 +60,8 @@ async function handleSignup(req, res, role) {
         // Sign up the user in Cognito
         const signUpResponse = await cognito.signUp(params).promise();
         const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
-
+        console.log('working')
+       
         // Insert user details into PostgreSQL database
         const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES ($1, $2, $3, $4)';
         const values = [jwtsub, userName, jwtsub, role];
