@@ -10,7 +10,7 @@ const crypto = require('crypto');
 const session = require('express-session');
 // Configure session middleware
 signup.use(session({
-    secret: "12345784930@12345fjvmcxsssssdf", // Use a strong, secure secret
+    secret: "5fa7c3e55d4c21af6f482d3cfaa9d2ab6f1d50ac7e0b77a3c98c2d5c8b468de1", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
     cookie: { secure: false} // For production, set `secure: true` with HTTPS
@@ -92,7 +92,10 @@ async function handleSignup(req, res, role) {
 }
 
 const cors = require('cors');
-signup.use(cors());
+signup.use(cors({
+    origin: 'http://127.0.0.1:5500/', // Replace with the origin of your client app
+    credentials: true, // Allow cookies to be sent
+}));
 // Customer sign-up
 signup.post('/app/customer/signup', async (req, res) => {
     await handleSignup(req, res, 'customer');
