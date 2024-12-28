@@ -75,6 +75,8 @@ async function handleSignup(req, res, role) {
     }
 }
 
+const cors = require('cors');
+signup.use(cors());
 // Customer sign-up
 signup.post('/app/customer/signup', async (req, res) => {
     await handleSignup(req, res, 'customer');
