@@ -78,6 +78,8 @@ async function handleSignup(req, res, role) {
         req.session.username = userName; // Store username in session
 
         console.log(req.session.username)
+        console.log(req.session)
+
 
         res.status(201).json({ 
             message: 'User signed up successfully',
