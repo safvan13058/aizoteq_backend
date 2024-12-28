@@ -41,6 +41,7 @@ async function handleSignup(req, res, role) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
     console.log(process.env.clientId)
+    console.log('AWS Region:', process.env.COGNITO_REGION);
     const params = {
         // ClientId: process.env.clientId,
         ClientId:"4kj4ptqrflqnd54p7unli2gko9",
