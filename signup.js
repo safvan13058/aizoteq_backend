@@ -19,7 +19,7 @@ signup.use(session({
 AWS.config.update({
     accessKeyId: "AKIAXGZAMMMAPTC2P6EV",
     secretAccessKey:"sESVZGDHkFitFZF1JBOfYhiT9ZlJIro8HJXb+QjR",
-    region: process.env.COGNITO_REGION,
+    region: "ap-south-1",
 });
 
 // Your Cognito App client ID and secret
