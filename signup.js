@@ -77,6 +77,8 @@ async function handleSignup(req, res, role) {
 
         req.session.username = userName; // Store username in session
 
+        console.log(req.session.username)
+
         res.status(201).json({ 
             message: 'User signed up successfully',
             userSub: jwtsub,
@@ -115,7 +117,7 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 signup.post('/verify-otp', async (req, res) => {
     const { otp } = req.body;
 
-    console.log("get otp")
+    console.log(`get otp${otp}`)
     console.log(req.session.username)
     
 
