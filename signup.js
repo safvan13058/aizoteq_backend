@@ -73,7 +73,7 @@ async function handleSignup(req, res, role) {
         // Insert user details into PostgreSQL database
         const query = 'INSERT INTO Users (id, userName, jwtsub, userRole) VALUES ($1, $2, $3, $4)';
         const values = [jwtsub, userName, jwtsub, role];
-        console.log('workingss')
+        console.log('workingsss')
 
         await db.query(query, values);
 
@@ -84,6 +84,7 @@ async function handleSignup(req, res, role) {
             userSub: jwtsub,
         });
     } catch (err) {
+        console.error('Cognito sign-up error:', err.message, err.code);
         res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
     }
 }
