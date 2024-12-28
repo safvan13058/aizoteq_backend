@@ -6,6 +6,14 @@ require('dotenv').config();
 signup.use(express.json());
 const crypto = require('crypto');
 
+const session = require('express-session');
+// Configure session middleware
+signup.use(session({
+    secret: "12345784930@12345fjvmcxsssssdf", // Use a strong, secure secret
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false, maxAge: 60000 } // For production, set `secure: true` with HTTPS
+}));
 
 
 // Your Cognito App client ID and secret
@@ -56,6 +64,8 @@ async function handleSignup(req, res, role) {
 
         await db.query(query, values);
 
+        req.session.username = userName; // Store username in session
+
         res.status(201).json({
             message: 'User signed up successfully',
             userSub: jwtsub,
@@ -89,14 +99,15 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 // Verify OTP using only the OTP code
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
-    const { username, otp } = req.body;
+    const { otp } = req.body;
+    
 
-    if (!username || !otp) {
+    if (!req.session.username|| !otp) {
         return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
     }
-
+    const username = req.session.username;
     const params = {
-        ClientId: process.env.CLIENT_ID,
+        ClientId: process.env.clientId,
         Username: username,
         ConfirmationCode: otp,
         SecretHash: calculateSecretHash(username),
@@ -104,6 +115,7 @@ signup.post('/verify-otp', async (req, res) => {
 
     try {
         await cognito.confirmSignUp(params).promise();
+        req.session.destroy();
         res.status(200).json({ message: 'OTP verified successfully' });
     } catch (err) {
         if (err.code === 'CodeMismatchException') {
@@ -126,14 +138,13 @@ const resendOtpLimiter = rateLimit({
 
 // Resend OTP API
 signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
-    const { username } = req.body;
-
+    const username = req.session.username;
     if (!username) {
         return res.status(400).json({ message: 'Missing required field: username' });
     }
 
     const params = {
-        ClientId: process.env.CLIENT_ID,
+        ClientId: process.env.clientId,
         Username: username,
         SecretHash: calculateSecretHash(username),
     };

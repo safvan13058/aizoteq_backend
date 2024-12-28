@@ -15,7 +15,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider({
 // Function to calculate SECRET_HASH
 function calculateSecretHash(username) {
     const hmac = crypto.createHmac('sha256', process.env.CLIENT_SECRET);
-    hmac.update(username + process.env.CLIENT_ID);
+    hmac.update(username + process.env.clientId);
     return hmac.digest('base64');
 }
 
@@ -29,7 +29,7 @@ login.post('/login', async (req, res) => {
 
     const params = {
         AuthFlow: 'USER_PASSWORD_AUTH',
-        ClientId: process.env.CLIENT_ID,
+        ClientId: process.env.clientId,
         AuthParameters: {
             USERNAME: username,
             PASSWORD: password,
