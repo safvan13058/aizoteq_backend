@@ -34,6 +34,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider({
 
 async function handleSignup(req, res, role) {
     const { userName, password, email, phoneNumber, fullName } = req.body;
+    console.log(userName, password, email, phoneNumber, fullName)
     const secretHash = calculateSecretHash(userName);
 
     if (!userName || !password || !email) {
