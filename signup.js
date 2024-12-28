@@ -93,7 +93,7 @@ async function handleSignup(req, res, role) {
 
 const cors = require('cors');
 signup.use(cors({
-    origin: 'http://127.0.0.1:5500/', // Replace with the origin of your client app
+    origin: 'http://127.0.0.1:5500', // Replace with the origin of your client app
     credentials: true, // Allow cookies to be sent
 }));
 // Customer sign-up
