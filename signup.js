@@ -13,7 +13,7 @@ signup.use(session({
     secret: "12345784930@12345fjvmcxsssssdf", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false, maxAge: 60000 } // For production, set `secure: true` with HTTPS
+    cookie: { secure: false} // For production, set `secure: true` with HTTPS
 }));
 
 AWS.config.update({
@@ -119,6 +119,7 @@ signup.post('/verify-otp', async (req, res) => {
 
     console.log(`get otp${otp}`)
     console.log(req.session.username)
+    console.log(req.session)
     
 
     if (!req.session.username|| !otp) {
