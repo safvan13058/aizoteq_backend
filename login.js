@@ -32,7 +32,7 @@ function calculateSecretHash(username) {
 const cognito = new AWS.CognitoIdentityServiceProvider({
     region: process.env.COGNITO_REGION, // Adjust to your region
 });
-
+AWS.config.update({ region: process.env.COGNITO_REGION });
 // Login API
 login.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -52,7 +52,9 @@ login.post('/login', async (req, res) => {
     };
 
     try {
+        console.log("working")
         const response = await cognito.initiateAuth(params).promise();
+        console.log("working")
         const token = response.AuthenticationResult.IdToken;
 
         // Generate a custom JWT if needed
@@ -62,7 +64,7 @@ login.post('/login', async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
-    
+
 });
 
 // Logout API
