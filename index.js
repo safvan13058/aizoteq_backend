@@ -247,7 +247,7 @@ app.post(
 // --------only for demo=------------
 const cors = require('cors');
 app.use(cors({
-    origin: true, // Allow all origins
+    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500'], // Allow all origins
     credentials: true, // Allow cookies to be sent
 }));
 
