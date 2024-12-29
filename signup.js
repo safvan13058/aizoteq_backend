@@ -15,6 +15,7 @@ signup.use(session({
     saveUninitialized: true,
     // cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'} // For production, set `secure: true` with HTTPS
     // Allow cross-origin cookies
+    sameSite: 'None'
 
 }));
 
