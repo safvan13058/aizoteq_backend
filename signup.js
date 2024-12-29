@@ -13,7 +13,7 @@ signup.use(session({
     secret: "ffbd7c1dbf8ccc6d000658acfa9bc8be68086f710177e0fa0802d4f6f5579805", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'}, // For production, set `secure: true` with HTTPS
+    // cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'}, // For production, set `secure: true` with HTTPS
     // Allow cross-origin cookies
     domian: "127.0.0.1"
 
