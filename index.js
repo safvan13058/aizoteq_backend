@@ -1013,6 +1013,9 @@ app.get('/api/display/device/rooms/:roomid',
 });
 
 
+const swaggerUi = require("swagger-ui-express");
+const Swaggerdoc=require("./swaggerdoc.js")
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(Swaggerdoc));
 module.exports={validateJwt,authorizeRoles};
 
 

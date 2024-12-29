@@ -62,6 +62,7 @@ login.post('/login', async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
+    
 });
 
 // Logout API
