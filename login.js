@@ -56,11 +56,12 @@ login.post('/login', async (req, res) => {
         const response = await cognito.initiateAuth(params).promise();
         console.log("working")
         const token = response.AuthenticationResult.IdToken;
+        console.log("workingss")
 
         // Generate a custom JWT if needed
-        const customToken = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // const customToken = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        res.status(200).json({ message: 'Login successful', token, customToken });
+        res.status(200).json({ message: 'Login successful', token});
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
