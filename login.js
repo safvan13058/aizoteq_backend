@@ -55,6 +55,7 @@ login.post('/login', async (req, res) => {
         console.log("working")
         const response = await cognito.initiateAuth(params).promise();
         console.log("workings")
+        console.log(response)
         const token = response.AuthenticationResult.IdToken;
         console.log("workingss")
 
