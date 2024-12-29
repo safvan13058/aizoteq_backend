@@ -13,17 +13,25 @@ login.use(cors({
     origin: 'http://127.0.0.1:5500', // Replace with the origin of your client app
     credentials: true, // Allow cookies to be sent
 }));
-// AWS Cognito configuration
-const cognito = new AWS.CognitoIdentityServiceProvider({
-    region: process.env.COGNITO_REGION,
+AWS.config.update({
+    accessKeyId: "AKIAXGZAMMMAPTC2P6EV",
+    secretAccessKey:"sESVZGDHkFitFZF1JBOfYhiT9ZlJIro8HJXb+QjR",
+    region: "ap-south-1",
 });
 
-// Function to calculate SECRET_HASH
+// Your Cognito App client ID and secret
+const clientId = process.env.clientId;
+const clientSecret = process.env.clientSecret;
+
+// Function to calculate the SECRET_HASH
 function calculateSecretHash(username) {
-    const hmac = crypto.createHmac('sha256', process.env.CLIENT_SECRET);
-    hmac.update(username + process.env.clientId);
-    return hmac.digest('base64');
+    const hmac = crypto.createHmac('sha256', clientSecret);
+    hmac.update(username + clientId); // The hash is the username + clientId
+    return hmac.digest('base64'); // Return the base64-encoded hash
 }
+const cognito = new AWS.CognitoIdentityServiceProvider({
+    region: process.env.COGNITO_REGION, // Adjust to your region
+});
 
 // Login API
 login.post('/login', async (req, res) => {
