@@ -136,17 +136,17 @@ signup.get('/get-session', (req, res) => {
 // Verify OTP using only the OTP code
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
-    const { otp } = req.body;
+    const {username, otp } = req.body;
 
     console.log(`get otp${otp}`)
     console.log(req.session.username)
     console.log(req.session)
     
 
-    if (!req.session.username|| !otp) {
+    if (!username|| !otp) {
         return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
     }
-    const username = req.session.username;
+    // const username = req.session.username;
     const params = {
         ClientId: process.env.clientId,
         Username: username,
@@ -182,7 +182,8 @@ const resendOtpLimiter = rateLimit({
 
 // Resend OTP API
 signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
-    const username = req.session.username;
+    // const username = req.session.username;
+    const username = req.body;
     if (!username) {
         return res.status(400).json({ message: 'Missing required field: username' });
     }
