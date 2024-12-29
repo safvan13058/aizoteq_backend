@@ -10,9 +10,10 @@ login.use(express.json());
 
 const cors = require('cors');
 login.use(cors({
-    origin: 'http://127.0.0.1:5500', // Replace with the origin of your client app
+    origin: true, // Allow all origins
     credentials: true, // Allow cookies to be sent
 }));
+
 AWS.config.update({
     accessKeyId: "AKIAXGZAMMMAPTC2P6EV",
     secretAccessKey:"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",
