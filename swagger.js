@@ -10,7 +10,7 @@ const options = {
   },
   servers: [
     {
-      url: "http://13.200.215.17:3002/app",
+      url: "http://13.200.215.17:3000/",
     },
   ],
   paths: {
