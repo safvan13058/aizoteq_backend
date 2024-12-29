@@ -13,7 +13,9 @@ signup.use(session({
     secret: "5fa7c3e55d4c21af6f482d3cfaa9d2ab6f1d50ac7e0b77a3c98c2d5c8b468de1", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000} // For production, set `secure: true` with HTTPS
+    cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'} // For production, set `secure: true` with HTTPS
+    // Allow cross-origin cookies
+
 }));
 
 AWS.config.update({
@@ -85,7 +87,6 @@ async function handleSignup(req, res, role) {
             message: 'User signed up successfully',
             userSub: jwtsub,
         });
-        console.log(req.session)
     } catch (err) {
         console.error('Cognito sign-up error:', err.message, err.code);
         res.status(500).json({ message: 'Error during Cognito sign-up', error: err.message });
