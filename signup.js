@@ -120,14 +120,14 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 
 // Route to set a session value
 signup.get('/set-session', (req, res) => {
-    req.session.user = {name:"safvan",age:"21"}; // Store the username in session
+    req.session.user = "safvan"; // Store the username in session
 res.json({ message: 'Session data set successfully', username: req.session.user ,session:req.session});
   });
 
   // Route to get session data
 signup.get('/get-session', (req, res) => {
     if (req.session.user) {
-      res.json({ message: `Welcome back, ${req.session.user.name}` });
+      res.json({ message: `Welcome back, ${req.session.user}` });
     } else {
       res.json({ message: 'No session data available' });
     }
