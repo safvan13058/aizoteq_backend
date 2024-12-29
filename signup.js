@@ -119,7 +119,7 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 });
 
 // Route to set a session value
-signup.post('/set-session', (req, res) => {
+signup.get('/set-session', (req, res) => {
     req.session.username = "safvan13058"; // Store the username in session
     res.json({ message: 'Session data set successfully', username: req.session.username });
   });
