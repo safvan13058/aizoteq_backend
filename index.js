@@ -246,12 +246,10 @@ app.post(
 
 // --------only for demo=------------
 const cors = require('cors');
-app.use(cors());
-// app.use(cors({
-//     origin: 'http://172.20.10.7:5500',  // Allow requests only from this origin
-//   }));
-// // ------------------------------------
-
+app.use(cors({
+    origin: 'http://127.0.0.1:5500', // Replace with the origin of your client app
+    credentials: true, // Allow cookies to be sent
+}));
 
 //ADD home
 app.post(
