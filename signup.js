@@ -118,7 +118,20 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
     await handleSignup(req, res, 'dealer');
 });
 
+// Route to set a session value
+signup.post('/set-session', (req, res) => {
+    req.session.username = "safvan13058"; // Store the username in session
+    res.json({ message: 'Session data set successfully', username: req.session.username });
+  });
 
+  // Route to get session data
+signup.get('/get-session', (req, res) => {
+    if (req.session.username) {
+      res.json({ message: `Welcome back, ${req.session.username}` });
+    } else {
+      res.json({ message: 'No session data available' });
+    }
+  });
 // Verify OTP using only the OTP code
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
