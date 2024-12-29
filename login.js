@@ -7,6 +7,12 @@ require('dotenv').config();
 const login = express.Router();
 login.use(express.json());
 
+
+const cors = require('cors');
+login.use(cors({
+    origin: 'http://127.0.0.1:5500', // Replace with the origin of your client app
+    credentials: true, // Allow cookies to be sent
+}));
 // AWS Cognito configuration
 const cognito = new AWS.CognitoIdentityServiceProvider({
     region: process.env.COGNITO_REGION,
