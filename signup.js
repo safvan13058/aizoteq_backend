@@ -10,10 +10,10 @@ const crypto = require('crypto');
 const session = require('express-session');
 // Configure session middleware
 signup.use(session({
-    secret: "5fa7c3e55d4c21af6f482d3cfaa9d2ab6f1d50ac7e0b77a3c98c2d5c8b468de1", // Use a strong, secure secret
+    secret: "ffbd7c1dbf8ccc6d000658acfa9bc8be68086f710177e0fa0802d4f6f5579805", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'} // For production, set `secure: true` with HTTPS
+    // cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'} // For production, set `secure: true` with HTTPS
     // Allow cross-origin cookies
 
 }));
@@ -119,15 +119,15 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 });
 
 // Route to set a session value
-signup.post('/set-session', (req, res) => {
-    req.session.username = req.body.username; // Store the username in session
-    res.json({ message: 'Session data set successfully', username: req.session.username });
+signup.get('/set-session', (req, res) => {
+    req.session.user = {name:"safvan",age:"21"}; // Store the username in session
+res.json({ message: 'Session data set successfully', username: req.session.user ,session:req.session});
   });
 
   // Route to get session data
 signup.get('/get-session', (req, res) => {
-    if (req.session.username) {
-      res.json({ message: `Welcome back, ${req.session.username}` });
+    if (req.session.user) {
+      res.json({ message: `Welcome back, ${req.session.user.name}` });
     } else {
       res.json({ message: 'No session data available' });
     }
