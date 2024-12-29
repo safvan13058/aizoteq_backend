@@ -15,7 +15,7 @@ signup.use(session({
     saveUninitialized: true,
     // cookie: { secure: false,maxAge: 24 * 60 * 60 * 1000, sameSite: 'None'} // For production, set `secure: true` with HTTPS
     // Allow cross-origin cookies
-    domian:"http://127.0.0.1:5500",
+    domian: "127.0.0.1",
     sameSite: 'None'
 
 }));
