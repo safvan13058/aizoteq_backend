@@ -112,3 +112,28 @@ CREATE TABLE room_device (
     FOREIGN KEY (room_id) REFERENCES room(id),
     FOREIGN KEY (device_id) REFERENCES Devices(deviceId)
 );
+
+-- Table to store Scenes
+CREATE TABLE Scenes (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    aliasName VARCHAR(255),
+    createdBy VARCHAR(255),
+    icon VARCHAR(2555),
+    type VARCHAR(255),
+    favorite BOOLEAN DEFAULT FALSE,
+    enable BOOLEAN DEFAULT TRUE,
+    user_id INTEGER REFERENCES Users(id),
+    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE scene_device (
+    id SERIAL PRIMARY KEY,
+    device_id INTEGER NOT NULL REFERENCES Devices(id) ON DELETE CASCADE,
+    scene_id INTEGER NOT NULL REFERENCES Scenes(id) ON DELETE CASCADE,
+    name VARCHAR(255),
+    type VARCHAR(255),
+    status VARCHAR(255)
+);
+
+

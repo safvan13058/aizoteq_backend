@@ -20,9 +20,9 @@ signup.use(session({
 }));
 
 AWS.config.update({
-    accessKeyId: "AKIAXGZAMMMAPTC2P6EV",
-    secretAccessKey:"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",
-    region: "ap-south-1",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
 });
 
 // Your Cognito App client ID and secret
@@ -52,8 +52,7 @@ async function handleSignup(req, res, role) {
     console.log(process.env.clientId)
     console.log('AWS Region:', process.env.COGNITO_REGION);
     const params = {
-        // ClientId: process.env.clientId,
-        ClientId:"4kj4ptqrflqnd54p7unli2gko9",
+        ClientId: process.env.clientId,
         Username: userName,
         Password: password,
         UserAttributes: [
@@ -122,7 +121,7 @@ signup.post('/dashboard/dealer/signup', async (req, res) => {
 // Route to set a session value
 signup.get('/set-session', (req, res) => {
     req.session.user = "safvan"; // Store the username in session
-res.json({ message: 'Session data set successfully', username: req.session.user ,session:req.session});
+    res.json({ message: 'Session data set successfully', username: req.session.user ,session:req.session});
   });
 
   // Route to get session data
@@ -133,6 +132,7 @@ signup.get('/get-session', (req, res) => {
       res.json({ message: 'No session data available' });
     }
   });
+
 // Verify OTP using only the OTP code
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
@@ -183,7 +183,7 @@ const resendOtpLimiter = rateLimit({
 // Resend OTP API
 signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
     // const username = req.session.username;
-    const username = req.body;
+    const {username }= req.body||req.session.username;
     if (!username) {
         return res.status(400).json({ message: 'Missing required field: username' });
     }

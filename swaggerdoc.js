@@ -1871,16 +1871,614 @@ const Swaggerdoc = {
     }
 },
 
+    "/app/add/scenes/{userid}": {
+      "post": {
+        "summary": "Add a new scene",
+        "description": "Create a new scene with optional icon upload and insert it into the database.",
+        "tags": ["Scenes"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the user to whom the scene belongs",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "aliasName": { "type": "string" },
+                  "type": { "type": "string" },
+                  "icon": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "createdBy": { "type": "string" }
+                },
+                "required": ["name", "type"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scene successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "example": 1 },
+                    "name": { "type": "string", "example": "My Scene" },
+                    "aliasName": { "type": "string", "example": "Scene Alias" },
+                    "type": { "type": "string", "example": "Type A" },
+                    "createdBy": { "type": "string", "example": "Admin" },
+                    "icon": { "type": "string", "example": "https://s3-bucket/icon-url.png" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Invalid input data" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "An error occurred" },
+                    "error": { "type": "string", "example": "Error details" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/display/scenes/{userid}": {
+      "get": {
+        "summary": "Get all scenes for a user",
+        "description": "Fetch all scenes that belong to a specific user.",
+        "tags": ["Scenes"],
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the user",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of scenes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "example": 1 },
+                      "name": { "type": "string", "example": "My Scene" },
+                      "aliasName": { "type": "string", "example": "Alias" },
+                      "type": { "type": "string", "example": "Type A" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "An error occurred" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/update/scenes/{id}": {
+      "put": {
+        "summary": "Update a scene",
+        "description": "Update the details of a scene, including optional icon upload.",
+        "tags": ["Scenes"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the scene to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "aliasName": { "type": "string" },
+                  "type": { "type": "string" },
+                  "icon": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Scene successfully updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "example": 1 },
+                    "name": { "type": "string", "example": "Updated Scene" },
+                    "aliasName": { "type": "string", "example": "Updated Alias" },
+                    "type": { "type": "string", "example": "Type B" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Scene not found" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "An error occurred" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "app/delete/scenes/{id}": {
+      "delete": {
+        "summary": "Delete a scene",
+        "description": "Delete a scene by its ID.",
+        "tags": ["Scenes"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the scene to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Scene successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Scene deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Scene not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Scene not found" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "An error occurred" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+  
+    "/app/create/scene_devices/{scene_id}/{device_id}": {
+    post: {
+      summary: "Create a Scene Device",
+      description: "Add a device to a scene by specifying the scene ID and device ID.",
+      tags: ["Scene Devices"],
+      security: [
+        {
+          bearerAuth: [] // JWT authentication
+        }
+      ],
+      parameters: [
+        {
+          name: "scene_id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "integer"
+          },
+          description: "The ID of the scene to associate the device with."
+        },
+        {
+          name: "device_id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "integer"
+          },
+          description: "The ID of the device to associate with the scene."
+        }
+      ],
+      responses: {
+        201: {
+          description: "Scene device created successfully.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  id: { type: "integer", example: 1 },
+                  device_id: { type: "integer", example: 3 },
+                  scene_id: { type: "integer", example: 5 },
+                  message: { type: "string", example: "Scene device created successfully" }
+                }
+              }
+            }
+          }
+        },
+        400: {
+          description: "Invalid input data",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: { type: "string", example: "Invalid input data" }
+                }
+              }
+            }
+          }
+        },
+        500: {
+          description: "Internal server error",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: { type: "string", example: "An error occurred" },
+                  error: { type: "string", example: "Error details" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/display/scenes/{scene_id}/devices": {
+    get: {
+      summary: "Get Devices in a Scene",
+      description: "Retrieve all devices associated with a specific scene ID.",
+      tags: ["Scene Devices"],
+      security: [
+        {
+          bearerAuth: [] // JWT authentication
+        }
+      ],
+      parameters: [
+        {
+          name: "scene_id",
+          in: "path",
+          required: true,
+          schema: {
+            type: "integer"
+          },
+          description: "The ID of the scene."
+        }
+      ],
+      responses: {
+        200: {
+          description: "List of devices in the specified scene.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "integer", example: 1 },
+                    device_id: { type: "integer", example: 3 },
+                    scene_id: { type: "integer", example: 5 },
+                    name: { type: "string", example: "Living Room Light" },
+                    type: { type: "string", example: "light" },
+                    status: { type: "string", example: "active" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        404: {
+          description: "No devices found for the specified scene.",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: { type: "string", example: "No devices found for the specified scene ID" }
+                }
+              }
+            }
+          }
+        },
+        500: {
+          description: "Internal server error",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  message: { type: "string", example: "An error occurred" },
+                  error: { type: "string", example: "Error details" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
 
 
-
-
-
-
-
-  };
-
+    "/app/Update/scene_devices/{id}": {
+      put: {
+        summary: "Update a Scene Device",
+        description: "Updates the specified fields of a scene-device association by ID.",
+        tags: ["Scene Devices"],
+        security: [
+          {
+            bearerAuth: [] // JWT authentication
+          }
+        ],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "integer"
+            },
+            description: "The ID of the scene-device association to update."
+          }
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  name: { type: "string", example: "Updated Device Name" },
+                  type: { type: "string", example: "light" },
+                  status: { type: "string", example: "active" }
+                }
+              },
+              example: {
+                name: "Updated Device Name",
+                type: "light",
+                status: "active"
+              }
+            }
+          }
+        },
+        responses: {
+          200: {
+            description: "Scene device updated successfully.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    id: { type: "integer", example: 1 },
+                    device_id: { type: "integer", example: 3 },
+                    scene_id: { type: "integer", example: 5 },
+                    name: { type: "string", example: "Updated Device Name" },
+                    type: { type: "string", example: "light" },
+                    status: { type: "string", example: "active" }
+                  }
+                }
+              }
+            }
+          },
+          400: {
+            description: "No fields to update.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "No fields to update" }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: "Scene device not found.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Scene device not found" }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            description: "Internal server error.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "An error occurred" },
+                    error: { type: "string", example: "Error details" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/delete/scene_devices/{id}": {
+      delete: {
+        summary: "Delete a Scene Device",
+        description: "Deletes a scene-device association by ID.",
+        tags: ["Scene Devices"],
+        security: [
+          {
+            bearerAuth: [] // JWT authentication
+          }
+        ],
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "integer"
+            },
+            description: "The ID of the scene-device association to delete."
+          }
+        ],
+        responses: {
+          200: {
+            description: "Scene device deleted successfully.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Scene device deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          404: {
+            description: "Scene device not found.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "Scene device not found" }
+                  }
+                }
+              }
+            }
+          },
+          500: {
+            description: "Internal server error.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    message: { type: "string", example: "An error occurred" },
+                    error: { type: "string", example: "Error details" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
 
   
+};
+  
+
   module.exports = Swaggerdoc;
   

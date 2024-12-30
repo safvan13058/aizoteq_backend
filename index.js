@@ -16,10 +16,10 @@ app.use(express.json());
 // app.use(bodyParser.json());
 // Cognito settings
 const COGNITO_REGION = process.env.COGNITO_REGION;
-const COGNITO_USER_POOL_ID = process.env.COGNITO_USER_POOL_ID;  // Updated with your user pool ID
-const COGNITO_ISSUER =`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_POOL_ID}`;
+const COGNITO_USER_db_ID = process.env.COGNITO_USER_db_ID;  // Updated with your user db ID
+const COGNITO_ISSUER =`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_db_ID}`;
 const client = jwksClient({
-    jwksUri: `${COGNITO_ISSUER}/.well-known/jwks.json`,  // JWK URI for your pool
+    jwksUri: `${COGNITO_ISSUER}/.well-known/jwks.json`,  // JWK URI for your db
 });
 
 // ----------------s3 bucket------------------
@@ -237,7 +237,7 @@ app.post(
             console.error(error);
             res.status(500).json({ message: "An error occurred", error: error.message });
         } finally {
-            if (client) client.release(); // Release the client back to the pool
+            if (client) client.release(); // Release the client back to the db
         }
     }
 );
@@ -782,7 +782,7 @@ app.get('/api/display/things/:id',
         // Execute the query with a parameterized WHERE clause
         const query = 'SELECT * FROM thingattributes WHERE thingid = $1';
         const values = [thingid];
-        const result = await pool.query(query, values);
+        const result = await db.query(query, values);
 
         if (result.rows.length > 0) {
             // Send the result as JSON if records are found
@@ -918,7 +918,7 @@ app.get('/api/display/status/:status',
 app.post('/api/access/customer/:roomid',
     validateJwt,
     authorizeRoles('customer'), async (req, res) => {
-    const client = await db.connect(); // Get a client from the pool
+    const client = await db.connect(); // Get a client from the db
     try {
         const roomid = req.params.roomid;
         const user_id = 1; // Replace with actual user ID
@@ -970,7 +970,7 @@ app.post('/api/access/customer/:roomid',
         console.error("Error sharing access:", error);
         res.status(500).json({ message: "Internal server error" });
     } finally {
-        client.release(); // Release the client back to the pool
+        client.release(); // Release the client back to the db
     }
 });
 
@@ -981,7 +981,7 @@ app.post('/api/access/customer/:roomid',
 app.get('/api/display/device/rooms/:roomid', 
     validateJwt,
     authorizeRoles('customer'),async (req, res) => {
-    const client = await db.connect(); // Get a client from the pool
+    const client = await db.connect(); // Get a client from the db
     try {
         const roomid = req.params.roomid;
 
@@ -1009,7 +1009,249 @@ app.get('/api/display/device/rooms/:roomid',
         console.error(error);
         res.status(500).json({ message: 'An error occurred while fetching devices.', error });
     } finally {
-        client.release(); // Release the client back to the pool
+        client.release(); // Release the client back to the db
+    }
+});
+
+
+//Scene
+// 1. Create a Scene
+app.post('/app/add/scenes/:userid', upload.single('icon'),async (req, res) => {
+    const user_id =req.params.userid
+    const  createdBy=req.user?.username || req.body.createdBy
+    const { name, aliasName, type } = req.body;
+    const file = req.file;
+    try {
+        let iconUrl = null;
+
+        // If an icon file is provided, upload it to S3
+        if (file) {
+            const fileKey = `icons/${Date.now()}-${file.originalname}`; // Generate unique file name
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                ACL: 'public-read', // Make the file publicly readable
+            };
+
+            // Upload file to S3
+            const uploadResult = await s3.upload(params).promise();
+            iconUrl = uploadResult.Location; // Get the public URL of the uploaded file
+        }
+        const result = await db.query(
+            `INSERT INTO Scenes (name, aliasName, createdBy, icon,  type, user_id)
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [name, aliasName, createdBy, iconUrl, type,user_id]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+//  Get All Scenes by userid
+app.get('/app/display/scenes/:userid', async (req, res) => {
+    try {
+        const { userid } = req.params;
+        const result = await db.query('SELECT * FROM Scenes WHERE userid = $1', [userid]);
+        
+        res.status(200).json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+//  Update a Scene
+app.put('/app/update/scenes/:id', upload.single('icon'), async (req, res) => {
+    const { id } = req.params;
+    const fields = req.body; // Extract other fields from the request body
+    const file = req.file; // Extract the uploaded file (if any)
+
+    if (Object.keys(fields).length === 0 && !file) {
+        return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const setClauses = [];
+    const values = [];
+    let index = 1;
+
+    try {
+        let iconUrl;
+
+        // If an icon file is provided, upload it to S3
+        if (file) {
+            const fileKey = `icons/${Date.now()}-${file.originalname}`;
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                ACL: 'public-read', // Make the file publicly readable
+            };
+
+            const uploadResult = await s3.upload(params).promise();
+            iconUrl = uploadResult.Location;
+
+            // Add `icon` field update
+            setClauses.push(`icon = $${index}`);
+            values.push(iconUrl);
+            index++;
+        }
+
+        // Dynamically add other fields to the query
+        for (const [key, value] of Object.entries(fields)) {
+            setClauses.push(`${key} = $${index}`);
+            values.push(value);
+            index++;
+        }
+
+        // Add `id` for the WHERE clause
+        values.push(id);
+
+        const query = `
+            UPDATE Scenes
+            SET ${setClauses.join(', ')}, lastModified = CURRENT_TIMESTAMP
+            WHERE id = $${index}
+            RETURNING *`;
+
+        // Execute the query
+        const result = await db.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Scene not found' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating scene:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+// 5. Delete a Scene
+app.delete('/app/delete/scenes/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM Scenes WHERE id = $1 RETURNING *', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Scene not found' });
+        }
+        res.status(200).json({ message: 'Scene deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+
+app.post('/app/create/scene_devices/:scene_id/:device_id', async (req, res) => {
+    // const { device_id, scene_id } = req.body;
+    const { device_id, scene_id } = req.params;
+    try {
+        const result = await db.query(
+            `INSERT INTO scene_device (device_id, scene_id)
+             VALUES ($1, $2) RETURNING *`,
+            [device_id, scene_id]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error creating scene_device:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+//display devices in scenes with scene_id
+app.get('/api/display/scenes/:scene_id/devices', async (req, res) => {
+    const { scene_id } = req.params;
+
+    try {
+        const query = `
+            SELECT 
+                sd.*,
+                d.*
+            FROM 
+                scene_device sd
+            JOIN 
+                Devices d ON sd.device_id = d.id
+            WHERE 
+                sd.scene_id = $1;
+        `;
+
+        const result = await db.query(query, [scene_id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No devices found for the specified scene ID' });
+        }
+
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error fetching scene devices:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+// 4. Update a Scene Device
+app.put('/app/Update/scene_devices/:id', async (req, res) => {
+    const { id } = req.params;
+    const fields = req.body;
+
+    if (Object.keys(fields).length === 0) {
+        return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    const setClauses = [];
+    const values = [];
+    let index = 1;
+
+    for (const [key, value] of Object.entries(fields)) {
+        setClauses.push(`${key} = $${index}`);
+        values.push(value);
+        index++;
+    }
+
+    values.push(id);
+
+    const query = `
+        UPDATE scene_device
+        SET ${setClauses.join(', ')}
+        WHERE id = $${index}
+        RETURNING *`;
+
+    try {
+        const result = await db.query(query, values);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Scene device not found' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating scene_device:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// 5. Delete a Scene Device
+app.delete('/api/delete/scene_devices/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query(
+            `DELETE FROM scene_device WHERE id = $1 RETURNING *`,
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Scene device not found' });
+        }
+
+        res.status(200).json({ message: 'Scene device deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting scene_device:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
