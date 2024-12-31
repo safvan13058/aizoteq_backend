@@ -77,6 +77,7 @@ async function validateJwt(req, res, next) {
                     console.log(key)
                     callback(null, key.getPublicKey());
                 } catch (err) {
+                    console.error('Error retrieving signing key:', err);
                     callback(err);
                 }
             },
