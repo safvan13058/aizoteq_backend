@@ -77,6 +77,7 @@ login.post('/login', async (req, res) => {
         // Optionally log or process the user details
         console.log('User details:', rows[0]);
         res.set('JWT-Sub', jwtsub);
+        res.set('Authorization', `Bearer ${token}`);
         // console.log('User details:');
         
         // Generate a custom JWT if needed
