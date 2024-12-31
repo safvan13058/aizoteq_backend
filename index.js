@@ -16,7 +16,7 @@ app.use(express.json());
 // app.use(bodyParser.json());
 // Cognito settings
 const COGNITO_REGION = process.env.COGNITO_REGION;
-const COGNITO_USER_db_ID = process.env.COGNITO_USER_db_ID;  // Updated with your user db ID
+const COGNITO_USER_db_ID = process.env.COGNITO_USER_POOL_ID;  // Updated with your user db ID
 const COGNITO_ISSUER =`https://cognito-idp.${COGNITO_REGION}.amazonaws.com/${COGNITO_USER_db_ID}`;
 const client = jwksClient({
     jwksUri: `${COGNITO_ISSUER}/.well-known/jwks.json`,  // JWK URI for your db
