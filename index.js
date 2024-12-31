@@ -58,6 +58,7 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // Middleware to validate JWT
 async function validateJwt(req, res, next) {
     console.log(req.headers)
+    console.log(req.headers.authorization)
     const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });
@@ -75,12 +76,11 @@ async function validateJwt(req, res, next) {
         );
 
         req.user = decoded; // Add decoded token to the request object
-
+        
         const userSub = decoded.sub; // Assuming `sub` is the identifier
         if (!userSub) {
             return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
         }
-
         // Check if the user exists in the database and retrieve their role and jwtsub
         const connection = await db.getConnection();
         const [rows] = await connection.query(
@@ -299,8 +299,8 @@ app.get(
     authorizeRoles('customer'),
     async (req, res) => {          
         try {
-            const userId = req.user.id; // Get the user_id from the authenticated user
-            // const userId = 1; // for testing
+            // const userId = req.user.id; // Get the user_id from the authenticated user
+            const userId = req.body; // for testing
 
             // Query to fetch homes by user_id
             const query = `
