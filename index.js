@@ -98,7 +98,7 @@ async function validateJwt(req, res, next) {
                 // Check if the user exists in the database and retrieve their role and jwtsub
                 const connection = await db.getConnection();
                 const [rows] = await connection.query(
-                    'SELECT id, userRole, jwtsub FROM Users WHERE jwtsub = ?',
+                    'SELECT * FROM Users WHERE jwtsub = ?',
                     [userSub]
                 );
 
@@ -110,6 +110,7 @@ async function validateJwt(req, res, next) {
                 req.user.role = rows[0].userRole;
                 req.user.jwtsub = rows[0].jwtsub;
                 req.user.id = rows[0].id;
+                req.user.username = rows[0].username;
 
                 connection.release();
                 next();
@@ -316,8 +317,8 @@ app.get(
     authorizeRoles('customer'),
     async (req, res) => {          
         try {
-            // const userId = req.user.id; // Get the user_id from the authenticated user
-            const userId = req.body; // for testing
+            const userId = req.user.id; // Get the user_id from the authenticated user
+            // const userId = req.body; // for testing
 
             // Query to fetch homes by user_id
             const query = `

@@ -46,11 +46,11 @@ const Swaggerdoc = {
                 "batchId": "12345",
                 "model": "ST-1000",
                 "serialno": "1234567890",
-                "type": "thermostat"
+                "type": "new"
               },
               "attributes": [
                 {
-                  "attributeName": "temperature",
+                  "attributeName": "light",
                   "attributeValue": "5"
                 }
               ]
@@ -2471,9 +2471,399 @@ const Swaggerdoc = {
           }
         }
       }
-    }
+    },
+    
+    
+    "/signup/app/customer/signup": {
+      "post": {
+        "summary": "Customer Signup",
+        "description": "Registers a new customer with AWS Cognito and stores user details in the PostgreSQL database.",
+        "tags": ["Customer"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userName": {
+                    "type": "string",
+                    "description": "The username of the customer.",
+                    "example": "john_doe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password for the customer.",
+                    "example": "StrongPassword123!"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "The email address of the customer.",
+                    "example": "john.doe@example.com"
+                  },
+                  "phoneNumber": {
+                    "type": "string",
+                    "description": "The phone number of the customer.",
+                    "example": "+1234567890"
+                  },
+                  "fullName": {
+                    "type": "string",
+                    "description": "The full name of the customer.",
+                    "example": "John Doe"
+                  }
+                },
+                "required": ["userName", "password", "email"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User signed up successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User signed up successfully"
+                    },
+                    "userSub": {
+                      "type": "string",
+                      "description": "The unique identifier for the user in Cognito.",
+                      "example": "12345-abcde-67890"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required fields"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during Cognito sign-up.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during Cognito sign-up"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "InvalidPasswordException"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 
-  
+    "/signup/verify-otp": {
+      "post": {
+        "summary": "Verify OTP",
+        "description": "Verifies the OTP entered by the user during signup and confirms their account in AWS Cognito.",
+        "tags": ["Verification"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the user.",
+                    "example": "john_doe"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "description": "The OTP sent to the user's email or phone.",
+                    "example": "123456"
+                  }
+                },
+                "required": ["username", "otp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP verified successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "OTP verified successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or OTP errors.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid OTP"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during OTP verification.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during OTP verification"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "InternalServerError"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/signup/resend-otp": {
+      "post": {
+        "summary": "Resend OTP",
+        "description": "Resends the OTP to the user during the signup process.",
+        "tags": ["Verification"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the user.",
+                    "example": "john_doe"
+                  }
+                },
+                "required": ["username"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OTP resent successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "OTP resent successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required field: username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required field: username"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during OTP resend.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during OTP resend"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "InternalServerError"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/signup/login": {
+      "post": {
+        "summary": "User Login",
+        "description": "Authenticates the user using AWS Cognito and returns a JWT token along with user details.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username of the user.",
+                    "example": "johndoe@gmail.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "The password of the user.",
+                    "example": "StrongPassword123!"
+                  }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Login successful"
+                    },
+                    "token": {
+                      "type": "string",
+                      "description": "JWT token for authenticated requests.",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "jwtsub": {
+                      "type": "string",
+                      "description": "Unique identifier for the user in Cognito.",
+                      "example": "12345-abcde-67890"
+                    },
+                    "user": {
+                      "type": "object",
+                      "description": "Details of the authenticated user.",
+                      "example": {
+                        "userName": "johndoe@gmail.com",
+                        "jwtsub": "12345-abcde-67890",
+                        "userRole": "customer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required fields or invalid token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required fields"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found for the provided sub.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User not found for the provided sub"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during login.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during login"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "InternalServerError"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
 };
   
 
