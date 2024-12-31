@@ -57,8 +57,10 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // Middleware for JWT validation
 // Middleware to validate JWT
 async function validateJwt(req, res, next) {
-    console.log(req.headers)
-    console.log(req.headers.authorization)
+
+    console.log(req.headers);
+    console.log(req.headers.authorization);
+    
     const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });
@@ -66,41 +68,53 @@ async function validateJwt(req, res, next) {
 
     const bearerToken = token.split(' ')[1]; // Remove "Bearer " prefix
     try {
-        const decoded = await jwt.verify(
+        jwt.verify(
             bearerToken,
-            async (header) => {
-                const key = await getSigningKey(header.kid);
-                return key.getPublicKey();
+            async (header, callback) => {
+                try {
+                    const key = await getSigningKey(header.kid);
+                    callback(null, key.getPublicKey());
+                } catch (err) {
+                    callback(err);
+                }
             },
-            { issuer: COGNITO_ISSUER }
+            { issuer: COGNITO_ISSUER },
+            async (err, decoded) => {
+                if (err) {
+                    console.error('JWT verification failed:', err);
+                    return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
+                }
+
+                req.user = decoded; // Add decoded token to the request object
+
+                const userSub = decoded.sub; // Assuming `sub` is the identifier
+                if (!userSub) {
+                    return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
+                }
+
+                // Check if the user exists in the database and retrieve their role and jwtsub
+                const connection = await db.getConnection();
+                const [rows] = await connection.query(
+                    'SELECT id, userRole, jwtsub FROM Users WHERE jwtsub = ?',
+                    [userSub]
+                );
+
+                if (rows.length === 0) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+
+                // Attach user data (role and jwtsub) to the request object
+                req.user.role = rows[0].userRole;
+                req.user.jwtsub = rows[0].jwtsub;
+                req.user.id = rows[0].id;
+
+                connection.release();
+                next();
+            }
         );
-
-        req.user = decoded; // Add decoded token to the request object
-        
-        const userSub = decoded.sub; // Assuming `sub` is the identifier
-        if (!userSub) {
-            return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
-        }
-        // Check if the user exists in the database and retrieve their role and jwtsub
-        const connection = await db.getConnection();
-        const [rows] = await connection.query(
-            'SELECT userRole, jwtsub FROM Users WHERE jwtsub = ?',
-            [userSub]
-        );
-
-        if (rows.length === 0) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Attach user data (role and jwtsub) to the request object
-        req.user.role = rows[0].userRole;
-        req.user.jwtsub = rows[0].jwtsub;
-
-        connection.release();
-        next();
     } catch (err) {
-        console.error('JWT verification failed:', err);
-        return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
+        console.error('Unexpected error:', err);
+        return res.status(500).json({ message: 'Internal server error' });
     }
 }
 
@@ -258,11 +272,11 @@ app.post(
     '/app/add/home/',
     validateJwt,
     authorizeRoles('customer'),
-    async (req, res) => {
+    async (req, res) =>  {
         try {
-            const { name } = req.body; // Destructure the required fields from the request body
+            const { name }   = req.body; // Destructure the required fields from the request body
             const created_by = req.user.username; // Authenticated user's username
-            const user_id = req.user.id; // Authenticated user's ID
+            const user_id    = req.user.id; // Authenticated user's ID
 
             // Check if required data is provided
             if (!name || !created_by) {
