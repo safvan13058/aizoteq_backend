@@ -57,6 +57,7 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // Middleware for JWT validation
 // Middleware to validate JWT
 async function validateJwt(req, res, next) {
+    console.log(req.headers)
     const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });

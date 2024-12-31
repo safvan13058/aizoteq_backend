@@ -33,6 +33,7 @@ const cognito = new AWS.CognitoIdentityServiceProvider({
     region: process.env.COGNITO_REGION, // Adjust to your region
 });
 AWS.config.update({ region: process.env.COGNITO_REGION });
+
 // Login API
 login.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -54,7 +55,7 @@ login.post('/login', async (req, res) => {
     try {
         const response = await cognito.initiateAuth(params).promise();
         const token = response.AuthenticationResult.IdToken;
-        console.log(token)
+        // console.log(token)
 
         // Decode the JWT
         const decoded = jwt.decode(token);
@@ -63,8 +64,8 @@ login.post('/login', async (req, res) => {
         }
 
         const jwtsub = decoded.sub;
-        console.log(jwtsub)
-        console.log("working")
+        // console.log(jwtsub)
+        // console.log("working")
         // Query the database to check if `jwtsub` exists
         const query = 'SELECT * FROM Users WHERE jwtsub = $1';
         const { rows } = await db.query(query, [jwtsub]);
@@ -79,8 +80,7 @@ login.post('/login', async (req, res) => {
         
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-        res.status(200).json({ message: 'Login successful', token, jwtsub});
+        res.status(200).json({ message: 'Login successful',jwtsub,user: rows[0]});
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
