@@ -60,7 +60,7 @@ async function validateJwt(req, res, next) {
 
     console.log(req.headers);
     console.log(req.headers.authorization);
-    
+
     const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });
@@ -68,6 +68,7 @@ async function validateJwt(req, res, next) {
 
     const bearerToken = token.split(' ')[1]; // Remove "Bearer " prefix
     try {
+        console.log('JWT Header:', header);
         jwt.verify(
             bearerToken,
             async (header, callback) => {
