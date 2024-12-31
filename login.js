@@ -59,7 +59,7 @@ login.post('/login', async (req, res) => {
         console.log(response)
         const token = response.AuthenticationResult.IdToken;
         // console.log("token workingss")
-
+        console.log(token)
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
