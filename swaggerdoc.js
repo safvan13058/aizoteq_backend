@@ -104,8 +104,6 @@ const Swaggerdoc = {
   }
 },
 
-
-
     "/app/add/home/": {
   post: {
     summary: "Add a new home",
@@ -192,8 +190,7 @@ const Swaggerdoc = {
     }
   }
 },
-
-    //   ------------------------
+    //------------------------
     "/app/display/homes/": {
         get: {
           summary: "Get all homes for a user",

@@ -53,21 +53,35 @@ login.post('/login', async (req, res) => {
     };
 
     try {
-        // console.log("login working")
         const response = await cognito.initiateAuth(params).promise();
-        // 
-        console.log(response)
         const token = response.AuthenticationResult.IdToken;
-        // console.log("token workingss")
-        console.log(token)
-        // Generate a custom JWT if needed
-        // const customToken = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        res.status(200).json({ message: 'Login successful', token});
+        // Decode the JWT
+        const decoded = jwt.decode(token);
+        if (!decoded || !decoded.sub) {
+            return res.status(400).json({ message: 'Invalid token: Missing `sub` claim' });
+        }
+
+        const jwtsub = decoded.sub;
+        console.log(jwtsub)
+        // Query the database to check if `jwtsub` exists
+        const query = 'SELECT * FROM Users WHERE jwtsub = $1';
+        const { rows } = await db.query(query, [jwtsub]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'User not found for the provided sub' });
+        }
+
+        // Optionally log or process the user details
+        console.log('User details:', rows[0]);
+
+        // Generate a custom JWT if needed
+        // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        res.status(200).json({ message: 'Login successful', token, jwtsub, user: rows[0] });
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
-
 });
 
 // Logout API
