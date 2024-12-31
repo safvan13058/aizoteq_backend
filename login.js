@@ -7,7 +7,6 @@ require('dotenv').config();
 const login = express.Router();
 login.use(express.json());
 
-
 const cors = require('cors');
 login.use(cors({
     origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500'], // Allow all origins
@@ -55,6 +54,7 @@ login.post('/login', async (req, res) => {
     try {
         const response = await cognito.initiateAuth(params).promise();
         const token = response.AuthenticationResult.IdToken;
+        console.log(token)
 
         // Decode the JWT
         const decoded = jwt.decode(token);
@@ -64,21 +64,23 @@ login.post('/login', async (req, res) => {
 
         const jwtsub = decoded.sub;
         console.log(jwtsub)
+        console.log()
         // Query the database to check if `jwtsub` exists
-        const query = 'SELECT * FROM Users WHERE jwtsub = $1';
-        const { rows } = await db.query(query, [jwtsub]);
+        // const query = 'SELECT * FROM Users WHERE jwtsub = $1';
+        // const { rows } = await db.query(query, [jwtsub]);
 
         if (rows.length === 0) {
             return res.status(404).json({ message: 'User not found for the provided sub' });
         }
 
         // Optionally log or process the user details
-        console.log('User details:', rows[0]);
+        // console.log('User details:', rows[0]);
+        console.log('User details:');
 
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        res.status(200).json({ message: 'Login successful', token, jwtsub, user: rows[0] });
+        res.status(200).json({ message: 'Login successful', token, jwtsub});
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
