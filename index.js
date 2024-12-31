@@ -68,10 +68,10 @@ async function validateJwt(req, res, next) {
 
     const bearerToken = token.split(' ')[1]; // Remove "Bearer " prefix
     try {
-        console.log('JWT Header:', header);
+        console.log('JWT Header:', headers);
         jwt.verify(
             bearerToken,
-            async (header, callback) => {
+            async (headers, callback) => {
                 try {
                     const key = await getSigningKey(header.kid);
                     callback(null, key.getPublicKey());
