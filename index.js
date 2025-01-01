@@ -379,6 +379,44 @@ app.post(
     }
 );
 
+// DELETE endpoint to delete a Thing by ID
+app.delete('/api/delete/things/:id', async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Query to delete the Thing
+        const result = await db.query('DELETE FROM Things WHERE id = $1 RETURNING *', [id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: `Thing with id ${id} not found.` });
+        }
+
+        res.status(200).json({ message: `Thing with id ${id} deleted successfully.`, thing: result.rows[0] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    }
+});
+// DELETE endpoint to delete all Things
+app.delete('/api/delete/all/things', async (req, res) => {
+    try {
+        // Query to delete all records from Things
+        const result = await db.query('DELETE FROM Things RETURNING *');
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: 'No things found to delete.' });
+        }
+
+        res.status(200).json({
+            message: 'All things deleted successfully.',
+            deletedThings: result.rows
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    }
+});
+
 
 
 // --------only for demo=------------
