@@ -14,9 +14,9 @@ login.use(cors({
 }));
 
 AWS.config.update({
-    accessKeyId: "AKIAXGZAMMMAPTC2P6EV",
-    secretAccessKey:"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",
-    region: "ap-south-1",
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
 });
 
 // Your Cognito App client ID and secret

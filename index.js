@@ -56,11 +56,73 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 
 // Middleware for JWT validation
 // Middleware to validate JWT
+// async function validateJwt(req, res, next) {
+
+//     console.log(req.headers);
+//     console.log(req.headers.authorization);
+
+//     const token = req.headers.authorization;
+//     if (!token || !token.startsWith('Bearer ')) {
+//         return res.status(401).json({ message: 'Invalid authorization header format' });
+//     }
+
+//     const bearerToken = token.split(' ')[1]; // Remove "Bearer " prefix
+//     try {
+//         jwt.verify(
+//             bearerToken,
+//             async (header, callback) => {
+//                 console.log('JWT Header:', header);
+//                 try {
+//                     const key = await getSigningKey(header.kid);
+//                     console.log(key)
+//                     callback(null, key.getPublicKey());
+//                 } catch (err) {
+//                     console.error('Error retrieving signing key:', err);
+//                     callback(err);
+//                 }
+//             },
+//             { issuer: COGNITO_ISSUER },
+//             async (err, decoded) => {
+//                 if (err) {
+//                     console.error('JWT verification failed:', err);
+//                     return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
+//                 }
+
+//                 req.user = decoded; // Add decoded token to the request object
+
+//                 const userSub = decoded.sub; // Assuming `sub` is the identifier
+//                 if (!userSub) {
+//                     return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
+//                 }
+
+//                 // Check if the user exists in the database and retrieve their role and jwtsub
+//                 const connection = await db.getConnection();
+//                 const [rows] = await connection.query(
+//                     'SELECT * FROM Users WHERE jwtsub = $1',
+//                     [userSub]
+//                 );
+
+//                 if (rows.length === 0) {
+//                     return res.status(404).json({ message: 'User not found' });
+//                 }
+
+//                 // Attach user data (role and jwtsub) to the request object
+//                 req.user.role = rows[0].userRole;
+//                 req.user.jwtsub = rows[0].jwtsub;
+//                 req.user.id = rows[0].id;
+//                 req.user.username = rows[0].username;
+
+//                 connection.release();
+//                 next();
+//             }
+//         );
+//     } catch (err) {
+//         console.error('Unexpected error:', err);
+//         return res.status(500).json({ message: 'Internal server error' });
+//     }
+// }
 async function validateJwt(req, res, next) {
-
-    console.log(req.headers);
-    console.log(req.headers.authorization);
-
+    console.log(req.headers)
     const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });
@@ -68,57 +130,43 @@ async function validateJwt(req, res, next) {
 
     const bearerToken = token.split(' ')[1]; // Remove "Bearer " prefix
     try {
-        jwt.verify(
+        const decoded = await jwt.verify(
             bearerToken,
-            async (header, callback) => {
-                console.log('JWT Header:', header);
-                try {
-                    const key = await getSigningKey(header.kid);
-                    console.log(key)
-                    callback(null, key.getPublicKey());
-                } catch (err) {
-                    console.error('Error retrieving signing key:', err);
-                    callback(err);
-                }
+            async (header) => {
+                console.log(header)
+                const key = await getSigningKey(header.kid);
+                return key.getPublicKey();
             },
-            { issuer: COGNITO_ISSUER },
-            async (err, decoded) => {
-                if (err) {
-                    console.error('JWT verification failed:', err);
-                    return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
-                }
-
-                req.user = decoded; // Add decoded token to the request object
-
-                const userSub = decoded.sub; // Assuming `sub` is the identifier
-                if (!userSub) {
-                    return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
-                }
-
-                // Check if the user exists in the database and retrieve their role and jwtsub
-                const connection = await db.getConnection();
-                const [rows] = await connection.query(
-                    'SELECT * FROM Users WHERE jwtsub = ?',
-                    [userSub]
-                );
-
-                if (rows.length === 0) {
-                    return res.status(404).json({ message: 'User not found' });
-                }
-
-                // Attach user data (role and jwtsub) to the request object
-                req.user.role = rows[0].userRole;
-                req.user.jwtsub = rows[0].jwtsub;
-                req.user.id = rows[0].id;
-                req.user.username = rows[0].username;
-
-                connection.release();
-                next();
-            }
+            { issuer: COGNITO_ISSUER }
         );
+
+        req.user = decoded; // Add decoded token to the request object
+
+        const userSub = decoded.sub; // Assuming `sub` is the identifier
+        if (!userSub) {
+            return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
+        }
+
+        // Check if the user exists in the database and retrieve their role and jwtsub
+        const connection = await db.getConnection();
+        const [rows] = await connection.query(
+            'SELECT userRole, jwtsub FROM Users WHERE jwtsub = ?',
+            [userSub]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        // Attach user data (role and jwtsub) to the request object
+        req.user.role = rows[0].userRole;
+        req.user.jwtsub = rows[0].jwtsub;
+
+        connection.release();
+        next();
     } catch (err) {
-        console.error('Unexpected error:', err);
-        return res.status(500).json({ message: 'Internal server error' });
+        console.error('JWT verification failed:', err);
+        return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
     }
 }
 
