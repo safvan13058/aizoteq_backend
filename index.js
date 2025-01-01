@@ -166,7 +166,7 @@ async function validateJwt(req, res, next) {
                         'SELECT * FROM users WHERE jwtsub = $1',
                         [userSub]
                     );
-
+                    console.log(result)
                     if (result.rows.length === 0) {
                         return res.status(404).json({ message: 'User not found' });
                     }
