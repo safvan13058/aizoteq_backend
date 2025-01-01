@@ -176,10 +176,12 @@ async function validateJwt(req, res, next) {
                     req.user.jwtsub = result.rows[0].jwtsub;
                     req.user.id = result.rows[0].id;
                     req.user.username = result.rows[0].username;
-
+                    console.log("all set")
                     next();
                 } finally {
+
                     client.release(); // Release the client back to the pool
+                    console.log("all set final")
                 }
             }
         );
