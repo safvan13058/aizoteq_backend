@@ -163,7 +163,7 @@ async function validateJwt(req, res, next) {
                 const client = await db.connect(); // Get a client from the pool
                 try {
                     const result = await client.query(
-                        'SELECT * FROM "Users" WHERE jwtsub = $1',
+                        'SELECT * FROM users WHERE jwtsub = $1',
                         [userSub]
                     );
 
