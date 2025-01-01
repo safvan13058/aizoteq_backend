@@ -308,7 +308,7 @@ app.post(
             `;
             const thingResult = await client.query(thingQuery, [
                 thing.thingName,
-                username, // Using the authenticated user's username
+                username,   // Using the authenticated user's username
                 thing.batchId,
                 thing.model,
                 thing.serialno,
@@ -367,7 +367,7 @@ app.post(
 
             // Commit transaction
             await client.query("COMMIT");
-            res.status(201).json({ message: "Data inserted successfully" });
+            res.status(201).json({ message: "Data inserted successfully"});
         } catch (error) {
             if (client) await client.query("ROLLBACK"); // Rollback transaction on error
             console.error(error);
