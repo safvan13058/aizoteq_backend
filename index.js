@@ -308,7 +308,8 @@ app.post(
             `;
             const thingResult = await client.query(thingQuery, [
                 thing.thingName,
-                username,   // Using the authenticated user's username
+                username,
+                         // Using the authenticated user's username
                 thing.batchId,
                 thing.model,
                 thing.serialno,
