@@ -948,43 +948,103 @@ app.get('/api/display/things/:id',
     // validateJwt,
     // authorizeRoles('customer'), 
     async (req, res) => {
-    try {
-        const result = await db.query('SELECT * FROM things'); // Fetch all records
-        res.status(200).json(result.rows); // Send result as JSON
-    } catch (error) {
-        console.error('Error fetching things:', error); // Log the error for debugging
-        res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+        try {
+            // Get `page` and `limit` query parameters, with default values if not provided
+            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({ error: 'Invalid page or limit value' });
+            }
+
+            const offset = (page - 1) * limit; // Calculate the offset
+
+            // Fetch records with LIMIT and OFFSET for pagination
+            const result = await db.query(
+                'SELECT * FROM things ORDER BY id ASC LIMIT $1 OFFSET $2',
+                [limit, offset]
+            );
+
+            // Fetch the total number of records to calculate total pages
+            const countResult = await db.query('SELECT COUNT(*) AS total FROM things');
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
+
+            res.status(200).json({
+                page,
+                limit,
+                total,
+                totalPages,
+                data: result.rows,
+            });
+        } catch (error) {
+            console.error('Error fetching things:', error); // Log the error for debugging
+            res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+        }
     }
-});
+);
+
 
 
  //display thingattribute with thingid
  app.get('/api/display/thingattribute/:thingid',
     // validateJwt,
-    // authorizeRoles('admin','staff'), 
+    // authorizeRoles('admin', 'staff'),
     async (req, res) => {
-    const thingid = req.params.thingid; // Get the thingid from the route parameter
-    try {
-        // Execute the query with a parameterized WHERE clause
-        const query = 'SELECT * FROM thingattributes WHERE thingid = $1';
-        const values = [thingid];
-        const result = await db.query(query, values);
+        const thingid = req.params.thingid; // Get the thingid from the route parameter
+        const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+        const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-        if (result.rows.length > 0) {
-            // Send the result as JSON if records are found
-            res.status(200).json(result.rows);
-        } else {
-            // Handle the case where no records match
-            res.status(404).json({ message: 'No records found' });
+        // Validate thingid
+        if (!thingid || isNaN(thingid)) {
+            return res.status(400).json({ error: 'Invalid or missing thingid parameter' });
         }
-    } catch (error) {
-        // Log the error for debugging
-        console.error('Error fetching thing attributes:', error.message);
 
-        // Respond with a generic error
-        res.status(500).json({ error: 'Internal Server Error' });
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({ error: 'Invalid page or limit value' });
+        }
+
+        try {
+            const offset = (page - 1) * limit; // Calculate offset for the query
+
+            // Fetch paginated records
+            const query = `
+                SELECT * FROM thingattributes
+                WHERE thingid = $1
+                ORDER BY id ASC
+                LIMIT $2 OFFSET $3
+            `;
+            const values = [thingid, limit, offset];
+            const result = await db.query(query, values);
+
+            // Fetch total count for the thingid
+            const countQuery = 'SELECT COUNT(*) AS total FROM thingattributes WHERE thingid = $1';
+            const countResult = await db.query(countQuery, [thingid]);
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
+
+            if (result.rows.length > 0) {
+                // Return paginated data with meta information
+                res.status(200).json({
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    data: result.rows,
+                });
+            } else {
+                res.status(404).json({ message: 'No records found for the given thingid' });
+            }
+        } catch (error) {
+            // Log the full error for debugging
+            console.error('Error fetching paginated thing attributes:', error);
+
+            // Respond with a generic error
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
     }
-});
+);
+
 
 
 //display devices with thingid
@@ -1019,87 +1079,138 @@ app.get('/api/display/devices/:thingid',
 //display thing that new,rework,failed,etc.....
 app.get('/api/display/test/:type',
     // validateJwt,
-    // authorizeRoles('admin','staff'),
-     async (req, res) => {
-    try {
-        // Get the 'type' parameter from the request URL
-        const { type } = req.params;
+    // authorizeRoles('admin', 'staff'),
+    async (req, res) => {
+        try {
+            // Get the 'type' parameter and pagination parameters from the request
+            const { type } = req.params;
+            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-        // Perform the database query
-        const query = 'SELECT * FROM things WHERE type = $1';
-        const values = [type];
-        const result = await db.query(query, values);
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid page or limit value',
+                });
+            }
 
-        // Send the result back to the client
-        if (result.rows.length > 0) {
-            res.status(200).json({
-                success: true,
-                data: result.rows[0],
-            });
-        } else {
-            res.status(404).json({
+            const offset = (page - 1) * limit; // Calculate offset for pagination
+
+            // Perform the paginated query
+            const query = `
+                SELECT * FROM things 
+                WHERE type = $1
+                ORDER BY id ASC
+                LIMIT $2 OFFSET $3
+            `;
+            const values = [type, limit, offset];
+            const result = await db.query(query, values);
+
+            // Fetch total count for the specified type
+            const countQuery = 'SELECT COUNT(*) AS total FROM things WHERE type = $1';
+            const countResult = await db.query(countQuery, [type]);
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
+
+            if (result.rows.length > 0) {
+                res.status(200).json({
+                    success: true,
+                    page,
+                    limit,
+                    total,
+                    totalPages,
+                    data: result.rows,
+                });
+            } else {
+                res.status(404).json({
+                    success: false,
+                    message: 'No records found',
+                });
+            }
+        } catch (error) {
+            // Handle any errors
+            console.error('Error fetching data from the database:', error);
+            res.status(500).json({
                 success: false,
-                message: 'No records found',
+                message: 'An error occurred while fetching data',
             });
         }
-    } catch (error) {
-        // Handle any errors
-        console.error('Error fetching data from the database:', error);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching data',
-        });
     }
-});
+);
 
 
 //display things with  status
 app.get('/api/display/status/:status',
     // validateJwt,
-    // authorizeRoles('admin','staff'),
-     async (req, res) => {
-    try {
-        // Get the 'status' parameter from the request URL
-        const status = req.params.status;
+    // authorizeRoles('admin', 'staff'),
+    async (req, res) => {
+        try {
+            // Get the 'status' parameter and pagination parameters from the request
+            const { status } = req.params;
+            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-        // Perform the first database query to fetch adminstock entries
-        const queryAdminStock = 'SELECT * FROM adminstock WHERE status = $1';
-        const resultAdminStock = await db.query(queryAdminStock, [status]);
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid page or limit value',
+                });
+            }
 
-        if (resultAdminStock.rows.length === 0) {
-            // If no records are found for the given status, return a 404
-            return res.status(404).json({
+            const offset = (page - 1) * limit; // Calculate the offset for pagination
+
+            // Perform the first query to fetch adminstock entries with pagination
+            const queryAdminStock = `
+                SELECT * FROM adminstock 
+                WHERE status = $1
+                ORDER BY id ASC 
+                LIMIT $2 OFFSET $3
+            `;
+            const resultAdminStock = await db.query(queryAdminStock, [status, limit, offset]);
+
+            if (resultAdminStock.rows.length === 0) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'No data found for the provided status',
+                });
+            }
+
+            // Extract thingIds from the adminstock results
+            const thingIds = resultAdminStock.rows.map(item => item.thingid);
+
+            // Fetch total count for the specified status in adminstock
+            const countQuery = 'SELECT COUNT(*) AS total FROM adminstock WHERE status = $1';
+            const countResult = await db.query(countQuery, [status]);
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
+
+            // Perform the second query to fetch data from the `things` table for the matching thingIds
+            const queryThings = 'SELECT * FROM things WHERE id = ANY($1)';
+            const resultThings = await db.query(queryThings, [thingIds]);
+
+            // Send the paginated results back to the client
+            res.status(200).json({
+                success: true,
+                page,
+                limit,
+                total,
+                totalPages,
+                data: {
+                    adminStock: resultAdminStock.rows,
+                    things: resultThings.rows,
+                },
+            });
+        } catch (error) {
+            // Handle any errors
+            console.error('Error fetching data from the database:', error);
+
+            res.status(500).json({
                 success: false,
-                message: 'No data found for the provided status',
+                message: 'An error occurred while fetching data',
             });
         }
-
-        console.log('AdminStock Results:', resultAdminStock.rows);
-
-        // Extract thingIds from the results
-        const thingIds = resultAdminStock.rows.map(item => item.thingid); // Use `thingid` in PostgreSQL
-
-        console.log('Extracted Thing IDs:', thingIds);
-
-        // Perform the second query to fetch data from the `things` table for all matching thingIds
-        const queryThings = 'SELECT * FROM things WHERE id = ANY($1)';
-        const resultThings = await db.query(queryThings, [thingIds]);
-
-        // Send the result back to the client
-        res.status(200).json({
-            success: true,
-            data: resultThings.rows,
-        });
-    } catch (error) {
-        // Handle any errors
-        console.error('Error fetching data from the database:', error);
-
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching data',
-        });
     }
-});
+);
 
 
 
