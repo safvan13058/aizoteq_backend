@@ -180,7 +180,8 @@ async function validateJwt(req, res, next) {
                     next();
                 } finally {
 
-                    client.release(); // Release the client back to the pool
+                    client.release();
+                     // Release the client back to the pool
                     console.log("all set final")
                 }
             }
