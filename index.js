@@ -96,7 +96,7 @@ async function validateJwt(req, res, next) {
                 }
 
                 // Check if the user exists in the database and retrieve their role and jwtsub
-                const connection = await db.getConnection();
+                const connection = await db.connect();
                 const [rows] = await connection.query(
                     'SELECT * FROM Users WHERE jwtsub = $1',
                     [userSub]
