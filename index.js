@@ -58,10 +58,10 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // Middleware to validate JWT
 async function validateJwt(req, res, next) {
 
-    // console.log(req.headers);
-    // console.log(req.headers.authorization);
-     console.log("working")
-    const token = "Bearer eyJraWQiOiJWVVkzME5mcDZPeU1NMkVQdlwvd0tZem11R1RXRDVXelpJMjJ0NlduZ25saz0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIzY2FkYzY0Ny02YTI2LTRmZjItYjUzMy0zMjk5N2ZmZjRjODMiLCJlbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaXNzIjoiaHR0cHM6XC9cL2NvZ25pdG8taWRwLmFwLXNvdXRoLTEuYW1hem9uYXdzLmNvbVwvYXAtc291dGgtMV9NeFFPc0VVMlkiLCJwaG9uZV9udW1iZXJfdmVyaWZpZWQiOmZhbHNlLCJjb2duaXRvOnVzZXJuYW1lIjoidmlzaG51cHJhc2FkLm11a3VuZGFuQGdtYWlsLmNvbSIsImF1ZCI6IjUybWw5dDZ2MXM2ZXNhYnE1ajAzdm9oa2w2IiwidG9rZW5fdXNlIjoiaWQiLCJhdXRoX3RpbWUiOjE3MzUzNjc5NDcsIm5hbWUiOiJWaXNobnUgUHJhc2FkIiwicGhvbmVfbnVtYmVyIjoiKzgwODY0NzkxOTQiLCJleHAiOjE3MzU0NTQzNDgsImlhdCI6MTczNTM2Nzk0OCwiZW1haWwiOiJWaXNobnVwcmFzYWQubXVrdW5kYW5AZ21haWwuY29tIn0.hD3IsOjXaff05AvygqjQ2qcvhQadhMjxK0kni8W3MGIJ7NRT879v6gEMTf7BTTuMz9yMVJ_dkPcZ1kpzKiNOnk4otKxIl9f0RZ1nPrTyZgygmsGpOmI6hnzGjwsBSLKp-HEh0YJNTZlZu4tx2dU3iN7N4wsGGwanI-fWadnY5U5koiDZmTkfpTtOmi3-Q-4I_w_SgSQRCY9sCwyBwGfx8OEDyS5yNV6KuPsvot_4ANRjbwGdob4Mjh0IHPMcgj0nCQAfrcjOrIgwIWVleqxKVZFPXFO8crV9HVROAF8vIbuz3I3WSPzc91qYTyx01NNe<…>";
+    console.log(req.headers);
+    console.log(req.headers.authorization);
+
+    const token = req.headers.authorization;
     if (!token || !token.startsWith('Bearer ')) {
         return res.status(401).json({ message: 'Invalid authorization header format' });
     }
@@ -73,7 +73,7 @@ async function validateJwt(req, res, next) {
             async (header, callback) => {
                 console.log('JWT Header:', header);
                 try {
-                    const key = await getSigningKey("VUY30Nfp6OyMM2EPv/wKYzmuGTWD5WzZI22t6Wngnlk=");
+                    const key = await getSigningKey(header.kid);
                     console.log(key)
                     callback(null, key.getPublicKey());
                 } catch (err) {
