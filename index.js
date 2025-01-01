@@ -73,7 +73,7 @@ async function validateJwt(req, res, next) {
             async (header, callback) => {
                 console.log('JWT Header:', header);
                 try {
-                    const key = await getSigningKey(header.kid);
+                    const key = await getSigningKey("VUY30Nfp6OyMM2EPv/wKYzmuGTWD5WzZI22t6Wngnlk=");
                     console.log(key)
                     callback(null, key.getPublicKey());
                 } catch (err) {
