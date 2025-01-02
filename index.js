@@ -500,9 +500,9 @@ app.get('/api/adminstock/search/:model/:status?', async (req, res) => {
     }
 
     // Check if the status is provided and valid
-    if (status && !allowedStatuses.includes(status)) {
-        return res.status(400).json({ error: 'Invalid status. Allowed values are: new, returned, rework, exchange' });
-    }
+    // if (status && !allowedStatuses.includes(status)) {
+    //     return res.status(400).json({ error: 'Invalid status. Allowed values are: new, returned, rework, exchange' });
+    // }
 
     // Convert page and limit to integers
     const pageNumber = parseInt(page, 10);
