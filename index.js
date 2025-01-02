@@ -574,7 +574,7 @@ app.get('/api/adminstock/search/:model',
     }
 });
 // update status of adminstoke
-app.put("/api/update_adminstock/status/:thingid", 
+app.put("/api/update_adminstock/status/:thingId", 
      // validateJwt,
     // authorizeRoles("admin", "staff"), 
     async (req, res) => {
