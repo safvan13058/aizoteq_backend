@@ -196,7 +196,116 @@ const Swaggerdoc = {
         }
       }
     },
-
+"/api/display/all/devices/{userId}": {
+      "get": {
+        "summary": "Display all devices with floor and room details",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of all devices with associated floor and room names",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "device_id": { "type": "integer" },
+                      "deviceId": { "type": "string" },
+                      "macAddress": { "type": "string" },
+                      "hubIndex": { "type": "string" },
+                      "createdBy": { "type": "string" },
+                      "enable": { "type": "boolean" },
+                      "status": { "type": "string" },
+                      "icon": { "type": "string" },
+                      "device_name": { "type": "string" },
+                      "device_type": { "type": "string" },
+                      "device_last_modified": { "type": "string", "format": "date-time" },
+                      "floor_name": { "type": "string" },
+                      "room_name": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No devices found for the user"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/device/favorite/{deviceid}": {
+      "put": {
+        "summary": "Mark a device as favorite",
+        "parameters": [
+          {
+            "name": "deviceid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "ID of the device"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Device marked as favorite successfully"
+          },
+          "500": {
+            "description": "Error updating favorite status"
+          }
+        }
+      }
+    },
+    "/api/favorite-devices/{userId}": {
+      "get": {
+        "summary": "Retrieve favorite devices for a user",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the user"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of favorite devices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error fetching favorite devices"
+          }
+        }
+      }
+    },
  "/app/searchThings/{status}": {
       "get": {
         "summary": "Search things by status",

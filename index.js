@@ -1743,6 +1743,7 @@ app.put('/api/reorder/devices/:roomid', async (req, res) => {
     }
 });
 
+
 //display devices with roomsid
 // app.get('/api/display/device/rooms/:roomid', 
 //     // validateJwt,
@@ -1866,6 +1867,35 @@ app.get('/api/display/all/devices/:userId',
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+//add device to favorite
+app.put('/api/device/favorite/:deviceid', 
+    // validateJwt,
+    // authorizeRoles('customer'),
+    async (req, res) => {
+        const client = await db.connect(); // Get a client from the db
+        try {
+            const deviceid = req.params.deviceid;
+            const user_id = req.user.id; // Extract user ID from JWT middleware
+
+            // Update the favorite status of the device for the user
+            const updateFavoriteQuery = `
+                INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (user_id, device_id)
+                DO UPDATE SET favorite = EXCLUDED.favorite, last_modified = CURRENT_TIMESTAMP
+            `;
+            await client.query(updateFavoriteQuery, [user_id, deviceid, true]);
+
+            res.status(200).json({ message: `Device ${deviceid} marked as favorite successfully.` });
+        } catch (error) {
+            console.error('Error updating favorite status:', error);
+            res.status(500).json({ message: 'An error occurred while updating favorite status.', error });
+        } finally {
+            client.release(); // Release the client back to the pool
+        }
+    }
+);
 
 //diplay favorite devices
 app.get('/api/favorite-devices/:userId', async (req, res) => {

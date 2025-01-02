@@ -57,6 +57,7 @@ CREATE TABLE AdminStock (
     addedBy VARCHAR(255), -- User who added the device to AdminStock
     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
     FOREIGN KEY (thingId) REFERENCES Things(id),
+    FOREIGN KEY (addedBy) REFERENCES Users(userName),
 );
 
 -- Table to store home information
