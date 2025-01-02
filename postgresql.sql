@@ -137,3 +137,42 @@ CREATE TABLE scene_device (
 );
 
 
+CREATE TABLE UserDevicesorder (
+    userId INT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    roomid INT NOT NULL REFERENCES room(id) ON DELETE CASCADE,
+    device_id INT NOT NULL REFERENCES Devices(id) ON DELETE CASCADE,
+    orderIndex INT NOT NULL
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+);
+
+CREATE TABLE UserRoomOrder (
+    user_id INT NULL, -- Foreign key to Users table
+    floor_id INT NOT NULL, -- Foreign key to Floor table
+    room_id INT NOT NULL, -- Foreign key to Room table
+    orderIndex INT NOT NULL, -- Order index for sorting
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Define foreign keys
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_floor FOREIGN KEY (floor_id) REFERENCES Floor(id) ON DELETE CASCADE,
+    CONSTRAINT fk_room FOREIGN KEY (room_id) REFERENCES Room(id) ON DELETE CASCADE
+);
+
+CREATE TABLE UserFavoriteDevices (
+    id SERIAL PRIMARY KEY,               -- Auto-incrementing primary key
+    user_id INT NOT NULL,                -- Foreign key to Users table
+    device_id INT NOT NULL,              -- Foreign key to Devices table
+    favorite BOOLEAN DEFAULT FALSE,      -- Indicates if the device is a favorite
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Tracks the last modification
+    CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_device FOREIGN KEY (device_id) REFERENCES Devices(id) ON DELETE CASCADE
+);
+
+CREATE TABLE TestFailedDevices (
+    id SERIAL PRIMARY KEY, -- Unique identifier for each failed device log
+    thingId INT NOT NULL, -- Foreign key linking to Things table
+    failureReason TEXT NOT NULL, -- Description of the failure
+    loggedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the failure was logged
+    FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE CASCADE -- Automatically delete when the associated Thing is deleted
+);
+

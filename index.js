@@ -289,7 +289,7 @@ app.post(
         //     return res.status(400).json({ message: "Invalid input data", error: error.details });
         // }
 
-        const { thing, attributes } = req.body;
+        const { thing, attributes,status,failureReason} = req.body;
         const{username}=req.body||req.user;
         const client = await db.connect(); // Get a client connection
 
@@ -313,7 +313,7 @@ app.post(
                 thing.batchId,
                 thing.model,
                 thing.serialno,
-                thing.type,
+                thing.type || null,
                 securityKey
             ]);
             const thingId = thingResult.rows[0].id; // Retrieve the inserted thing ID
@@ -342,29 +342,70 @@ app.post(
                         INSERT INTO Devices (thingId, deviceId, macAddress, hubIndex, createdBy, enable, status, icon, name, type)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     `;
-                    await client.query(deviceQuery, [
-                        thingId,
-                        deviceId,
-                        thing.serialno,
-                        counter,
-                        username,
-                        true,
-                        null,
-                        null,
-                        name,
-                        attr.attributeName
-                    ]);
+                    try {
+                        await client.query(deviceQuery, [
+                            thingId,
+                            deviceId,
+                            thing.serialno,
+                            counter,
+                            username,
+                            true,
+                            null,
+                            null,
+                            name,
+                            attr.attributeName,
+                        ]);
+                    } catch (err) {
+                        if (err.code === "23505") {
+                            // Duplicate deviceId error
+                            throw {
+                                status: 409,
+                                error: {
+                                    code: "DUPLICATE_DEVICE_ID",
+                                    message: "A device with the provided deviceId already exists. Please use a unique deviceId.",
+                                },
+                            };
+                        } else {
+                            throw err; // Re-throw other errors
+                        }
+                    }
 
                     counter++;
                 }
             }
+            
+            // Handle AdminStock and Failed Devices if status is 'rework'
+    
+    if (status === 'rework') {
+        // const failureReason = `Rework needed due to ${thing.reason || 'unspecified issues'}`;
 
-            // Insert into AdminStock
-            const adminStockQuery = `
-                INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
-                VALUES ($1, CURRENT_TIMESTAMP, $2, $3)
-            `;
-            await client.query(adminStockQuery, [thingId, username, "new"]);
+        // Update AdminStock status to 'rework'
+        const updateAdminStockQuery = `
+            INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3)
+        `;
+        await client.query(updateAdminStockQuery, [thingId, username, "rework"]);
+
+        // Log the failure in TestFailedDevices
+        const insertFailedDeviceQuery = `
+            INSERT INTO TestFailedDevices (thingId, failureReason)
+            VALUES ($1, $2)
+        `;
+        await client.query(insertFailedDeviceQuery, [thingId, failureReason]);
+    } else {
+        // Insert into AdminStock
+        const adminStockQuery = `
+            INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
+            VALUES ($1, CURRENT_TIMESTAMP, $2, $3)
+        `;
+        await client.query(adminStockQuery, [thingId, username, "new"]);
+    }
+            // // Insert into AdminStock
+            // const adminStockQuery = `
+            //     INSERT INTO AdminStock (thingId, addedAt, addedBy, status)
+            //     VALUES ($1, CURRENT_TIMESTAMP, $2, $3)
+            // `;
+            // await client.query(adminStockQuery, [thingId, username, "new"]);
 
             // Commit transaction
             await client.query("COMMIT");
@@ -372,12 +413,76 @@ app.post(
         } catch (error) {
             if (client) await client.query("ROLLBACK"); // Rollback transaction on error
             console.error(error);
-            res.status(500).json({ message: "An error occurred", error: error.message });
+            res.status(500).json({ message: "An error occurred"});
         } finally {
             if (client) client.release(); // Release the client back to the db
         }
     }
 );
+
+app.get('/app/searchThings/:status', async (req, res) => {
+    const  {status}=req.params;
+    const {limit, offset } = req.query; // Get status, limit, and offset from query parameters
+    const client = await db.connect();
+
+    try {
+        // Validate input
+        if (!status) {
+            return res.status(400).json({ message: "Status parameter is required" });
+        }
+
+        // Ensure limit and offset are numbers and have default values if not provided
+        const rowsLimit = parseInt(limit, 10) || 10; // Default limit is 10
+        const rowsOffset = parseInt(offset, 10) || 0; // Default offset is 0
+        const page = Math.floor(rowsOffset / rowsLimit) + 1; // Calculate the current page
+
+        // Query to get the total count of records matching the status
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM AdminStock as_
+            WHERE as_.status = $1;
+        `;
+        const countResult = await client.query(countQuery, [status]);
+        const total = parseInt(countResult.rows[0].total, 10); // Total number of matching records
+        const totalPages = Math.ceil(total / rowsLimit); // Calculate the total number of pages
+
+        // Query to fetch the paginated data
+        const dataQuery = `
+            SELECT 
+                t.id AS thingId,
+                t.thingName,
+                t.serialno,
+                t.model,
+                as_.status AS adminStockStatus,
+                tfd.failureReason,
+                tfd.loggedAt
+            FROM 
+                AdminStock as_
+                JOIN Things t ON as_.thingId = t.id
+                LEFT JOIN TestFailedDevices tfd ON t.id = tfd.thingId
+            WHERE 
+                as_.status = $1
+            ORDER BY 
+                t.id
+            LIMIT $2 OFFSET $3;
+        `;
+        const dataResult = await client.query(dataQuery, [status, rowsLimit, rowsOffset]);
+
+        // Return paginated data with meta information
+        res.status(200).json({
+            page,
+            limit: rowsLimit,
+            total,
+            totalPages,
+            data: dataResult.rows,
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "An error occurred while searching things", error: error.message });
+    } finally {
+        client.release();
+    }
+});
 
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id', async (req, res) => {
@@ -784,9 +889,135 @@ app.post('/app/add/room/:floor_id',
     }
 });
 
+// app.post('/app/add/room/:floor_id', 
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     upload.single('image'), 
+//     async (req, res) => {
+//     try {
+//         const floor_id = req.params.floor_id;
+//         const { name, alias_name, user_id } = req.body; // Include `user_id` in the request body
+
+//         // Validate input
+//         if (!floor_id || !name || !user_id) {
+//             return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
+//         }
+
+//         // Placeholder for S3 file upload (if needed in the future)
+//         let fileUrl = null;
+//         if (req.file) {
+//             // const file=req.file
+//             // const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+//             // const params = {
+//             //     Bucket: process.env.S3_BUCKET_NAME,
+//             //     Key: fileKey,
+//             //     Body: file.buffer,
+//             //     ContentType: file.mimetype,
+//             //     ACL: 'public-read', // Make the file publicly readable
+//             // };
+
+//             // const uploadResult = await s3.upload(params).promise();
+//             // fileUrl = uploadResult.Location; // S3 file URL
+//         }; // Implement S3 upload logic here and set fileUrl accordingly
+
+//         // Start a database transaction
+//         await db.query('BEGIN');
+
+//         // Calculate the next orderIndex for this user and floor
+//         const getOrderIndexQuery = `
+//             SELECT COALESCE(MAX(orderIndex), 0) + 1 AS nextOrderIndex
+//             FROM UserRoomOrder
+//             WHERE floor_id = $1 AND user_id = $2
+//         `;
+//         const orderIndexResult = await db.query(getOrderIndexQuery, [floor_id, user_id]);
+//         const nextOrderIndex = orderIndexResult.rows[0].nextorderindex; // Get the next available orderIndex
+
+//         // Insert query for the room
+//         const roomQuery = `
+//             INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
+//             VALUES ($1, $2, $3, $4, $5) 
+//             RETURNING id
+//         `;
+
+//         const roomValues = [
+//             floor_id,
+//             name,
+//             alias_name || null, // Optional field
+//             fileUrl, // Replace with actual file URL if integrating S3
+//             1 // Replace with actual home_id if available
+//         ];
+
+//         const roomResult = await db.query(roomQuery, roomValues);
+//         const roomId = roomResult.rows[0].id; // Retrieve the ID of the inserted row
+
+//         // Insert query for UserRoomOrder
+//         const userRoomOrderQuery = `
+//             INSERT INTO UserRoomOrder (user_id, floor_id, room_id, orderIndex) 
+//             VALUES ($1, $2, $3, $4)
+//         `;
+
+//         const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
+
+//         await db.query(userRoomOrderQuery, userRoomOrderValues);
+
+//         // Commit the transaction
+//         await db.query('COMMIT');
+
+//         // Respond with success message and inserted room ID
+//         res.status(201).json({
+//             message: 'Room added successfully',
+//             roomId: roomId
+//         });
+//     } catch (error) {
+//         // Rollback the transaction in case of an error
+//         await db.query('ROLLBACK');
+//         console.error(error);
+//         res.status(500).json({ error: 'An error occurred while adding the room' });
+//     }
+// });
 
 
 //Delete Room
+
+app.put('/app/reorder/rooms/:floor_id', async (req, res) => {
+    const client = await db.connect();
+    try {
+        const floor_id=req.params.floor_id
+        const user_id=req.user.id||req.body.user_id
+        const {  order } = req.body; // order is an array of { room_id, orderIndex }
+
+        // Validate input
+        if ( !floor_id || !Array.isArray(order)) {
+            return res.status(400).json({ error: 'user_id, floor_id, and order array are required' });
+        }
+
+        await client.query('BEGIN'); // Start a transaction
+
+        // Update the orderIndex for each room
+        // user_id = $2 AND
+        const updateQuery = `
+            UPDATE UserRoomOrder
+            SET orderIndex = $1
+            WHERE 
+           
+             floor_id = $2 AND room_id = $3
+        `;
+        for (const { room_id, orderIndex } of order) {
+            await client.query(updateQuery, [orderIndex,  floor_id, room_id]);
+        }
+
+        await client.query('COMMIT'); // Commit the transaction
+
+        res.status(200).json({ message: 'Rooms reordered successfully.' });
+    } catch (error) {
+        await client.query('ROLLBACK'); // Rollback the transaction in case of error
+        console.error('Error reordering rooms:', error);
+        res.status(500).json({ error: 'An error occurred while reordering rooms.' });
+    } finally {
+        client.release(); // Release the client back to the pool
+    }
+});
+
 app.delete('/app/delete/room/:id',
     // validateJwt,
     // authorizeRoles('customer'),
@@ -841,9 +1072,52 @@ app.get('/app/display/rooms/:floor_id',
     }
 });
 
+// app.get('/app/display/rooms/:floor_id', 
+//     // validateJwt,
+//     // authorizeRoles('customer'), 
+//     async (req, res) => {
+//     try {
+//         const floorId = req.params.floor_id; // Extract floor ID from the request URL
+//         // const { user_id } = req.query; // Assume user_id is passed as a query parameter
+
+//         // Validate input
+//         if (!floorId ) {
+//             return res.status(400).json({ error: 'floor_id and user_id are required' });
+//         }
+
+//         // Query to fetch rooms based on UserRoomOrder orderIndex
+//         // AND uro.user_id = $2
+//         const query = `
+//             SELECT r.*
+//             FROM room r
+//             INNER JOIN UserRoomOrder uro
+//             ON r.id = uro.room_id
+//             WHERE uro.floor_id = $1
+//             ORDER BY uro.orderIndex ASC
+//         `;
+
+//         // Execute the query
+//         const result = await db.query(query, [floorId]);
+
+//         if (result.rows.length === 0) {
+//             return res.status(404).json({ message: 'No rooms found for this floor and user' });
+//         }
+
+//         res.status(200).json({
+//             message: 'Rooms retrieved successfully',
+//             rooms: result.rows
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ error: 'An error occurred while retrieving rooms' });
+//     }
+// });
+
 
 
 // Update room
+
+
 app.put('/app/update/rooms/:id',
     // validateJwt,
     // authorizeRoles('customer'), 
@@ -1222,7 +1496,7 @@ app.post('/api/access/customer/:roomid',
     const client = await db.connect(); // Get a client from the db
     try {
         const roomid = req.params.roomid;
-        const user_id = 1; // Replace with actual user ID
+        const user_id = req.user.id ||req.body.user_id; // Replace with actual user ID
         const { securitykey, serialno } = req.body;
 
         await client.query('BEGIN'); // Start a transaction
@@ -1275,9 +1549,116 @@ app.post('/api/access/customer/:roomid',
     }
 });
 
+// app.post('/api/access/customer/:roomid',
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     async (req, res) => {
+//         const client = await db.connect(); // Get a client from the db
+//         try {
+//             const roomid = req.params.roomid;
+//             const user_id = 1; // Replace with actual user ID
+//             const { securitykey, serialno } = req.body;
+
+//             await client.query('BEGIN'); // Start a transaction
+
+//             // Verify the thing
+//             const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
+//             const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
+
+//             if (verifyResult.rows.length === 0) {
+//                 return res.status(404).json({ message: "Thing not found or invalid security key" });
+//             }
+
+//             const thing_id = verifyResult.rows[0].id;
+//             const key = verifyResult.rows[0].securitykey;
+
+//             // Insert into customer_access
+//             const insertAccessQuery = `
+//                 INSERT INTO customer_access (user_id, email, thing_id, securitykey)
+//                 VALUES ($1, $2, $3, $4)
+//             `;
+//             await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
+
+//             // Retrieve device IDs
+//             const deviceQuery = 'SELECT id, deviceid FROM devices WHERE thingid = $1';
+//             const deviceResult = await client.query(deviceQuery, [thing_id]);
+
+//             if (deviceResult.rows.length === 0) {
+//                 return res.status(404).json({ message: "No devices found for the given thing" });
+//             }
+
+//             const device_ids = deviceResult.rows;
+
+//             // Fetch the current maximum orderIndex for the user
+//             const maxOrderIndexQuery = `
+//                 SELECT COALESCE(MAX(orderIndex), 0) AS max_order_index 
+//                 FROM UserDevicesorder 
+//                 WHERE  room_id= $1
+//             `;
+//             const maxOrderIndexResult = await client.query(maxOrderIndexQuery, [user_id]);
+//             let currentOrderIndex = maxOrderIndexResult.rows[0].max_order_index;
+
+//             // Insert into room_device and UserDevicesorder with orderIndex
+//             const roomDeviceQuery = `
+//                 INSERT INTO room_device (room_id, device_id)
+//                 VALUES ($1, $2)
+//             `;
+//             const userDeviceQuery = `
+//                 INSERT INTO UserDevicesorder (room_id, device_id, orderIndex)
+//                 VALUES ($1, $2, $3)
+//             `;
+
+//             for (const { id: device_id, deviceid } of device_ids) {
+//                 currentOrderIndex += 1; // Increment orderIndex
+//                 await client.query(roomDeviceQuery, [roomid, deviceid]);
+//                 await client.query(userDeviceQuery, [roomid, device_id, currentOrderIndex]);
+//             }
+
+//             await client.query('COMMIT'); // Commit the transaction
+//             res.status(201).json({ message: "Access shared successfully" });
+//         } catch (error) {
+//             await client.query('ROLLBACK'); // Rollback the transaction on error
+//             console.error("Error sharing access:", error);
+//             res.status(500).json({ message: "Internal server error" });
+//         } finally {
+//             client.release(); // Release the client back to the db
+//         }
+//     }
+// );
+
 
 
 //display devices with roomsid
+
+app.put('/api/reorder/devices/:roomid', async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { roomid } = req.params;
+        const { order } = req.body; // Array of { device_id, orderIndex }
+
+        await client.query('BEGIN');
+
+        // Update orderIndex for each device
+        const updateQuery = `
+            UPDATE UserDevices
+            SET orderIndex = $1
+            WHERE roomid = $2 AND device_id = $3
+        `;
+        for (const { device_id, orderIndex } of order) {
+            await client.query(updateQuery, [orderIndex,roomid, device_id]);
+        }
+
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Devices reordered successfully.' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Error reordering devices:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    } finally {
+        client.release();
+    }
+});
+
 
 app.get('/api/display/device/rooms/:roomid', 
     // validateJwt,
@@ -1315,6 +1696,77 @@ app.get('/api/display/device/rooms/:roomid',
     }
 });
 
+
+
+//display all devices with floor name and room name 
+app.get('/api/display/all/devices/:userId',
+     async (req, res) => {
+    const userId = req.params.userId;
+
+    try {
+        const [rows] = await db.query(`
+            SELECT 
+                d.id AS device_id,
+                d.deviceId,
+                d.macAddress,
+                d.hubIndex,
+                d.createdBy,
+                d.enable,
+                d.status,
+                d.icon,
+                d.name AS device_name,
+                d.type AS device_type,
+                d.lastModified AS device_last_modified,
+                f.name AS floor_name,
+                r.name AS room_name
+            FROM 
+                Users u
+            JOIN 
+                HOME h ON u.id = h.userid
+            JOIN 
+                floor f ON h.id = f.home_id
+            JOIN 
+                room r ON f.id = r.floor_id
+            JOIN 
+                room_device rd ON r.id = rd.room_id
+            JOIN 
+                Devices d ON rd.device_id = d.deviceId
+            WHERE 
+                u.id = ?
+            ORDER BY 
+                f.name ASC,
+                r.name ASC;
+        `, [userId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'No devices found for this user.' });
+        }
+
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error('Error fetching devices with full details:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+//diplay favorite devices
+app.get('/api/favorite-devices/:userId', async (req, res) => {
+    const { userId } = req.params||req.user;
+
+    try {
+        const devices = await db
+            .select('d.*')
+            .from('Devices as d')
+            .join('UserFavoriteDevices as ufd', 'd.id', 'ufd.device_id')
+            .where('ufd.user_id', userId)
+            .andWhere('ufd.favorite', true);
+
+        res.status(200).json({ success: true, data: devices });
+    } catch (error) {
+        console.error('Error fetching favorite devices:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
+    }
+});
 
 //Scene
 // 1. Create a Scene

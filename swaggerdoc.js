@@ -1,108 +1,199 @@
 const Swaggerdoc = {
-   "/app/addThing": {
-  post: {
-    summary: "Add a new thing",
-    description: "Create a thing with associated attributes and devices, and insert it into the stock.",
-    tags: ["Things"], 
-    security: [
-      {
-        bearerAuth: []  // Ensure you have defined `bearerAuth` for JWT authentication globally
-      }
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              thing: {
-                type: "object",
-                properties: {
-                  thingName: { type: "string" },
-                  batchId: { type: "string" },
-                  model: { type: "string" },
-                  serialno: { type: "string" },
-                  type: { type: "string" }
-                },
-                required: ["thingName", "serialno", "type"]  // Assuming these are required
-              },
-              attributes: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    attributeName: { type: "string" },
-                    attributeValue: { type: "string" }
+ "/app/addThing": {
+      "post": {
+        "summary": "Add a new thing",
+        "description": "Creates a new thing, inserts its attributes and related devices, and handles status-related logic.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "thing": {
+                    "type": "object",
+                    "properties": {
+                      "thingName": { "type": "string" },
+                      "batchId": { "type": "string" },
+                      "model": { "type": "string" },
+                      "serialno": { "type": "string" },
+                      "type": { "type": "string" }
+                    },
+                    "required": ["thingName", "serialno"]
                   },
-                  required: ["attributeName", "attributeValue"]  // Assuming these are required
+                  "attributes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "attributeName": { "type": "string" },
+                        "attributeValue": { "type": "string" }
+                      },
+                      "required": ["attributeName", "attributeValue"]
+                    }
+                  },
+                  "status": { "type": "string" },
+                  "failureReason": { "type": "string" },
+                },
+                "required": ["thing", "attributes", "status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Data inserted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
                 }
               }
-            },
-            required: ["thing", "attributes"],  // The `thing` and `attributes` are required in the request body
-            example: {
-              "thing": {
-                "thingName": "Smart Thermostat",
-                "batchId": "12345",
-                "model": "ST-1000",
-                "serialno": "1234567890",
-                "type": "new"
-              },
-              "attributes": [
-                {
-                  "attributeName": "light",
-                  "attributeValue": "5"
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "error": { "type": "object" }
+                  }
                 }
-              ]
+              }
+            }
+          },
+          "500": {
+            "description": "An error occurred",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+ },
+
+
+ "/app/searchThings/{status}": {
+      "get": {
+        "summary": "Search things by status",
+        "description": "Retrieves a paginated list of things filtered by their status.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The status of the things to filter by (e.g., 'rework', 'new')."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "The number of records to return per page (default: 10)."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "The number of records to skip before starting to return results (default: 0)."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with paginated results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer",
+                      "description": "The current page number."
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "The number of records per page."
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "The total number of records."
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "description": "The total number of pages."
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "thingId": { "type": "integer" },
+                          "thingName": { "type": "string" },
+                          "serialno": { "type": "string" },
+                          "model": { "type": "string" },
+                          "adminStockStatus": { "type": "string" },
+                          "failureReason": { "type": "string" },
+                          "loggedAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "error": { "type": "string" }
+                  }
+                }
+              }
             }
           }
         }
       }
     },
-    responses: {
-      201: {
-        description: "Thing successfully created",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                message: { type: "string", example: "Data inserted successfully" }
-              }
-            }
-          }
-        }
-      },
-      400: {
-        description: "Invalid input data",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                message: { type: "string", example: "Invalid input data" }
-              }
-            }
-          }
-        }
-      },
-      500: {
-        description: "Internal server error",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                message: { type: "string", example: "An error occurred" },
-                error: { type: "string", example: "Error details" }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-},
 "/api/delete/things/{id}": {
       "delete": {
         "summary": "Delete a Thing by ID",
@@ -2001,6 +2092,85 @@ const Swaggerdoc = {
     }
 },
 
+"/api/display/all/devices/{userId}": {
+      "get": {
+        "summary": "Get All Devices for a User",
+        "description": "Fetch all devices with their details, along with the floor and room they are located in, for a specific user.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the user whose devices are being fetched.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of devices with full details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "device_id": { "type": "integer", "example": 1 },
+                      "deviceId": { "type": "string", "example": "ABC123" },
+                      "macAddress": { "type": "string", "example": "00:1B:44:11:3A:B7" },
+                      "hubIndex": { "type": "string", "example": "HUB01" },
+                      "createdBy": { "type": "string", "example": "admin" },
+                      "enable": { "type": "boolean", "example": true },
+                      "status": { "type": "string", "example": "new" },
+                      "icon": { "type": "string", "example": "thermostat.png" },
+                      "device_name": { "type": "string", "example": "Smart Thermostat" },
+                      "device_type": { "type": "string", "example": "Thermostat" },
+                      "device_last_modified": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2025-01-01T12:34:56"
+                      },
+                      "floor_name": { "type": "string", "example": "First Floor" },
+                      "room_name": { "type": "string", "example": "Living Room" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No devices found for the user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "No devices found for this user." }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "Internal Server Error" }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": ["Devices"]
+      }
+    },
     "/app/add/scenes/{userid}": {
       "post": {
         "summary": "Add a new scene",
