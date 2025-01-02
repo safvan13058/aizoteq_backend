@@ -1,90 +1,106 @@
 const Swaggerdoc = {
- "/app/addThing": {
-      "post": {
-        "summary": "Add a new thing",
-        "description": "Creates a new thing, inserts its attributes and related devices, and handles status-related logic.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
+"/app/addThing": {
+  "post": {
+    "summary": "Add a new thing",
+    "description": "Creates a new thing, inserts its attributes and related devices, and handles status-related logic.",
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "thing": {
                 "type": "object",
                 "properties": {
-                  "thing": {
-                    "type": "object",
-                    "properties": {
-                      "thingName": { "type": "string" },
-                      "batchId": { "type": "string" },
-                      "model": { "type": "string" },
-                      "serialno": { "type": "string" },
-                      "type": { "type": "string" }
-                    },
-                    "required": ["thingName", "serialno"]
-                  },
-                  "attributes": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "attributeName": { "type": "string" },
-                        "attributeValue": { "type": "string" }
-                      },
-                      "required": ["attributeName", "attributeValue"]
-                    }
-                  },
-                  "status": { "type": "string" },
-                  "failureReason": { "type": "string" },
+                  "thingName": { "type": "string", "example": "Smart Light" },
+                  "batchId": { "type": "string", "example": "BATCH-001" },
+                  "model": { "type": "string", "example": "SL-100" },
+                  "serialno": { "type": "string", "example": "SL100-ABC123" },
+                  "type": { "type": "string" }
                 },
-                "required": ["thing", "attributes", "status"]
+                "required": ["thingName", "serialno"]
+              },
+              "attributes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "attributeName": { "type": "string", "example": "Brightness" },
+                    "attributeValue": { "type": "string", "example": "10" }
+                  },
+                  "required": ["attributeName", "attributeValue"]
+                },
+                "example": [
+                  {
+                    "attributeName": "light",
+                    "attributeValue": "10"
+                  },
+                  {
+                    "attributeName": "fan",
+                    "attributeValue": "Red"
+                  }
+                ]
+              },
+              "status": { "type": "string", "example": "rework" },
+              "failureReason": { "type": "string", "example": "Power failure" }
+            },
+            "required": ["thing", "attributes", "status"]
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Data inserted successfully",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string", "example": "Data inserted successfully" }
               }
             }
           }
-        },
-        "responses": {
-          "201": {
-            "description": "Data inserted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
+        }
+      },
+      "400": {
+        "description": "Invalid input data",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string", "example": "Invalid input data" },
+                "error": { 
                   "type": "object",
-                  "properties": {
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid input data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string" },
-                    "error": { "type": "object" }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "An error occurred",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string" },
-                    "error": { "type": "string" }
-                  }
+                  "example": { 
+                    "details": "thingName is required" 
+                  } 
                 }
               }
             }
           }
         }
+      },
+      "500": {
+        "description": "An error occurred",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string", "example": "An error occurred while inserting the data" },
+                "error": { "type": "string", "example": "Database connection error" }
+              }
+            }
+          }
+        }
       }
- },
+    }
+  }
+},
+
 
 
  "/app/searchThings/{status}": {
