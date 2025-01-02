@@ -489,7 +489,7 @@ app.get('/app/searchThings/:status', async (req, res) => {
 });
  
 app.get('/api/adminstock/search/:model', async (req, res) => {
-    const { page = 1, limit = 10 ,status} = req.query; // Extract query params with defaults
+    const { page = 1, limit = 10, status } = req.query; // Extract query params with defaults
     const { model } = req.params;
 
     // Define allowed status values
@@ -499,7 +499,7 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         return res.status(400).json({ error: 'Model is required' });
     }
 
-    // Check if the status is provided and valid
+    // Check if the status is provided and valid (uncomment if validation needed)
     // if (status && !allowedStatuses.includes(status)) {
     //     return res.status(400).json({ error: 'Invalid status. Allowed values are: new, returned, rework, exchange' });
     // }
@@ -514,25 +514,25 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         let query = `
             SELECT 
                 COUNT(*) OVER () AS total_count,
-                as.*, 
+                adminStock.*, 
                 t.*, -- Fetch all details from the Things table
-                tfd.failureReason -- Fetch failure reason if available
-            FROM AdminStock as
-            JOIN Things t ON as.thingId = t.id
-            LEFT JOIN TestFailedDevices tfd ON as.thingId = tfd.thingId -- Join with TestFailedDevices table
+                tfd.failureReason 
+            FROM AdminStock adminStock
+            JOIN Things t ON adminStock.thingId = t.id
+            LEFT JOIN TestFailedDevices tfd ON adminStock.thingId = tfd.thingId 
             WHERE t.model = $1
         `;
 
         // Add status condition if status is provided
         const queryParams = [model];
         if (status) {
-            query += ` AND as.status = $2`;
+            query += ` AND adminStock.status = $2`;
             queryParams.push(status);
         }
 
         // Finalize query with pagination
         query += `
-            ORDER BY as.addedAt DESC
+            ORDER BY adminStock.addedAt DESC
             LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2};
         `;
 
