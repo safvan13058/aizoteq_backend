@@ -54,10 +54,9 @@ CREATE TABLE AdminStock (
     id SERIAL PRIMARY KEY,
     thingId INT,
     addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    addedBy INT, -- User who added the device to AdminStock
+    addedBy VARCHAR(255), -- User who added the device to AdminStock
     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
     FOREIGN KEY (thingId) REFERENCES Things(id),
-    FOREIGN KEY (addedBy) REFERENCES Users(id)
 );
 
 -- Table to store home information
