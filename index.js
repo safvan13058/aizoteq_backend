@@ -488,7 +488,7 @@ app.get('/app/searchThings/:status', async (req, res) => {
     }
 });
  
-app.get('/api/adminstock/search/:model/?status', async (req, res) => {
+app.get('/api/adminstock/search/:model', async (req, res) => {
     const { page = 1, limit = 10 ,status} = req.query; // Extract query params with defaults
     const { model } = req.params;
 
