@@ -679,7 +679,7 @@ app.delete('/api/delete/all/things',
 });
 
 //search details of thing adminstock test with 
-app.get('/api/search/things/?searchTerm', async (req, res) => {
+app.get('/api/search/things', async (req, res) => {
     const { searchTerm, page = 1, pageSize = 10 } = req.query;
   
     if (!searchTerm) {
