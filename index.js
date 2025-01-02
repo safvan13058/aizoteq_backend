@@ -748,13 +748,14 @@ app.get('/api/search/things', async (req, res) => {
       const totalCount = rows.length;
       console.log(totalCount)
       res.status(200).json({
-        data: rows,
+       
         pagination: {
           page: parseInt(page, 10),
           pageSize: limit,
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
         },
+        data: rows,
       });
     } catch (err) {
       console.error('Error querying database:', err.message);
