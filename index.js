@@ -421,6 +421,7 @@ app.post(
 
 
 
+
 app.get('/app/searchThings/:status', async (req, res) => {
     const  {status}=req.params;
     const {limit, offset } = req.query; // Get status, limit, and offset from query parameters
@@ -455,6 +456,7 @@ app.get('/app/searchThings/:status', async (req, res) => {
                 t.serialno,
                 t.model,
                 as_.status AS adminStockStatus,
+                as_.addedby AS addedby,
                 tfd.failureReason,
                 tfd.loggedAt
             FROM 
@@ -484,7 +486,7 @@ app.get('/app/searchThings/:status', async (req, res) => {
         client.release();
     }
 });
-
+ 
 app.get('/api/adminstock/search/:model/:status', async (req, res) => {
     const { page = 1, limit = 10 } = req.query; // Extract query params with defaults
     const { model, status } = req.params;
