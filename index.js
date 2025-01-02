@@ -342,7 +342,7 @@ app.post(
                         INSERT INTO Devices (thingId, deviceId, macAddress, hubIndex, createdBy, enable, status, icon, name, type)
                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                     `;
-                    try {
+                    
                         await client.query(deviceQuery, [
                             thingId,
                             deviceId,
@@ -355,20 +355,7 @@ app.post(
                             name,
                             attr.attributeName,
                         ]);
-                    } catch (err) {
-                        if (err.code === "23505") {
-                            // Duplicate deviceId error
-                            throw {
-                                status: 409,
-                                error: {
-                                    code: "DUPLICATE_DEVICE_ID",
-                                    message: "A device with the provided deviceId already exists. Please use a unique deviceId.",
-                                },
-                            };
-                        } else {
-                            throw err; // Re-throw other errors
-                        }
-                    }
+                    
 
                     counter++;
                 }
@@ -411,9 +398,21 @@ app.post(
             await client.query("COMMIT");
             res.status(201).json({ message: "Data inserted successfully"});
         } catch (error) {
+
             if (client) await client.query("ROLLBACK"); // Rollback transaction on error
             console.error(error);
-            res.status(500).json({ message: "An error occurred"});
+            if (error.code === "23505") {
+                // Duplicate deviceId error
+                return res.status(409).json({
+                    error: {
+                        code: "DUPLICATE_DEVICE_ID",
+                        message: "A device with the provided deviceId already exists. Please use a unique deviceId.",
+                    },
+                });
+            }
+        
+            // Handle other errors or generic errors
+            res.status(500).json({ message: "An internal server error occurred." });
         } finally {
             if (client) client.release(); // Release the client back to the db
         }
