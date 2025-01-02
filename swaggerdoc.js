@@ -196,6 +196,98 @@ const Swaggerdoc = {
         }
       }
     },
+"/api/search/things": {
+      "get": {
+        "summary": "Search for Things",
+        "description": "Search for 'Things' based on various parameters with pagination support.",
+        "parameters": [
+          {
+            "name": "searchTerm",
+            "in": "query",
+            "description": "The term to search for.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number to retrieve.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "The number of items per page.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of Things matching the search criteria.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "thingId": { "type": "integer" },
+                          "thingName": { "type": "string" },
+                          "batchId": { "type": "string" },
+                          "latitude": { "type": "number" },
+                          "longitude": { "type": "number" },
+                          "model": { "type": "string" },
+                          "serialno": { "type": "string" },
+                          "type": { "type": "string" },
+                          "securityKey": { "type": "string" },
+                          "lastModified": { "type": "string", "format": "date-time" },
+                          "adminStockId": { "type": "integer" },
+                          "addedAt": { "type": "string", "format": "date-time" },
+                          "addedBy": { "type": "string" },
+                          "adminStockStatus": { "type": "string" },
+                          "failedDeviceId": { "type": "integer" },
+                          "failureReason": { "type": "string" },
+                          "fixedBy": { "type": "string" },
+                          "failureLoggedAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "page": { "type": "integer" },
+                        "pageSize": { "type": "integer" },
+                        "totalCount": { "type": "integer" },
+                        "totalPages": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request. The 'searchTerm' parameter is required."
+          },
+          "500": {
+            "description": "Internal Server Error. An error occurred while processing the request."
+          }
+        }
+      }
+    },
 "/api/update_adminstock/status/{thingid}": {
       "put": {
         "summary": "Update AdminStock status and TestFailedDevices fixed_by",

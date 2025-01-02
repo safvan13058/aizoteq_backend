@@ -678,7 +678,89 @@ app.delete('/api/delete/all/things',
     }
 });
 
-
+//search details of thing adminstock test with 
+app.get('/api/search/things', async (req, res) => {
+    const { searchTerm, page = 1, pageSize = 10 } = req.query;
+  
+    if (!searchTerm) {
+      return res.status(400).json({ error: 'Search term is required' });
+    }
+  
+    const offset = (page - 1) * pageSize;
+    const limit = parseInt(pageSize, 10);
+  
+    try {
+      // Query to fetch the paginated results along with the total count
+      const result = await pool.query(
+        `
+        WITH search_results AS (
+          SELECT
+            t.id AS thingId,
+            t.thingName,
+            t.batchId,
+            t.latitude,
+            t.longitude,
+            t.model,
+            t.serialno,
+            t.type,
+            t.securityKey,
+            t.lastModified,
+            a.id AS adminStockId,
+            a.addedAt,
+            a.addedBy,
+            a.status AS adminStockStatus,
+            f.id AS failedDeviceId,
+            f.failureReason,
+            f.fixed_by AS fixedBy,
+            f.loggedAt AS failureLoggedAt
+          FROM
+            Things t
+          LEFT JOIN
+            AdminStock a ON t.id = a.thingId
+          LEFT JOIN
+            TestFailedDevices f ON t.id = f.thingId
+          WHERE
+            (
+              t.thingName ILIKE $1 OR
+              t.batchId ILIKE $1 OR
+              t.model ILIKE $1 OR
+              t.serialno ILIKE $1 OR
+              a.status ILIKE $1 OR
+              a.addedBy ILIKE $1 OR
+              f.failureReason ILIKE $1 OR
+              f.fixed_by ILIKE $1
+            )
+        )
+        SELECT
+          *,
+          (SELECT COUNT(*) FROM search_results) AS totalCount
+        FROM
+          search_results
+        ORDER BY
+          thingId
+        LIMIT $2 OFFSET $3;
+        `,
+        [`%${searchTerm}%`, limit, offset]
+      );
+  
+      const rows = result.rows;
+      const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
+  
+      res.status(200).json({
+        data: rows,
+        pagination: {
+          page: parseInt(page, 10),
+          pageSize: limit,
+          totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      });
+    } catch (err) {
+      console.error('Error querying database:', err.message);
+      res.status(500).json({ error: 'An error occurred while searching', details: err.message });
+    }
+  });
+  
 
 // --------only for demo=------------
 const cors = require('cors');
