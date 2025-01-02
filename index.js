@@ -918,84 +918,24 @@ app.delete('/app/delete/floors/:id',
 });
 
 //ADD room
-app.post('/app/add/room/:floor_id', 
-    // validateJwt,
-    // authorizeRoles('customer'),
-    upload.single('image'), async (req, res) => {
-    try {
-        const floor_id = req.params.floor_id;
-        const { name, alias_name } = req.body;
-
-        // Validate input
-        if (!floor_id || !name) {
-            return res.status(400).json({ error: 'floor_id and name are required' });
-        }
-
-        // Placeholder for S3 file upload (if needed in the future)
-        let fileUrl = null;
-        if (req.file) {
-            // const file=req.file
-            // const fileKey = images/${Date.now()}-${file.originalname}; // Unique file name
-            // const params = {
-            //     Bucket: process.env.S3_BUCKET_NAME,
-            //     Key: fileKey,
-            //     Body: file.buffer,
-            //     ContentType: file.mimetype,
-            //     ACL: 'public-read', // Make the file publicly readable
-            // };
-
-            // const uploadResult = await s3.upload(params).promise();
-            // fileUrl = uploadResult.Location; // S3 file URL
-        };// Implement S3 upload logic here and set fileUrl accordingly
-
-        // Insert query with PostgreSQL
-        const query = `
-            INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
-            VALUES ($1, $2, $3, $4, $5) 
-            RETURNING id
-        `;
-
-        const values = [
-            floor_id,
-            name,
-            alias_name || null, // Optional field
-            fileUrl, // Replace with actual file URL if integrating S3
-            1 // Replace with actual home_id if available
-        ];
-
-        // Execute the query
-        const result = await db.query(query, values);
-
-        // Respond with success message and inserted room ID
-        res.status(201).json({
-            message: 'Room added successfully',
-            roomId: result.rows[0].id // Retrieve the ID of the inserted row
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while adding the room' });
-    }
-});
-
 // app.post('/app/add/room/:floor_id', 
 //     // validateJwt,
 //     // authorizeRoles('customer'),
-//     upload.single('image'), 
-//     async (req, res) => {
+//     upload.single('image'), async (req, res) => {
 //     try {
 //         const floor_id = req.params.floor_id;
-//         const { name, alias_name, user_id } = req.body; // Include `user_id` in the request body
+//         const { name, alias_name } = req.body;
 
 //         // Validate input
-//         if (!floor_id || !name || !user_id) {
-//             return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
+//         if (!floor_id || !name) {
+//             return res.status(400).json({ error: 'floor_id and name are required' });
 //         }
 
 //         // Placeholder for S3 file upload (if needed in the future)
 //         let fileUrl = null;
 //         if (req.file) {
 //             // const file=req.file
-//             // const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+//             // const fileKey = images/${Date.now()}-${file.originalname}; // Unique file name
 //             // const params = {
 //             //     Bucket: process.env.S3_BUCKET_NAME,
 //             //     Key: fileKey,
@@ -1006,28 +946,16 @@ app.post('/app/add/room/:floor_id',
 
 //             // const uploadResult = await s3.upload(params).promise();
 //             // fileUrl = uploadResult.Location; // S3 file URL
-//         }; // Implement S3 upload logic here and set fileUrl accordingly
+//         };// Implement S3 upload logic here and set fileUrl accordingly
 
-//         // Start a database transaction
-//         await db.query('BEGIN');
-
-//         // Calculate the next orderIndex for this user and floor
-//         const getOrderIndexQuery = `
-//             SELECT COALESCE(MAX(orderIndex), 0) + 1 AS nextOrderIndex
-//             FROM UserRoomOrder
-//             WHERE floor_id = $1 AND user_id = $2
-//         `;
-//         const orderIndexResult = await db.query(getOrderIndexQuery, [floor_id, user_id]);
-//         const nextOrderIndex = orderIndexResult.rows[0].nextorderindex; // Get the next available orderIndex
-
-//         // Insert query for the room
-//         const roomQuery = `
+//         // Insert query with PostgreSQL
+//         const query = `
 //             INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
 //             VALUES ($1, $2, $3, $4, $5) 
 //             RETURNING id
 //         `;
 
-//         const roomValues = [
+//         const values = [
 //             floor_id,
 //             name,
 //             alias_name || null, // Optional field
@@ -1035,34 +963,106 @@ app.post('/app/add/room/:floor_id',
 //             1 // Replace with actual home_id if available
 //         ];
 
-//         const roomResult = await db.query(roomQuery, roomValues);
-//         const roomId = roomResult.rows[0].id; // Retrieve the ID of the inserted row
-
-//         // Insert query for UserRoomOrder
-//         const userRoomOrderQuery = `
-//             INSERT INTO UserRoomOrder (user_id, floor_id, room_id, orderIndex) 
-//             VALUES ($1, $2, $3, $4)
-//         `;
-
-//         const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
-
-//         await db.query(userRoomOrderQuery, userRoomOrderValues);
-
-//         // Commit the transaction
-//         await db.query('COMMIT');
+//         // Execute the query
+//         const result = await db.query(query, values);
 
 //         // Respond with success message and inserted room ID
 //         res.status(201).json({
 //             message: 'Room added successfully',
-//             roomId: roomId
+//             roomId: result.rows[0].id // Retrieve the ID of the inserted row
 //         });
 //     } catch (error) {
-//         // Rollback the transaction in case of an error
-//         await db.query('ROLLBACK');
 //         console.error(error);
 //         res.status(500).json({ error: 'An error occurred while adding the room' });
 //     }
 // });
+
+app.post('/app/add/room/:floor_id', 
+    // validateJwt,
+    // authorizeRoles('customer'),
+    upload.single('image'), 
+    async (req, res) => {
+    try {
+        const floor_id = req.params.floor_id;
+        const { name, alias_name, user_id } = req.body; // Include `user_id` in the request body
+
+        // Validate input
+        if (!floor_id || !name || !user_id) {
+            return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
+        }
+
+        // Placeholder for S3 file upload (if needed in the future)
+        let fileUrl = null;
+        if (req.file) {
+            // const file=req.file
+            // const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+            // const params = {
+            //     Bucket: process.env.S3_BUCKET_NAME,
+            //     Key: fileKey,
+            //     Body: file.buffer,
+            //     ContentType: file.mimetype,
+            //     ACL: 'public-read', // Make the file publicly readable
+            // };
+
+            // const uploadResult = await s3.upload(params).promise();
+            // fileUrl = uploadResult.Location; // S3 file URL
+        }; // Implement S3 upload logic here and set fileUrl accordingly
+
+        // Start a database transaction
+        await db.query('BEGIN');
+
+        // Calculate the next orderIndex for this user and floor
+        const getOrderIndexQuery = `
+            SELECT COALESCE(MAX(orderIndex), 0) + 1 AS nextOrderIndex
+            FROM UserRoomOrder
+            WHERE floor_id = $1 AND user_id = $2
+        `;
+        const orderIndexResult = await db.query(getOrderIndexQuery, [floor_id, user_id]);
+        const nextOrderIndex = orderIndexResult.rows[0].nextorderindex; // Get the next available orderIndex
+
+        // Insert query for the room
+        const roomQuery = `
+            INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
+            VALUES ($1, $2, $3, $4, $5) 
+            RETURNING id
+        `;
+
+        const roomValues = [
+            floor_id,
+            name,
+            alias_name || null, // Optional field
+            fileUrl, // Replace with actual file URL if integrating S3
+            1 // Replace with actual home_id if available
+        ];
+
+        const roomResult = await db.query(roomQuery, roomValues);
+        const roomId = roomResult.rows[0].id; // Retrieve the ID of the inserted row
+
+        // Insert query for UserRoomOrder
+        const userRoomOrderQuery = `
+            INSERT INTO UserRoomOrder (user_id, floor_id, room_id, orderIndex) 
+            VALUES ($1, $2, $3, $4)
+        `;
+
+        const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
+
+        await db.query(userRoomOrderQuery, userRoomOrderValues);
+
+        // Commit the transaction
+        await db.query('COMMIT');
+
+        // Respond with success message and inserted room ID
+        res.status(201).json({
+            message: 'Room added successfully',
+            roomId: roomId
+        });
+    } catch (error) {
+        // Rollback the transaction in case of an error
+        await db.query('ROLLBACK');
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while adding the room' });
+    }
+});
 
 
 //Delete Room
@@ -1133,62 +1133,21 @@ app.delete('/app/delete/room/:id',
 
 //Display room
 
-app.get('/app/display/rooms/:floor_id',
-    // validateJwt,
-    // authorizeRoles('customer'), 
-    async (req, res) => {
-    try {
-        const floorId = req.params.floor_id; // Extract floor ID from the request URL
-
-        // Query to fetch rooms with parameterized input
-        const query = 'SELECT * FROM room WHERE floor_id = $1';
-
-        // Execute the query
-        const result = await db.query(query, [floorId]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No rooms found for this floor' });
-        }
-
-        res.status(200).json({
-            message: 'Rooms retrieved successfully',
-            rooms: result.rows
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while retrieving rooms' });
-    }
-});
-
-// app.get('/app/display/rooms/:floor_id', 
+// app.get('/app/display/rooms/:floor_id',
 //     // validateJwt,
 //     // authorizeRoles('customer'), 
 //     async (req, res) => {
 //     try {
 //         const floorId = req.params.floor_id; // Extract floor ID from the request URL
-//         // const { user_id } = req.query; // Assume user_id is passed as a query parameter
 
-//         // Validate input
-//         if (!floorId ) {
-//             return res.status(400).json({ error: 'floor_id and user_id are required' });
-//         }
-
-//         // Query to fetch rooms based on UserRoomOrder orderIndex
-//         // AND uro.user_id = $2
-//         const query = `
-//             SELECT r.*
-//             FROM room r
-//             INNER JOIN UserRoomOrder uro
-//             ON r.id = uro.room_id
-//             WHERE uro.floor_id = $1
-//             ORDER BY uro.orderIndex ASC
-//         `;
+//         // Query to fetch rooms with parameterized input
+//         const query = 'SELECT * FROM room WHERE floor_id = $1';
 
 //         // Execute the query
 //         const result = await db.query(query, [floorId]);
 
 //         if (result.rows.length === 0) {
-//             return res.status(404).json({ message: 'No rooms found for this floor and user' });
+//             return res.status(404).json({ message: 'No rooms found for this floor' });
 //         }
 
 //         res.status(200).json({
@@ -1201,11 +1160,50 @@ app.get('/app/display/rooms/:floor_id',
 //     }
 // });
 
+app.get('/app/display/rooms/:floor_id', 
+    // validateJwt,
+    // authorizeRoles('customer'), 
+    async (req, res) => {
+    try {
+        const floorId = req.params.floor_id; // Extract floor ID from the request URL
+        // const { user_id } = req.query; // Assume user_id is passed as a query parameter
+
+        // Validate input
+        if (!floorId ) {
+            return res.status(400).json({ error: 'floor_id and user_id are required' });
+        }
+
+        // Query to fetch rooms based on UserRoomOrder orderIndex
+        // AND uro.user_id = $2
+        const query = `
+            SELECT r.*
+            FROM room r
+            INNER JOIN UserRoomOrder uro
+            ON r.id = uro.room_id
+            WHERE uro.floor_id = $1
+            ORDER BY uro.orderIndex ASC
+        `;
+
+        // Execute the query
+        const result = await db.query(query, [floorId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No rooms found for this floor and user' });
+        }
+
+        res.status(200).json({
+            message: 'Rooms retrieved successfully',
+            rooms: result.rows
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while retrieving rooms' });
+    }
+});
+
 
 
 // Update room
-
-
 app.put('/app/update/rooms/:id',
     // validateJwt,
     // authorizeRoles('customer'), 
@@ -1577,146 +1575,144 @@ app.get('/api/display/status/:status',
 
 
 // share access to customer with macAddress and securityKey
-app.post('/api/access/customer/:roomid',
-    // validateJwt,
-    // authorizeRoles('customer'),
-     async (req, res) => {
-    const client = await db.connect(); // Get a client from the db
-    try {
-        const roomid = req.params.roomid;
-        const user_id = req.user.id ||req.body.user_id; // Replace with actual user ID
-        const { securitykey, serialno } = req.body;
-
-        await client.query('BEGIN'); // Start a transaction
-
-        // Verify the thing
-        const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
-        const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
-
-        if (verifyResult.rows.length === 0) {
-            return res.status(404).json({ message: "Thing not found or invalid security key" });
-        }
-
-        const thing_id = verifyResult.rows[0].id;
-        const key = verifyResult.rows[0].securitykey;
-
-        // Insert into customer_access
-        const insertAccessQuery = `
-            INSERT INTO customer_access (user_id, email, thing_id, securitykey)
-            VALUES ($1, $2, $3, $4)
-        `;
-        await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
-
-        // Retrieve device IDs
-        const deviceQuery = 'SELECT deviceid FROM devices WHERE thingid = $1';
-        const deviceResult = await client.query(deviceQuery, [thing_id]);
-
-        if (deviceResult.rows.length === 0) {
-            return res.status(404).json({ message: "No devices found for the given thing" });
-        }
-
-        const device_ids = deviceResult.rows.map(item => item.deviceid);
-
-        // Insert into room_device
-        const roomDeviceQuery = `
-            INSERT INTO room_device (room_id, device_id)
-            VALUES ($1, $2)
-        `;
-        for (const device_id of device_ids) {
-            await client.query(roomDeviceQuery, [roomid, device_id]);
-        }
-
-        await client.query('COMMIT'); // Commit the transaction
-        res.status(201).json({ message: "Access shared successfully" });
-    } catch (error) {
-        await client.query('ROLLBACK'); // Rollback the transaction on error
-        console.error("Error sharing access:", error);
-        res.status(500).json({ message: "Internal server error" });
-    } finally {
-        client.release(); // Release the client back to the db
-    }
-});
-
 // app.post('/api/access/customer/:roomid',
 //     // validateJwt,
 //     // authorizeRoles('customer'),
-//     async (req, res) => {
-//         const client = await db.connect(); // Get a client from the db
-//         try {
-//             const roomid = req.params.roomid;
-//             const user_id = 1; // Replace with actual user ID
-//             const { securitykey, serialno } = req.body;
+//      async (req, res) => {
+//     const client = await db.connect(); // Get a client from the db
+//     try {
+//         const roomid = req.params.roomid;
+//         const user_id = req.user.id ||req.body.user_id; // Replace with actual user ID
+//         const { securitykey, serialno } = req.body;
 
-//             await client.query('BEGIN'); // Start a transaction
+//         await client.query('BEGIN'); // Start a transaction
 
-//             // Verify the thing
-//             const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
-//             const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
+//         // Verify the thing
+//         const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
+//         const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
 
-//             if (verifyResult.rows.length === 0) {
-//                 return res.status(404).json({ message: "Thing not found or invalid security key" });
-//             }
-
-//             const thing_id = verifyResult.rows[0].id;
-//             const key = verifyResult.rows[0].securitykey;
-
-//             // Insert into customer_access
-//             const insertAccessQuery = `
-//                 INSERT INTO customer_access (user_id, email, thing_id, securitykey)
-//                 VALUES ($1, $2, $3, $4)
-//             `;
-//             await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
-
-//             // Retrieve device IDs
-//             const deviceQuery = 'SELECT id, deviceid FROM devices WHERE thingid = $1';
-//             const deviceResult = await client.query(deviceQuery, [thing_id]);
-
-//             if (deviceResult.rows.length === 0) {
-//                 return res.status(404).json({ message: "No devices found for the given thing" });
-//             }
-
-//             const device_ids = deviceResult.rows;
-
-//             // Fetch the current maximum orderIndex for the user
-//             const maxOrderIndexQuery = `
-//                 SELECT COALESCE(MAX(orderIndex), 0) AS max_order_index 
-//                 FROM UserDevicesorder 
-//                 WHERE  room_id= $1
-//             `;
-//             const maxOrderIndexResult = await client.query(maxOrderIndexQuery, [user_id]);
-//             let currentOrderIndex = maxOrderIndexResult.rows[0].max_order_index;
-
-//             // Insert into room_device and UserDevicesorder with orderIndex
-//             const roomDeviceQuery = `
-//                 INSERT INTO room_device (room_id, device_id)
-//                 VALUES ($1, $2)
-//             `;
-//             const userDeviceQuery = `
-//                 INSERT INTO UserDevicesorder (room_id, device_id, orderIndex)
-//                 VALUES ($1, $2, $3)
-//             `;
-
-//             for (const { id: device_id, deviceid } of device_ids) {
-//                 currentOrderIndex += 1; // Increment orderIndex
-//                 await client.query(roomDeviceQuery, [roomid, deviceid]);
-//                 await client.query(userDeviceQuery, [roomid, device_id, currentOrderIndex]);
-//             }
-
-//             await client.query('COMMIT'); // Commit the transaction
-//             res.status(201).json({ message: "Access shared successfully" });
-//         } catch (error) {
-//             await client.query('ROLLBACK'); // Rollback the transaction on error
-//             console.error("Error sharing access:", error);
-//             res.status(500).json({ message: "Internal server error" });
-//         } finally {
-//             client.release(); // Release the client back to the db
+//         if (verifyResult.rows.length === 0) {
+//             return res.status(404).json({ message: "Thing not found or invalid security key" });
 //         }
+
+//         const thing_id = verifyResult.rows[0].id;
+//         const key = verifyResult.rows[0].securitykey;
+
+//         // Insert into customer_access
+//         const insertAccessQuery = `
+//             INSERT INTO customer_access (user_id, email, thing_id, securitykey)
+//             VALUES ($1, $2, $3, $4)
+//         `;
+//         await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
+
+//         // Retrieve device IDs
+//         const deviceQuery = 'SELECT deviceid FROM devices WHERE thingid = $1';
+//         const deviceResult = await client.query(deviceQuery, [thing_id]);
+
+//         if (deviceResult.rows.length === 0) {
+//             return res.status(404).json({ message: "No devices found for the given thing" });
+//         }
+
+//         const device_ids = deviceResult.rows.map(item => item.deviceid);
+
+//         // Insert into room_device
+//         const roomDeviceQuery = `
+//             INSERT INTO room_device (room_id, device_id)
+//             VALUES ($1, $2)
+//         `;
+//         for (const device_id of device_ids) {
+//             await client.query(roomDeviceQuery, [roomid, device_id]);
+//         }
+
+//         await client.query('COMMIT'); // Commit the transaction
+//         res.status(201).json({ message: "Access shared successfully" });
+//     } catch (error) {
+//         await client.query('ROLLBACK'); // Rollback the transaction on error
+//         console.error("Error sharing access:", error);
+//         res.status(500).json({ message: "Internal server error" });
+//     } finally {
+//         client.release(); // Release the client back to the db
 //     }
-// );
+// });
+
+app.post('/api/access/customer/:roomid',
+    // validateJwt,
+    // authorizeRoles('customer'),
+    async (req, res) => {
+        const client = await db.connect(); // Get a client from the db
+        try {
+            const roomid = req.params.roomid;
+            const user_id = 1; // Replace with actual user ID
+            const { securitykey, serialno } = req.body;
+
+            await client.query('BEGIN'); // Start a transaction
+
+            // Verify the thing
+            const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
+            const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
+
+            if (verifyResult.rows.length === 0) {
+                return res.status(404).json({ message: "Thing not found or invalid security key" });
+            }
+
+            const thing_id = verifyResult.rows[0].id;
+            const key = verifyResult.rows[0].securitykey;
+
+            // Insert into customer_access
+            const insertAccessQuery = `
+                INSERT INTO customer_access (user_id, email, thing_id, securitykey)
+                VALUES ($1, $2, $3, $4)
+            `;
+            await client.query(insertAccessQuery, [user_id, null, thing_id, key]);
+
+            // Retrieve device IDs
+            const deviceQuery = 'SELECT id, deviceid FROM devices WHERE thingid = $1';
+            const deviceResult = await client.query(deviceQuery, [thing_id]);
+
+            if (deviceResult.rows.length === 0) {
+                return res.status(404).json({ message: "No devices found for the given thing" });
+            }
+
+            const device_ids = deviceResult.rows;
+
+            // Fetch the current maximum orderIndex for the user
+            const maxOrderIndexQuery = `
+                SELECT COALESCE(MAX(orderIndex), 0) AS max_order_index 
+                FROM UserDevicesorder 
+                WHERE  room_id= $1
+            `;
+            const maxOrderIndexResult = await client.query(maxOrderIndexQuery, [user_id]);
+            let currentOrderIndex = maxOrderIndexResult.rows[0].max_order_index;
+
+            // Insert into room_device and UserDevicesorder with orderIndex
+            const roomDeviceQuery = `
+                INSERT INTO room_device (room_id, device_id)
+                VALUES ($1, $2)
+            `;
+            const userDeviceQuery = `
+                INSERT INTO UserDevicesorder (room_id, device_id, orderIndex)
+                VALUES ($1, $2, $3)
+            `;
+
+            for (const { id: device_id, deviceid } of device_ids) {
+                currentOrderIndex += 1; // Increment orderIndex
+                await client.query(roomDeviceQuery, [roomid, deviceid]);
+                await client.query(userDeviceQuery, [roomid, device_id, currentOrderIndex]);
+            }
+
+            await client.query('COMMIT'); // Commit the transaction
+            res.status(201).json({ message: "Access shared successfully" });
+        } catch (error) {
+            await client.query('ROLLBACK'); // Rollback the transaction on error
+            console.error("Error sharing access:", error);
+            res.status(500).json({ message: "Internal server error" });
+        } finally {
+            client.release(); // Release the client back to the db
+        }
+    }
+);
 
 
-
-//display devices with roomsid
 
 app.put('/api/reorder/devices/:roomid', async (req, res) => {
     const client = await db.connect();
@@ -1747,42 +1743,76 @@ app.put('/api/reorder/devices/:roomid', async (req, res) => {
     }
 });
 
+//display devices with roomsid
+// app.get('/api/display/device/rooms/:roomid', 
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     async (req, res) => {
+//     const client = await db.connect(); // Get a client from the db
+//     try {
+//         const roomid = req.params.roomid;
+
+//         // Fetch device IDs associated with the room
+//         const deviceIdsQuery = 'SELECT device_id FROM room_device WHERE room_id = $1';
+//         const deviceIdsResult = await client.query(deviceIdsQuery, [roomid]);
+
+//         if (deviceIdsResult.rows.length === 0) {
+//             return res.status(404).json({ message: 'No devices found for this room.' });
+//         }
+
+//         // Extract device IDs
+//         const deviceIds = deviceIdsResult.rows.map(item => item.device_id);
+
+//         // Dynamically generate placeholders for the device IDs
+//         const placeholders = deviceIds.map((_, index) => `$${index + 1}`).join(',');
+//         const query = `SELECT * FROM devices WHERE deviceid IN (${placeholders})`;
+
+//         // Fetch device details
+//         const devicesResult = await client.query(query, deviceIds);
+
+//         // Return the device data
+//         res.status(200).json({ devices: devicesResult.rows });
+//     } catch (error) {
+//         console.error(error);
+//         res.status(500).json({ message: 'An error occurred while fetching devices.', error });
+//     } finally {
+//         client.release(); // Release the client back to the db
+//     }
+// });
 
 app.get('/api/display/device/rooms/:roomid', 
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {
-    const client = await db.connect(); // Get a client from the db
-    try {
-        const roomid = req.params.roomid;
+        const client = await db.connect();
+        try {
+            const roomid = req.params.roomid;
 
-        // Fetch device IDs associated with the room
-        const deviceIdsQuery = 'SELECT device_id FROM room_device WHERE room_id = $1';
-        const deviceIdsResult = await client.query(deviceIdsQuery, [roomid]);
+            // Fetch devices for the room, ordered by orderIndex
+            const query = `
+                SELECT d.*
+                FROM devices d
+                INNER JOIN room_device rd ON d.deviceid = rd.device_id
+                INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
+                WHERE rd.room_id = $1
+                ORDER BY udo.orderIndex ASC
+            `;
+            const devicesResult = await client.query(query, [roomid]);
 
-        if (deviceIdsResult.rows.length === 0) {
-            return res.status(404).json({ message: 'No devices found for this room.' });
+            if (devicesResult.rows.length === 0) {
+                return res.status(404).json({ message: 'No devices found for this room.' });
+            }
+
+            // Return the ordered device data
+            res.status(200).json({ devices: devicesResult.rows });
+        } catch (error) {
+            console.error('Error fetching devices:', error);
+            res.status(500).json({ message: 'An error occurred while fetching devices.', error });
+        } finally {
+            client.release();
         }
-
-        // Extract device IDs
-        const deviceIds = deviceIdsResult.rows.map(item => item.device_id);
-
-        // Dynamically generate placeholders for the device IDs
-        const placeholders = deviceIds.map((_, index) => `$${index + 1}`).join(',');
-        const query = `SELECT * FROM devices WHERE deviceid IN (${placeholders})`;
-
-        // Fetch device details
-        const devicesResult = await client.query(query, deviceIds);
-
-        // Return the device data
-        res.status(200).json({ devices: devicesResult.rows });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'An error occurred while fetching devices.', error });
-    } finally {
-        client.release(); // Release the client back to the db
     }
-});
+);
 
 
 
