@@ -462,6 +462,7 @@ app.get('/app/searchThings/:status',
                 as_.status AS adminStockStatus,
                 as_.addedby AS addedby,
                 tfd.failureReason,
+                tfd.fixed_by,
                 tfd.loggedAt
             FROM 
                 AdminStock as_
