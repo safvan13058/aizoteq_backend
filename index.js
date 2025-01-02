@@ -488,12 +488,20 @@ app.get('/app/searchThings/:status', async (req, res) => {
     }
 });
  
-app.get('/api/adminstock/search/:model/:status', async (req, res) => {
+app.get('/api/adminstock/search/:model/:status?', async (req, res) => {
     const { page = 1, limit = 10 } = req.query; // Extract query params with defaults
     const { model, status } = req.params;
 
-    if (!model || !status) {
-        return res.status(400).json({ error: 'Both model and status are required' });
+    // Define allowed status values
+    const allowedStatuses = ['new', 'returned', 'rework', 'exchange'];
+
+    if (!model) {
+        return res.status(400).json({ error: 'Model is required' });
+    }
+
+    // Check if the status is provided and valid
+    if (status && !allowedStatuses.includes(status)) {
+        return res.status(400).json({ error: 'Invalid status. Allowed values are: new, returned, rework, exchange' });
     }
 
     // Convert page and limit to integers
@@ -502,8 +510,8 @@ app.get('/api/adminstock/search/:model/:status', async (req, res) => {
     const offset = (pageNumber - 1) * limitNumber;
 
     try {
-        // Query the database with pagination
-        const query = `
+        // Base query
+        let query = `
             SELECT 
                 COUNT(*) OVER () AS total_count,
                 as.*, 
@@ -512,11 +520,27 @@ app.get('/api/adminstock/search/:model/:status', async (req, res) => {
             FROM AdminStock as
             JOIN Things t ON as.thingId = t.id
             LEFT JOIN TestFailedDevices tfd ON as.thingId = tfd.thingId -- Join with TestFailedDevices table
-            WHERE t.model = $1 AND as.status = $2
-            ORDER BY as.addedAt DESC
-            LIMIT $3 OFFSET $4;
+            WHERE t.model = $1
         `;
-        const result = await pool.query(query, [model, status, limitNumber, offset]);
+
+        // Add status condition if status is provided
+        const queryParams = [model];
+        if (status) {
+            query += ` AND as.status = $2`;
+            queryParams.push(status);
+        }
+
+        // Finalize query with pagination
+        query += `
+            ORDER BY as.addedAt DESC
+            LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2};
+        `;
+
+        // Add pagination parameters to the query
+        queryParams.push(limitNumber, offset);
+
+        // Execute the query
+        const result = await pool.query(query, queryParams);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'No records found for the given model and status' });
@@ -542,6 +566,7 @@ app.get('/api/adminstock/search/:model/:status', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id', async (req, res) => {
