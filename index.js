@@ -711,7 +711,8 @@ app.get('/api/search/things', async (req, res) => {
         `,
         [`%${searchTerm}%`]
       );
-  
+       
+      console.log(countResult)
       const totalCount = parseInt(countResult.rows[0].totalCount, 10);
       const totalPages = Math.ceil(totalCount / limit);
   
@@ -777,6 +778,7 @@ app.get('/api/search/things', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while searching', details: err.message });
     }
   });
+  
   
   
   
