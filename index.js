@@ -578,6 +578,7 @@ app.put("/api/update_adminstock/status/:thingid",
      // validateJwt,
     // authorizeRoles("admin", "staff"), 
     async (req, res) => {
+        console.log(req.body)
     const  {thingId} =req.params
     const { status } = req.body;
     const  fixedBy= req.user.username ||req.body.fixedBy;
