@@ -712,7 +712,8 @@ app.get('/api/search/things', async (req, res) => {
             f.id AS failedDeviceId,
             f.failureReason,
             f.fixed_by AS fixedBy,
-            f.loggedAt AS failureLoggedAt
+            f.loggedAt AS failureLoggedAt,
+            COUNT(*) OVER () AS totalCount
           FROM
             Things t
           LEFT JOIN
@@ -732,8 +733,7 @@ app.get('/api/search/things', async (req, res) => {
             )
         )
         SELECT
-          *,
-          (SELECT COUNT(*) FROM search_results) AS totalCount
+          *
         FROM
           search_results
         ORDER BY
@@ -747,20 +747,20 @@ app.get('/api/search/things', async (req, res) => {
       const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
   
       res.status(200).json({
-        
+        data: rows,
         pagination: {
           page: parseInt(page, 10),
           pageSize: limit,
           totalCount,
           totalPages: Math.ceil(totalCount / limit),
         },
-        data: rows,
       });
     } catch (err) {
       console.error('Error querying database:', err.message);
       res.status(500).json({ error: 'An error occurred while searching', details: err.message });
     }
   });
+  
   
 
 // --------only for demo=------------
