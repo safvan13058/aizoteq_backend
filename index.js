@@ -744,6 +744,7 @@ app.get('/api/search/things', async (req, res) => {
       );
   
       const rows = result.rows;
+      console.log(rows)
       const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
        console.log(totalCount)
       res.status(200).json({
