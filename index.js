@@ -499,7 +499,7 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         return res.status(400).json({ error: 'Model is required' });
     }
 
-    // Check if the status is provided and valid (uncomment if validation needed)
+    // Check if the status is provided and valid (commented out, but can be uncommented if validation is required)
     // if (status && !allowedStatuses.includes(status)) {
     //     return res.status(400).json({ error: 'Invalid status. Allowed values are: new, returned, rework, exchange' });
     // }
@@ -526,6 +526,7 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         // Add status condition if status is provided
         const queryParams = [model];
         if (status) {
+            // Only apply the status filter if a status is provided
             query += ` AND adminStock.status = $2`;
             queryParams.push(status);
         }
@@ -566,6 +567,7 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 
 
 // DELETE endpoint to delete a Thing by ID
