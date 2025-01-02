@@ -196,6 +196,93 @@ const Swaggerdoc = {
         }
       }
     },
+"/api/update_adminstock/status/{thingid}": {
+      "put": {
+        "summary": "Update AdminStock status and TestFailedDevices fixed_by",
+        "description": "This endpoint updates the status in AdminStock and the fixed_by field in TestFailedDevices for a given thingId.",
+        "parameters": [
+          {
+            "name": "thingid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the thing to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["new", "returned", "rework", "exchange"]
+                  },
+                  "fixedBy": {
+                    "type": "string"
+                  }
+                },
+                "required": ["status", "fixedBy"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated AdminStock status and TestFailedDevices fixed_by",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error - An error occurred while updating",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "details": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 "/api/display/all/devices/{userId}": {
       "get": {
         "summary": "Display all devices with floor and room details",

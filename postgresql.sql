@@ -172,6 +172,8 @@ CREATE TABLE TestFailedDevices (
     id SERIAL PRIMARY KEY, -- Unique identifier for each failed device log
     thingId INT NOT NULL, -- Foreign key linking to Things table
     failureReason TEXT NOT NULL, -- Description of the failure
+    fixed_by VARCHAR(255) DEFAULT NULL; -- Stores the identifier of the person who fixed the device, default is NULL
+                    
     loggedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the failure was logged
     FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE CASCADE -- Automatically delete when the associated Thing is deleted
 );

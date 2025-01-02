@@ -422,7 +422,10 @@ app.post(
 
 
 
-app.get('/app/searchThings/:status', async (req, res) => {
+app.get('/app/searchThings/:status',
+     // validateJwt,
+    // authorizeRoles("admin", "staff"), 
+    async (req, res) => {
     const  {status}=req.params;
     const {limit, offset } = req.query; // Get status, limit, and offset from query parameters
     const client = await db.connect();
@@ -487,8 +490,11 @@ app.get('/app/searchThings/:status', async (req, res) => {
         client.release();
     }
 });
- 
-app.get('/api/adminstock/search/:model', async (req, res) => {
+ // 
+app.get('/api/adminstock/search/:model',
+     // validateJwt,
+    // authorizeRoles("admin", "staff"), 
+    async (req, res) => {
     const { page = 1, limit = 10, status } = req.query; // Extract query params with defaults
     const { model } = req.params;
 
@@ -567,11 +573,70 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
-
-
+// update status of adminstoke
+app.put("/api/update_adminstock/status/:thingid", 
+     // validateJwt,
+    // authorizeRoles("admin", "staff"), 
+    async (req, res) => {
+    const  {thingId} =req.params
+    const { status } = req.body;
+    const  fixedBy= req.user.username ||req.body.fixedBy;
+  
+    // Input validation
+    if (!thingId || !status || !fixedBy) {
+      return res.status(400).json({ error: "thingId, status, and fixedBy are required" });
+    }
+  
+    const client = await db.connect(); // Connect to the database
+    try {
+      // Start a transaction
+      await client.query("BEGIN");
+  
+      // Update the status in AdminStock
+      const updateAdminStockQuery = `
+        UPDATE AdminStock
+        SET status = $1
+        WHERE thingId = $2
+      `;
+      const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
+  
+      if (adminStockResult.rowCount === 0) {
+        throw new Error("No matching record found in AdminStock for the given thingId");
+      }
+  
+      // Update the fixed_by column in TestFailedDevices
+      const updateTestFailedDevicesQuery = `
+        UPDATE TestFailedDevices
+        SET fixed_by = $1
+        WHERE thingId = $2
+      `;
+      const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
+  
+      if (testFailedDevicesResult.rowCount === 0) {
+        throw new Error("No matching record found in TestFailedDevices for the given thingId");
+      }
+  
+      // Commit the transaction
+      await client.query("COMMIT");
+  
+      res.status(200).json({
+        message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
+      });
+    } catch (err) {
+      // Rollback the transaction in case of an error
+      await client.query("ROLLBACK");
+      console.error("Error:", err.message);
+      res.status(500).json({ error: "An error occurred", details: err.message });
+    } finally {
+      client.release(); // Release the client back to the pool
+    }
+  });
 
 // DELETE endpoint to delete a Thing by ID
-app.delete('/api/delete/things/:id', async (req, res) => {
+app.delete('/api/delete/things/:id',
+     // validateJwt,
+    // authorizeRoles("admin", "staff"), 
+     async (req, res) => {
     const { id } = req.params;
 
     try {
@@ -591,7 +656,8 @@ app.delete('/api/delete/things/:id', async (req, res) => {
     }
 });
 // DELETE endpoint to delete all Things
-app.delete('/api/delete/all/things', async (req, res) => {
+app.delete('/api/delete/all/things',
+     async (req, res) => {
     try {
         // Query to delete all records from Things
         const result = await db.query('DELETE FROM Things RETURNING *');
