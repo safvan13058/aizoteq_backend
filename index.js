@@ -744,16 +744,17 @@ app.get('/api/search/things', async (req, res) => {
       );
   
       const rows = result.rows;
-      const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
+      const totalCount = result[1].rows[0].totalCount;
   
       res.status(200).json({
-        data: rows,
         pagination: {
-          page: parseInt(page, 10),
-          pageSize: limit,
-          totalCount,
-          totalPages: Math.ceil(totalCount / limit),
-        },
+            page: parseInt(page, 10),
+            pageSize: limit,
+            totalCount,
+            totalPages: Math.ceil(totalCount / limit),
+          },
+        data: rows,
+        
       });
     } catch (err) {
       console.error('Error querying database:', err.message);
