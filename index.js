@@ -1066,6 +1066,30 @@ app.post('/app/add/room/:floor_id',
 
 
 //Delete Room
+app.delete('/app/delete/room/:id',
+    // validateJwt,
+    // authorizeRoles('customer'),
+     async (req, res) => {
+    try {
+        const roomId = req.params.id; // Get the room ID from the URL parameter
+
+        // Delete query with parameterized input
+        const query = 'DELETE FROM room WHERE id = $1';
+
+        // Execute the query
+        const result = await db.query(query, [roomId]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Room not found' }); // No room with the specified ID
+        }
+
+        res.status(200).json({ message: 'Room deleted successfully' }); // Success response
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while deleting the room' });
+    }
+});
+
 
 app.put('/app/reorder/rooms/:floor_id', async (req, res) => {
     const client = await db.connect();
@@ -1105,32 +1129,6 @@ app.put('/app/reorder/rooms/:floor_id', async (req, res) => {
         client.release(); // Release the client back to the pool
     }
 });
-
-app.delete('/app/delete/room/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const roomId = req.params.id; // Get the room ID from the URL parameter
-
-        // Delete query with parameterized input
-        const query = 'DELETE FROM room WHERE id = $1';
-
-        // Execute the query
-        const result = await db.query(query, [roomId]);
-
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Room not found' }); // No room with the specified ID
-        }
-
-        res.status(200).json({ message: 'Room deleted successfully' }); // Success response
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while deleting the room' });
-    }
-});
-
-
 //Display room
 
 // app.get('/app/display/rooms/:floor_id',

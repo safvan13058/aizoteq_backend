@@ -248,6 +248,189 @@ const Swaggerdoc = {
         }
       }
     },
+"/app/reorder/rooms/{floor_id}": {
+      "put": {
+        "summary": "Reorder rooms in a floor",
+        "description": "Updates the orderIndex for rooms within a specified floor.",
+        "parameters": [
+          {
+            "name": "floor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the floor"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "description": "ID of the user (optional if derived from JWT)"
+                  },
+                  "order": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "room_id": { "type": "integer" },
+                        "orderIndex": { "type": "integer" }
+                      },
+                      "required": ["room_id", "orderIndex"]
+                    }
+                  }
+                },
+                "required": ["order"]
+              },
+              "example": {
+                "user_id": 123,
+                "order": [
+                  { "room_id": 1, "orderIndex": 2 },
+                  { "room_id": 2, "orderIndex": 1 }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rooms reordered successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "message": "Rooms reordered successfully."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "error": "user_id, floor_id, and order array are required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "error": "An error occurred while reordering rooms."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/api/reorder/devices/{roomid}": {
+      "put": {
+        "summary": "Reorder devices in a room",
+        "description": "Updates the orderIndex for devices in a specified room based on the provided order array.",
+        "parameters": [
+          {
+            "name": "roomid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "ID of the room"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "order": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "device_id": { "type": "integer" },
+                        "orderIndex": { "type": "integer" }
+                      },
+                      "required": ["device_id", "orderIndex"]
+                    }
+                  }
+                },
+                "required": ["order"]
+              },
+              "example": {
+                "order": [
+                  { "device_id": 1, "orderIndex": 2 },
+                  { "device_id": 2, "orderIndex": 1 }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Devices reordered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "message": "Devices reordered successfully."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                },
+                "example": {
+                  "message": "Internal server error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/device/favorite/{deviceid}": {
       "put": {
         "summary": "Mark a device as favorite",
