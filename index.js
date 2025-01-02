@@ -744,14 +744,14 @@ app.get('/api/search/things', async (req, res) => {
       );
   
       const rows = result.rows;
-      const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
-  
+    //   const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
+       console.log( rows)
       res.status(200).json({
         data: rows,
         pagination: {
           page: parseInt(page, 10),
           pageSize: limit,
-          totalCount,
+          totalCount:rows.length > 0 ? rows[0].totalCount : 0,
           totalPages: Math.ceil(totalCount / limit),
         },
       });
