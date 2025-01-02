@@ -541,7 +541,7 @@ app.get('/api/adminstock/search/:model', async (req, res) => {
         queryParams.push(limitNumber, offset);
 
         // Execute the query
-        const result = await pool.query(query, queryParams);
+        const result = await db.query(query, queryParams);
 
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'No records found for the given model and status' });
