@@ -581,7 +581,7 @@ app.put("/api/update_adminstock/status/:thingid",
         console.log(req.body)
     const  {thingId} =req.params
     const { status } = req.body;
-    const  fixedBy= req.user.username ||req.body.fixedBy;
+    const  fixedBy= req.user?.username ||req.body.fixedBy;
   
     // Input validation
     if (!thingId || !status || !fixedBy) {
