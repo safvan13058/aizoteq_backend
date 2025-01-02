@@ -691,7 +691,7 @@ app.get('/api/search/things', async (req, res) => {
   
     try {
       // Query to fetch the paginated results along with the total count
-      const result = await pool.query(
+      const result = await db.query(
         `
         WITH search_results AS (
           SELECT
