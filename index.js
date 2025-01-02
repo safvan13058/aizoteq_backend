@@ -679,7 +679,7 @@ app.delete('/api/delete/all/things',
 });
 
 //search details of thing adminstock test with 
-app.get('/api/search/things', async (req, res) => {
+app.get('/api/search/things/?searchTerm', async (req, res) => {
     const { searchTerm, page = 1, pageSize = 10 } = req.query;
   
     if (!searchTerm) {
@@ -691,7 +691,7 @@ app.get('/api/search/things', async (req, res) => {
   
     try {
       // Query to fetch the paginated results along with the total count
-      const result = await pool.query(
+      const result = await db.query(
         `
         WITH search_results AS (
           SELECT
