@@ -454,6 +454,7 @@ app.get('/app/searchThings/:status', async (req, res) => {
                 t.id AS thingId,
                 t.thingName,
                 t.serialno,
+                t.lastModified,
                 t.model,
                 as_.status AS adminStockStatus,
                 as_.addedby AS addedby,
