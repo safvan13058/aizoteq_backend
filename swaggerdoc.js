@@ -26,19 +26,19 @@ const Swaggerdoc = {
                 "items": {
                   "type": "object",
                   "properties": {
-                    "attributeName": { "type": "string", "example": "Brightness" },
-                    "attributeValue": { "type": "string", "example": "10" }
+                    "attributeName": { "type": "string",  },
+                    "attributeValue": { "type": "string",  }
                   },
                   "required": ["attributeName", "attributeValue"]
                 },
                 "example": [
                   {
                     "attributeName": "light",
-                    "attributeValue": "10"
+                    "attributeValue": "5"
                   },
                   {
                     "attributeName": "fan",
-                    "attributeValue": "Red"
+                    "attributeValue": "1"
                   }
                 ]
               },
