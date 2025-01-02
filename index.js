@@ -420,6 +420,8 @@ app.post(
     }
 );
 
+
+
 app.get('/app/searchThings/:status', async (req, res) => {
     const  {status}=req.params;
     const {limit, offset } = req.query; // Get status, limit, and offset from query parameters
@@ -484,6 +486,61 @@ app.get('/app/searchThings/:status', async (req, res) => {
     }
 });
 
+app.get('/api/adminstock/search/:model/:status', async (req, res) => {
+    const { page = 1, limit = 10 } = req.query; // Extract query params with defaults
+    const { model, status } = req.params;
+
+    if (!model || !status) {
+        return res.status(400).json({ error: 'Both model and status are required' });
+    }
+
+    // Convert page and limit to integers
+    const pageNumber = parseInt(page, 10);
+    const limitNumber = parseInt(limit, 10);
+    const offset = (pageNumber - 1) * limitNumber;
+
+    try {
+        // Query the database with pagination
+        const query = `
+            SELECT 
+                COUNT(*) OVER () AS total_count,
+                as.*, 
+                t.*, -- Fetch all details from the Things table
+                tfd.failureReason -- Fetch failure reason if available
+            FROM AdminStock as
+            JOIN Things t ON as.thingId = t.id
+            LEFT JOIN TestFailedDevices tfd ON as.thingId = tfd.thingId -- Join with TestFailedDevices table
+            WHERE t.model = $1 AND as.status = $2
+            ORDER BY as.addedAt DESC
+            LIMIT $3 OFFSET $4;
+        `;
+        const result = await pool.query(query, [model, status, limitNumber, offset]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No records found for the given model and status' });
+        }
+
+        // Extract total count
+        const total = result.rows[0]?.total_count || 0;
+        const totalPages = Math.ceil(total / limitNumber);
+
+        // Respond with pagination details and data
+        res.status(200).json({
+            page: pageNumber,
+            limit: limitNumber,
+            total,
+            totalPages,
+            data: result.rows.map(row => {
+                const { total_count, ...rest } = row; // Remove duplicate count from each row
+                return rest;
+            }),
+        });
+    } catch (err) {
+        console.error('Error querying the database:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id', async (req, res) => {
     const { id } = req.params;
@@ -493,7 +550,9 @@ app.delete('/api/delete/things/:id', async (req, res) => {
         const result = await db.query('DELETE FROM Things WHERE id = $1 RETURNING *', [id]);
 
         if (result.rowCount === 0) {
+
             return res.status(404).json({ message: `Thing with id ${id} not found.` });
+
         }
 
         res.status(200).json({ message: `Thing with id ${id} deleted successfully.`, thing: result.rows[0] });

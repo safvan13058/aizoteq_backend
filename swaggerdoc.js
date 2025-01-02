@@ -101,7 +101,94 @@ const Swaggerdoc = {
   }
 },
 
-
+"/api/adminstock/search/{model}/{status}": {
+      "get": {
+        "summary": "Search AdminStock by model and status",
+        "description": "Search and paginate AdminStock records based on the given model and status. Includes details of related Things and failure reasons if available.",
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "description": "The model of the thing",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "path",
+            "description": "The status of the admin stock",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "The page number for pagination",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "The number of records per page",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with paginated admin stock data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": { "type": "integer" },
+                    "limit": { "type": "integer" },
+                    "total": { "type": "integer" },
+                    "totalPages": { "type": "integer" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "thingId": { "type": "integer" },
+                          "model": { "type": "string" },
+                          "batchId": { "type": "string" },
+                          "status": { "type": "string" },
+                          "failureReason": { "type": "string", "nullable": true },
+                          "addedAt": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request due to missing model or status"
+          },
+          "404": {
+            "description": "No records found for the given model and status"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
 
  "/app/searchThings/{status}": {
       "get": {
