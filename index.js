@@ -690,71 +690,52 @@ app.get('/api/search/things', async (req, res) => {
     const limit = parseInt(pageSize, 10);
   
     try {
-      // Query to fetch the total count of matching records
-      const countResult = await db.query(
-        `
-        SELECT COUNT(*) AS totalCount
-        FROM Things t
-        LEFT JOIN AdminStock a ON t.id = a.thingId
-        LEFT JOIN TestFailedDevices f ON t.id = f.thingId
-        WHERE
-          (
-            t.thingName ILIKE $1 OR
-            t.batchId ILIKE $1 OR
-            t.model ILIKE $1 OR
-            t.serialno ILIKE $1 OR
-            a.status ILIKE $1 OR
-            a.addedBy ILIKE $1 OR
-            f.failureReason ILIKE $1 OR
-            f.fixed_by ILIKE $1
-          );
-        `,
-        [`%${searchTerm}%`]
-      );
-       
-      console.log(countResult)
-      const totalCount = parseInt(countResult.rows[0].totalCount, 10);
-      const totalPages = Math.ceil(totalCount / limit);
-  
-      // Query to fetch the paginated results
+      // Query to fetch the paginated results along with the total count
       const result = await db.query(
         `
+        WITH search_results AS (
+          SELECT
+            t.id AS thingId,
+            t.thingName,
+            t.batchId,
+            t.latitude,
+            t.longitude,
+            t.model,
+            t.serialno,
+            t.type,
+            t.securityKey,
+            t.lastModified,
+            a.id AS adminStockId,
+            a.addedAt,
+            a.addedBy,
+            a.status AS adminStockStatus,
+            f.id AS failedDeviceId,
+            f.failureReason,
+            f.fixed_by AS fixedBy,
+            f.loggedAt AS failureLoggedAt,
+            COUNT(*) OVER () AS totalCount
+          FROM
+            Things t
+          LEFT JOIN
+            AdminStock a ON t.id = a.thingId
+          LEFT JOIN
+            TestFailedDevices f ON t.id = f.thingId
+          WHERE
+            (
+              t.thingName ILIKE $1 OR
+              t.batchId ILIKE $1 OR
+              t.model ILIKE $1 OR
+              t.serialno ILIKE $1 OR
+              a.status ILIKE $1 OR
+              a.addedBy ILIKE $1 OR
+              f.failureReason ILIKE $1 OR
+              f.fixed_by ILIKE $1
+            )
+        )
         SELECT
-          t.id AS thingId,
-          t.thingName,
-          t.batchId,
-          t.latitude,
-          t.longitude,
-          t.model,
-          t.serialno,
-          t.type,
-          t.securityKey,
-          t.lastModified,
-          a.id AS adminStockId,
-          a.addedAt,
-          a.addedBy,
-          a.status AS adminStockStatus,
-          f.id AS failedDeviceId,
-          f.failureReason,
-          f.fixed_by AS fixedBy,
-          f.loggedAt AS failureLoggedAt
+          *
         FROM
-          Things t
-        LEFT JOIN
-          AdminStock a ON t.id = a.thingId
-        LEFT JOIN
-          TestFailedDevices f ON t.id = f.thingId
-        WHERE
-          (
-            t.thingName ILIKE $1 OR
-            t.batchId ILIKE $1 OR
-            t.model ILIKE $1 OR
-            t.serialno ILIKE $1 OR
-            a.status ILIKE $1 OR
-            a.addedBy ILIKE $1 OR
-            f.failureReason ILIKE $1 OR
-            f.fixed_by ILIKE $1
-          )
+          search_results
         ORDER BY
           thingId
         LIMIT $2 OFFSET $3;
@@ -763,14 +744,15 @@ app.get('/api/search/things', async (req, res) => {
       );
   
       const rows = result.rows;
-  
+      const totalCount = rows.length > 0 ? rows[0].totalCount : 0;
+       console.log(totalCount)
       res.status(200).json({
         data: rows,
         pagination: {
           page: parseInt(page, 10),
           pageSize: limit,
           totalCount,
-          totalPages,
+          totalPages: Math.ceil(totalCount / limit),
         },
       });
     } catch (err) {
@@ -778,8 +760,6 @@ app.get('/api/search/things', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while searching', details: err.message });
     }
   });
-  
-  
   
   
 
