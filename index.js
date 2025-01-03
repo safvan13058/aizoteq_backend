@@ -42,10 +42,8 @@ const s3 = new AWS.S3({
 function SecurityKey(macAddress) {
     // Remove colons or hyphens and extract the last 6 digits of the MAC address
     const lastSixDigits = macAddress.replace(/[:-]/g, '').slice(-6);
-    
     // Generate 4 random digits
     const randomDigits = Math.floor(1000 + Math.random() * 9000); // Random 4-digit number
-    
     // Combine the random digits with the last 6 digits of the MAC address
     const randomKey = `${randomDigits}${lastSixDigits}`;
     return randomKey;

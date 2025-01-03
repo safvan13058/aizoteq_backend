@@ -599,18 +599,25 @@ const Swaggerdoc = {
 "/api/display/user": {
       "get": {
         "summary": "Fetch User Details",
-        "description": "Fetches user details based on the user ID provided in the request.",
-        "parameters": [
-          {
-            "name": "userid",
-            "in": "query",
-            "description": "ID of the user to fetch details for. Can also be obtained from the authenticated user's token.",
-            "required": false,
-            "schema": {
-              "type": "string"
+        "description": "Fetches user details based on the user ID provided in the request body or obtained from the authenticated user.",
+        "requestBody": {
+          "description": "Request body containing the user ID.",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userid": {
+                    "type": "string",
+                    "description": "ID of the user to fetch details for."
+                  }
+                },
+                "required": ["userid"]
+              }
             }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "Successful response with user details.",
@@ -655,7 +662,7 @@ const Swaggerdoc = {
           }
         }
       }
-},
+    },
 "/api/adminstock/{status}/count": {
       "get": {
         "tags": ["Test APP APIs"],
@@ -1064,7 +1071,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/device/favorite/{deviceid}": {
+"/api/device/favorite/{deviceid}": {
       "put": {
         "summary": "Mark a device as favorite",
         "parameters": [
@@ -1088,7 +1095,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/favorite-devices/{userId}": {
+"/api/favorite-devices/{userId}": {
       "get": {
         "summary": "Retrieve favorite devices for a user",
         "parameters": [
@@ -1122,7 +1129,7 @@ const Swaggerdoc = {
         }
       }
     },
- "/app/searchThings/{status}": {
+"/app/searchThings/{status}": {
       "get": {
         "summary": "Search things by status",
         "description": "Retrieves a paginated list of things filtered by their status.",
@@ -1300,7 +1307,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/delete/all/things": {
+"/api/delete/all/things": {
       "delete": {
         "summary": "Delete all Things",
         "description": "Deletes all Things from the database.",
@@ -1363,7 +1370,7 @@ const Swaggerdoc = {
         }
       }
     },
-  "/app/add/home/": {
+"/app/add/home/": {
   post: {
     summary: "Add a new home",
     description: "Create a new home entry in the database with the specified name. The created_by field is automatically set based on the authenticated user's information.",
@@ -1450,7 +1457,7 @@ const Swaggerdoc = {
   }
 },
     //------------------------
-    "/app/display/homes/": {
+"/app/display/homes/": {
         get: {
           summary: "Get all homes for a user",
           description: "Retrieve a list of homes associated with the authenticated user.",
@@ -1532,7 +1539,7 @@ const Swaggerdoc = {
         },
       },
     //   --------------------------------------
-    "/app/update/home/{id}": {
+"/app/update/home/{id}": {
         put: {
           summary: "Update an existing home",
           description: "Update the name or created_by field of a home entry in the database.",
@@ -1641,7 +1648,7 @@ const Swaggerdoc = {
       },
 
     //   -----------------------------------
-    "/app/delete/home/{id}": {
+"/app/delete/home/{id}": {
         delete: {
             summary: "Delete an existing home",
             description: "Delete a home entry in the database by its ID.",
@@ -1711,7 +1718,7 @@ const Swaggerdoc = {
     },
     // -----------------
 
-    "/app/add/floor/{home_id}": {
+"/app/add/floor/{home_id}": {
         post: {
             summary: "Add a new floor to a home",
             description: "Create a new floor entry in the database associated with a specific home.",
@@ -1804,7 +1811,7 @@ const Swaggerdoc = {
     },
 
     // --------------------
-    "/app/display/floors/{home_id}": {
+"/app/display/floors/{home_id}": {
     get: {
         summary: "Get floors by home ID",
         description: "Retrieve a list of all floors associated with a specific home ID.",
@@ -3226,7 +3233,7 @@ const Swaggerdoc = {
         "tags": ["Devices"]
       }
     },
-    "/app/add/scenes/{userid}": {
+"/app/add/scenes/{userid}": {
       "post": {
         "summary": "Add a new scene",
         "description": "Create a new scene with optional icon upload and insert it into the database.",
@@ -3317,7 +3324,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/app/display/scenes/{userid}": {
+"/app/display/scenes/{userid}": {
       "get": {
         "summary": "Get all scenes for a user",
         "description": "Fetch all scenes that belong to a specific user.",
@@ -3369,7 +3376,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/app/update/scenes/{id}": {
+"/app/update/scenes/{id}": {
       "put": {
         "summary": "Update a scene",
         "description": "Update the details of a scene, including optional icon upload.",
@@ -3450,7 +3457,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "app/delete/scenes/{id}": {
+"app/delete/scenes/{id}": {
       "delete": {
         "summary": "Delete a scene",
         "description": "Delete a scene by its ID.",
@@ -3510,7 +3517,7 @@ const Swaggerdoc = {
       }
     },
   
-    "/app/create/scene_devices/{scene_id}/{device_id}": {
+"/app/create/scene_devices/{scene_id}/{device_id}": {
     post: {
       summary: "Create a Scene Device",
       description: "Add a device to a scene by specifying the scene ID and device ID.",
@@ -3587,7 +3594,7 @@ const Swaggerdoc = {
       }
     }
   },
-  "/api/display/scenes/{scene_id}/devices": {
+"/api/display/scenes/{scene_id}/devices": {
     get: {
       summary: "Get Devices in a Scene",
       description: "Retrieve all devices associated with a specific scene ID.",
@@ -3662,7 +3669,7 @@ const Swaggerdoc = {
   },
 
 
-    "/app/Update/scene_devices/{id}": {
+"/app/Update/scene_devices/{id}": {
       put: {
         summary: "Update a Scene Device",
         description: "Updates the specified fields of a scene-device association by ID.",
@@ -3765,7 +3772,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/delete/scene_devices/{id}": {
+"/api/delete/scene_devices/{id}": {
       delete: {
         summary: "Delete a Scene Device",
         description: "Deletes a scene-device association by ID.",
@@ -3832,7 +3839,7 @@ const Swaggerdoc = {
     },
     
     
-    "/signup/app/customer/signup": {
+"/signup/app/customer/signup": {
       "post": {
         "summary": "Customer Signup",
         "description": "Registers a new customer with AWS Cognito and stores user details in the PostgreSQL database.",
@@ -3938,7 +3945,7 @@ const Swaggerdoc = {
       }
     },
 
-    "/signup/verify-otp": {
+"/signup/verify-otp": {
       "post": {
         "summary": "Verify OTP",
         "description": "Verifies the OTP entered by the user during signup and confirms their account in AWS Cognito.",
@@ -4023,7 +4030,7 @@ const Swaggerdoc = {
       }
     },
 
-    "/signup/resend-otp": {
+"/signup/resend-otp": {
       "post": {
         "summary": "Resend OTP",
         "description": "Resends the OTP to the user during the signup process.",
