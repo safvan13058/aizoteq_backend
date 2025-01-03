@@ -479,6 +479,86 @@ const Swaggerdoc = {
       }
     },
 
+"/api/adminstock/{status}/count": {
+      "get": {
+        "summary": "Count AdminStock items by status",
+        "description": "Returns the total count of AdminStock items where the status matches the given parameter.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "description": "The status of the items to count (e.g., 'new', 'returned', 'rework', 'exchange').",
+            "schema": {
+              "type": "string",
+              "enum": ["new", "returned", "rework", "exchange"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully fetched the count",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "success"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 42
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid status value",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Invalid status value provided"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "error"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 
 "/api/users/{userId}/profile-pic": {
       "post": {

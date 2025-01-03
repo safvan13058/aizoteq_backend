@@ -418,8 +418,29 @@ app.post(
         }
     }
 );
+//count the stock item with status is new , rework etc
+app.get('/api/adminstock/:status/count', async (req, res) => {
+    try {
+        const {status}=req.params
+        // SQL query to count 'new' status
+        const query = `SELECT COUNT(*) AS count FROM AdminStock WHERE status = ${status};`;
 
+        // Execute the query
+        const result = await db.query(query);
 
+        // Return the count
+        res.status(200).json({
+            status: 'success',
+            count: result.rows[0].count,
+        });
+    } catch (error) {
+        console.error('Error fetching count:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Internal server error',
+        });
+    }
+});
 
 
 app.get('/app/searchThings/:status',
@@ -492,17 +513,14 @@ app.get('/app/searchThings/:status',
     }
 });
 
+//display thing with status "new","rework",etc.. and search on serialno
 app.get('/api/searchThings/working/:status', async (req, res) => {
     const { serialno } = req.query;
-    const {status}=req.params;
-  
-    if (!serialno) {
-      return res.status(400).json({ error: 'Serial number is required' });
-    }
+    const { status } = req.params;
   
     try {
-      // Query to fetch the data
-      const query = `
+      // Default to showing all records with 'rework' status if no serialno is provided
+      let query = `
         SELECT 
           t.id AS thing_id,
           t.thingName,
@@ -520,11 +538,16 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
         FROM Things t
         LEFT JOIN AdminStock a ON t.id = a.thingId
         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        WHERE t.serialno = $1 AND a.status = ${status};
+        WHERE a.status = $1
       `;
+      
+      // If serialno is provided, modify the query to filter by serialno
+      if (serialno) {
+        query += ` AND t.serialno = $2`;
+      }
   
-      // Execute the query
-      const result = await db.query(query, [serialno]);
+      // Execute the query with appropriate parameters
+      const result = await db.query(query, serialno ? [status, serialno] : [status]);
   
       // Check if results exist
       if (result.rows.length === 0) {
@@ -538,6 +561,7 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
+  
  // 
 app.get('/api/adminstock/search/:model',
      // validateJwt,
