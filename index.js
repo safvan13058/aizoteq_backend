@@ -938,7 +938,7 @@ app.get('/api/search/things', async (req, res) => {
 app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (req, res) => {
     console.log(req.file)
     const { userId } = req.params;
-    
+    console.log(userId)
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
