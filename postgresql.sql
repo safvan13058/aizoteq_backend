@@ -4,6 +4,7 @@ CREATE TABLE Users (
     userName VARCHAR(255) NOT NULL,
     jwtsub VARCHAR(255) UNIQUE,
     userRole VARCHAR(255),
+    profilePic BYTEA,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

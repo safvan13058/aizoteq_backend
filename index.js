@@ -764,6 +764,49 @@ app.get('/api/search/things', async (req, res) => {
   });
   
   
+app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (req, res) => {
+    const { userId } = req.params;
+    
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
+  
+    try {
+      // Generate unique file name
+      const fileExtension = path.extname(req.file.originalname);
+      const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
+  
+      // Upload file to S3
+      const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: fileName,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+        ACL: "public-read", // Makes the file publicly accessible
+      };
+  
+      const s3Response = await s3.upload(params).promise();
+  
+      // Get the S3 URL
+      const profilePicUrl = s3Response.Location;
+  
+      // Update profile picture in the database
+      const query = `
+        UPDATE Users
+        SET profilePic = $1, lastModified = CURRENT_TIMESTAMP
+        WHERE id = $2
+      `;
+      await db.query(query, [profilePicUrl, userId]);
+  
+      res.status(200).json({
+        message: "Profile picture updated successfully",
+        profilePic: profilePicUrl,
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ error: "Failed to upload and update profile picture" });
+    }
+  });
 
 // --------only for demo=------------
 const cors = require('cors');

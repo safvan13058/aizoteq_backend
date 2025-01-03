@@ -375,6 +375,98 @@ const Swaggerdoc = {
         }
       }
     },
+
+"/api/users/{userId}/profile-pic": {
+      "post": {
+        "summary": "Upload and update a user's profile picture",
+        "description": "Uploads an image to AWS S3 and updates the profile picture URL in the database.",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the user whose profile picture is being updated",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "The image file to upload"
+                  }
+                },
+                "required": ["file"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile picture uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Profile picture updated successfully"
+                    },
+                    "profilePic": {
+                      "type": "string",
+                      "format": "url",
+                      "example": "https://your_bucket_name.s3.amazonaws.com/user_1_1672345678901.jpg"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., no file uploaded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No file uploaded"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Failed to upload and update profile picture"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 "/api/display/all/devices/{userId}": {
       "get": {
         "summary": "Display all devices with floor and room details",
