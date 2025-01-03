@@ -1,6 +1,7 @@
 const Swaggerdoc = {
 "/app/addThing": {
   "post": {
+    "tags": ["Test APP APIs"],
     "summary": "Add a new thing",
     "description": "Creates a new thing, inserts its attributes and related devices, and handles status-related logic.",
     "requestBody": {
@@ -103,6 +104,7 @@ const Swaggerdoc = {
 
 "/api/adminstock/search/{model}": {
       "get": {
+        "tags": ["Test APP APIs"],
         "summary": "Search AdminStock by model and optional status",
         "parameters": [
           {
@@ -198,6 +200,7 @@ const Swaggerdoc = {
     },
 "/api/search/things": {
       "get": {
+        "tags": ["Test APP APIs"],
         "summary": "Search for Things",
         "description": "Search for 'Things' based on various parameters with pagination support.",
         "parameters": [
@@ -290,6 +293,7 @@ const Swaggerdoc = {
     },
 "/api/update_adminstock/status/{thingid}": {
       "put": {
+        "tags": ["Test APP APIs"],
         "summary": "Update AdminStock status and TestFailedDevices fixed_by",
         "description": "This endpoint updates the status in AdminStock and the fixed_by field in TestFailedDevices for a given thingId.",
         "parameters": [
@@ -375,6 +379,106 @@ const Swaggerdoc = {
         }
       }
     },
+
+"/api/searchThings/working/{status}": {
+      "get": {
+        "tags": ["Test APP APIs"],
+        "summary": "Search for Things",
+        "description": "Fetch details about Things based on their serial number and status.",
+        "parameters": [
+          {
+            "name": "serialno",
+            "in": "query",
+            "required": true,
+            "description": "The serial number of the thing to search.",
+            "schema": {
+              "type": "string",
+              "example": "SN12345"
+            }
+          },
+          {
+            "name": "status",
+            "in": "path",
+            "required": true,
+            "description": "The status of the thing in the admin stock.",
+            "schema": {
+              "type": "string",
+              "example": "active"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching records found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "thing_id": { "type": "integer", "example": 1 },
+                      "thingName": { "type": "string", "example": "Thing A" },
+                      "thingid": { "type": "string", "example": "TH001" },
+                      "deviceId": { "type": "string", "example": "DEV001" },
+                      "macAddress": { "type": "string", "example": "00:1A:2B:3C:4D:5E" },
+                      "createdby": { "type": "string", "example": "admin" },
+                      "serialno": { "type": "string", "example": "SN12345" },
+                      "admin_stock_status": { "type": "string", "example": "active" },
+                      "addedAt": { "type": "string", "format": "date-time", "example": "2023-12-31T10:00:00Z" },
+                      "addedby": { "type": "string", "example": "admin" },
+                      "failureReason": { "type": "string", "example": "Connection issue" },
+                      "fixed_by": { "type": "string", "example": "technician_1" },
+                      "loggedAt": { "type": "string", "format": "date-time", "example": "2023-12-01T14:00:00Z" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., missing serial number)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "Serial number is required" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No matching records found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "No matching records found" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "Internal Server Error" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
 
 "/api/users/{userId}/profile-pic": {
       "post": {
