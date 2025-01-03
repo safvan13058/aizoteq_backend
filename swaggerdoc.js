@@ -478,7 +478,73 @@ const Swaggerdoc = {
         }
       }
     },
-
+"/api/recent/adminstock/activities": {
+      "get": {
+        "summary": "Fetch recent admin stock activities",
+        "description": "Fetch devices in AdminStock, including failure details (if available), ordered by their added date.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "thing_id": {
+                    "type": "integer",
+                    "description": "ID of the device"
+                  },
+                  "thingName": {
+                    "type": "string",
+                    "description": "Name of the device"
+                  },
+                  "serialno": {
+                    "type": "string",
+                    "description": "Serial number of the device"
+                  },
+                  "deviceId": {
+                    "type": "string",
+                    "description": "Device ID"
+                  },
+                  "addedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Timestamp when the device was added to AdminStock"
+                  },
+                  "admin_stock_status": {
+                    "type": "string",
+                    "description": "Current status of the device in AdminStock"
+                  },
+                  "addedBy": {
+                    "type": "string",
+                    "description": "Username of the user who added the device"
+                  },
+                  "addedByUserName": {
+                    "type": "string",
+                    "description": "Username of the user who added the device"
+                  },
+                  "fixed_by": {
+                    "type": "string",
+                    "description": "Technician who fixed the device (if available)"
+                  },
+                  "failureReason": {
+                    "type": "string",
+                    "description": "Reason for failure (if available)"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No devices found in AdminStock"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
 "/api/adminstock/{status}/count": {
       "get": {
         "summary": "Count AdminStock items by status",

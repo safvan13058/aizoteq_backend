@@ -513,6 +513,7 @@ app.get('/app/searchThings/:status',
     }
 });
 
+
 //display thing with status "new","rework",etc.. and search on serialno
 app.get('/api/searchThings/working/:status', async (req, res) => {
     const { serialno } = req.query;
@@ -561,7 +562,7 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
     }
   });
-  
+
  // 
 app.get('/api/adminstock/search/:model',
      // validateJwt,
@@ -704,6 +705,45 @@ app.put("/api/update_adminstock/status/:thingId",
     }
   });
 
+
+app.get('/api/recent/adminstock/activities', async (req, res) => {
+    try {
+      // SQL query to fetch things in admin stock ordered by addedAt, including failure details
+      const query = `
+        SELECT 
+          t.id AS thing_id,
+          t.thingName,
+          t.serialno,
+          t.deviceId,
+          a.addedAt,
+          a.status AS admin_stock_status,
+          a.addedBy,
+          u.userName AS addedByUserName,
+          tf.fixed_by,
+          tf.failureReason
+        FROM AdminStock a
+        JOIN Things t ON a.thingId = t.id
+        JOIN Users u ON a.addedBy = u.userName
+        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId  -- Include failure data if available
+        ORDER BY a.addedAt DESC;  -- Modify DESC to ASC if needed
+      `;
+  
+      // Execute the query
+      const result = await db.query(query);
+  
+      // Check if results exist
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No devices found in AdminStock' });
+      }
+  
+      // Return the results as a JSON response
+      res.status(200).json(result.rows);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  });
+  
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id',
      // validateJwt,
