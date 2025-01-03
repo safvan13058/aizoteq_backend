@@ -706,9 +706,8 @@ app.put("/api/update_adminstock/status/:thingId",
   });
 
 
-app.get('/api/recent/adminstock/activities', async (req, res) => {
+  app.get('/api/recent/adminstock/activities', async (req, res) => {
     try {
-      // SQL query to fetch things in admin stock ordered by addedAt, including failure details
       const query = `
         SELECT 
           t.id AS thing_id,
@@ -724,25 +723,23 @@ app.get('/api/recent/adminstock/activities', async (req, res) => {
         FROM AdminStock a
         JOIN Things t ON a.thingId = t.id
         JOIN Users u ON a.addedBy = u.userName
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId  -- Include failure data if available
-        ORDER BY a.addedAt DESC;  -- Modify DESC to ASC if needed
+        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+        ORDER BY a.addedAt DESC;
       `;
   
-      // Execute the query
       const result = await db.query(query);
   
-      // Check if results exist
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'No devices found in AdminStock' });
       }
   
-      // Return the results as a JSON response
       res.status(200).json(result.rows);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+      console.error('Error fetching data from database:', error);  // More specific error logging
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
   });
+  
   
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id',
