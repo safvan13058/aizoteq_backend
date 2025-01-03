@@ -2482,167 +2482,187 @@ const Swaggerdoc = {
     }
 },
 
-"/api/display/thingattribute/{thingid}": {
-    get: {
-        summary: "Get attributes of a specific thing",
-        description: "Fetch a list of attributes for a specific thing identified by its ID.",
-        tags: ["ThingAttributes"],
-        parameters: [
-            {
-                in: "path",
-                name: "thingid",
-                required: true,
-                description: "ID of the thing whose attributes are to be retrieved",
-                schema: {
-                    type: "integer"
-                }
-            }
-        ],
-        responses: {
-            200: {
-                description: "Attributes retrieved successfully",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    thingid: {
-                                        type: "integer",
-                                        example: 1
-                                    },
-                                    attribute_name: {
-                                        type: "string",
-                                        example: "Color"
-                                    },
-                                    attribute_value: {
-                                        type: "string",
-                                        example: "Red"
-                                    },
-                                    // Include other attributes as per the 'thingattributes' table structure
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            404: {
-                description: "No attributes found for the specified thing",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "No records found"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            500: {
-                description: "Internal server error",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                error: {
-                                    type: "string",
-                                    example: "Internal Server Error"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-},
-"/api/display/thingattribute/{thingid}": {
-    get: {
-        summary: "Get attributes of a specific thing",
-        description: "Fetch a list of attributes for a specific thing identified by its ID.",
-        tags: ["ThingAttributes"],
-        parameters: [
-            {
-                in: "path",
-                name: "thingid",
-                required: true,
-                description: "ID of the thing whose attributes are to be retrieved",
-                schema: {
-                    type: "integer"
-                }
-            }
-        ],
-        responses: {
-            200: {
-                description: "Attributes retrieved successfully",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "array",
-                            items: {
-                                type: "object",
-                                properties: {
-                                    thingid: {
-                                        type: "integer",
-                                        example: 1
-                                    },
-                                    attribute_name: {
-                                        type: "string",
-                                        example: "Color"
-                                    },
-                                    attribute_value: {
-                                        type: "string",
-                                        example: "Red"
-                                    },
-                                    // Add additional attribute fields as per the 'thingattributes' table schema
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            404: {
-                description: "No attributes found for the specified thing",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "No records found"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            500: {
-                description: "Internal server error",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                error: {
-                                    type: "string",
-                                    example: "Internal Server Error"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-},
+// "/api/display/thingattribute/{thingid}": {
+//     get: {
+//         summary: "Get attributes of a specific thing",
+//         description: "Fetch a list of attributes for a specific thing identified by its ID.",
+//         tags: ["ThingAttributes"],
+//         parameters: [
+//             {
+//                 in: "path",
+//                 name: "thingid",
+//                 required: true,
+//                 description: "ID of the thing whose attributes are to be retrieved",
+//                 schema: {
+//                     type: "integer"
+//                 }
+//             }
+//         ],
+//         responses: {
+//             200: {
+//                 description: "Attributes retrieved successfully",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "array",
+//                             items: {
+//                                 type: "object",
+//                                 properties: {
+//                                     thingid: {
+//                                         type: "integer",
+//                                         example: 1
+//                                     },
+//                                     attribute_name: {
+//                                         type: "string",
+//                                         example: "Color"
+//                                     },
+//                                     attribute_value: {
+//                                         type: "string",
+//                                         example: "Red"
+//                                     },
+//                                     // Include other attributes as per the 'thingattributes' table structure
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             404: {
+//                 description: "No attributes found for the specified thing",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "No records found"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             500: {
+//                 description: "Internal server error",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 error: {
+//                                     type: "string",
+//                                     example: "Internal Server Error"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// },
+
 // ---------------
+
+"/api/display/thingattribute/{serialno}": {
+      "get": {
+        "tags": ["Test APP APIs"],
+        "summary": "Get Thing Attributes by Serial Number",
+        "description": "Fetch paginated thing attributes for a specific thing identified by its serial number.",
+        "parameters": [
+          {
+            "name": "serialno",
+            "in": "path",
+            "required": true,
+            "description": "Serial number of the thing",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number for pagination (default is 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of records per page (default is 10)",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of thing attributes for the specified serialno",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer"
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "thingId": {
+                            "type": "integer"
+                          },
+                          "attributeName": {
+                            "type": "string"
+                          },
+                          "attributeValue": {
+                            "type": "string"
+                          },
+                          "lastModified": {
+                            "type": "string",
+                            "format": "date-time"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or missing serialno, page or limit value"
+          },
+          "404": {
+            "description": "No thing found for the given serialno or no attributes found"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+
 "/api/display/test/{type}": {
     get: {
         summary: "Get thing by type",

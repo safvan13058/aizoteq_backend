@@ -443,6 +443,7 @@ app.get('/api/adminstock/:status/count', async (req, res) => {
 });
 
 
+
 app.get('/app/searchThings/:status',
      // validateJwt,
     // authorizeRoles("admin", "staff"), 
@@ -1649,17 +1650,76 @@ app.get('/api/display/things/:id',
 
 
  //display thingattribute with thingid
- app.get('/api/display/thingattribute/:thingid',
+//  app.get('/api/display/thingattribute/:thingid',
+//     // validateJwt,
+//     // authorizeRoles('admin', 'staff'),
+//     async (req, res) => {
+//         const thingid = req.params.thingid; // Get the thingid from the route parameter
+//         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+//         const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+
+//         // Validate thingid
+//         if (!thingid || isNaN(thingid)) {
+//             return res.status(400).json({ error: 'Invalid or missing thingid parameter' });
+//         }
+
+//         if (page < 1 || limit < 1) {
+//             return res.status(400).json({ error: 'Invalid page or limit value' });
+//         }
+
+//         try {
+//             const offset = (page - 1) * limit; // Calculate offset for the query
+
+//             // Fetch paginated records
+//             const query = `
+//                 SELECT * FROM thingattributes
+//                 WHERE thingid = $1
+//                 ORDER BY id ASC
+//                 LIMIT $2 OFFSET $3
+//             `;
+//             const values = [thingid, limit, offset];
+//             const result = await db.query(query, values);
+
+//             // Fetch total count for the thingid
+//             const countQuery = 'SELECT COUNT(*) AS total FROM thingattributes WHERE thingid = $1';
+//             const countResult = await db.query(countQuery, [thingid]);
+//             const total = parseInt(countResult.rows[0].total, 10);
+//             const totalPages = Math.ceil(total / limit);
+
+//             if (result.rows.length > 0) {
+//                 // Return paginated data with meta information
+//                 res.status(200).json({
+//                     page,
+//                     limit,
+//                     total,
+//                     totalPages,
+//                     data: result.rows,
+//                 });
+//             } else {
+//                 res.status(404).json({ message: 'No records found for the given thingid' });
+//             }
+//         } catch (error) {
+//             // Log the full error for debugging
+//             console.error('Error fetching paginated thing attributes:', error);
+
+//             // Respond with a generic error
+//             res.status(500).json({ error: 'Internal Server Error' });
+//         }
+//     }
+// );
+
+ //display thingattribute with serialno
+app.get('/api/display/thingattribute/:serialno', 
     // validateJwt,
     // authorizeRoles('admin', 'staff'),
     async (req, res) => {
-        const thingid = req.params.thingid; // Get the thingid from the route parameter
+        const serialno = req.params.serialno; // Get the serialno from the route parameter
         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
         const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-        // Validate thingid
-        if (!thingid || isNaN(thingid)) {
-            return res.status(400).json({ error: 'Invalid or missing thingid parameter' });
+        // Validate serialno
+        if (!serialno) {
+            return res.status(400).json({ error: 'Invalid or missing serialno parameter' });
         }
 
         if (page < 1 || limit < 1) {
@@ -1669,18 +1729,28 @@ app.get('/api/display/things/:id',
         try {
             const offset = (page - 1) * limit; // Calculate offset for the query
 
-            // Fetch paginated records
+            // Fetch the thingid using the serialno
+            const thingQuery = 'SELECT id FROM Things WHERE serialno = $1';
+            const thingResult = await db.query(thingQuery, [serialno]);
+
+            if (thingResult.rows.length === 0) {
+                return res.status(404).json({ error: 'No thing found with the given serialno' });
+            }
+
+            const thingid = thingResult.rows[0].id; // Get the thingid from the result
+
+            // Fetch paginated records from ThingAttributes
             const query = `
-                SELECT * FROM thingattributes
-                WHERE thingid = $1
+                SELECT * FROM ThingAttributes
+                WHERE thingId = $1
                 ORDER BY id ASC
                 LIMIT $2 OFFSET $3
             `;
             const values = [thingid, limit, offset];
             const result = await db.query(query, values);
 
-            // Fetch total count for the thingid
-            const countQuery = 'SELECT COUNT(*) AS total FROM thingattributes WHERE thingid = $1';
+            // Fetch total count for the thingId
+            const countQuery = 'SELECT COUNT(*) AS total FROM ThingAttributes WHERE thingId = $1';
             const countResult = await db.query(countQuery, [thingid]);
             const total = parseInt(countResult.rows[0].total, 10);
             const totalPages = Math.ceil(total / limit);
@@ -1695,7 +1765,7 @@ app.get('/api/display/things/:id',
                     data: result.rows,
                 });
             } else {
-                res.status(404).json({ message: 'No records found for the given thingid' });
+                res.status(404).json({ message: 'No attributes found for the given serialno' });
             }
         } catch (error) {
             // Log the full error for debugging
