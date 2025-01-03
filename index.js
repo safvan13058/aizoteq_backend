@@ -544,7 +544,7 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
       
       // If serialno is provided, modify the query to filter by serialno
       if (serialno) {
-        query += ` AND t.serialno = ILIKE $2`;
+        query += ` AND t.serialno ILIKE $2`;
       }
   
       // Execute the query with appropriate parameters
