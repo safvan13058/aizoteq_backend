@@ -480,6 +480,7 @@ const Swaggerdoc = {
     },
 "/api/recent/adminstock/activities": {
       "get": {
+        "tags": ["Test APP APIs"],
         "summary": "Fetch recent activities in AdminStock",
         "description": "Retrieve the list of devices in AdminStock with pagination support.",
         "operationId": "getAdminStockActivities",
