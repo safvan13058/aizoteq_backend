@@ -951,7 +951,7 @@ app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (r
   
       // Upload file to S3
       const params = {
-        Bucket: process.env.AWS_BUCKET_NAME,
+        Bucket: process.env.S3_BUCKET_NAME,
         Key: fileName,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
