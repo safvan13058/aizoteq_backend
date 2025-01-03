@@ -389,7 +389,7 @@ const Swaggerdoc = {
           {
             "name": "serialno",
             "in": "query",
-            "required": true,
+            "required":false,
             "description": "The serial number of the thing to search.",
             "schema": {
               "type": "string",
