@@ -526,8 +526,8 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
             SELECT 
                 t.id AS thing_id,
                 t.thingName,
-                t.macAddress,
                 t.createdby,
+                t.batchId,
                 t.serialno,
                 a.status AS admin_stock_status,
                 a.addedAt,
