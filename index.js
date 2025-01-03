@@ -519,49 +519,57 @@ app.get('/app/searchThings/:status',
 app.get('/api/searchThings/working/:status', async (req, res) => {
     const { serialno } = req.query;
     const { status } = req.params;
-  
+
     try {
-      // Default to showing all records with 'rework' status if no serialno is provided
-      let query = `
-        SELECT 
-          t.id AS thing_id,
-          t.thingName,
-          t.thingid,
-          t.macAddress,
-          t.createdby,
-          t.serialno,
-          a.status AS admin_stock_status,
-          a.addedAt,
-          a.addedby,
-          tf.failureReason,
-          tf.fixed_by,
-          tf.loggedAt
-        FROM Things t
-        LEFT JOIN AdminStock a ON t.id = a.thingId
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        WHERE a.status = $1
-      `;
-      
-      // If serialno is provided, modify the query to filter by serialno
-      if (serialno) {
-        query += ` AND t.serialno ILIKE $2`;
-      }
-  
-      // Execute the query with appropriate parameters
-      const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
-  
-      // Check if results exist
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No matching records found' });
-      }
-  
-      // Return results
-      res.json(result.rows);
+        // Default to showing all records with 'rework' status if no serialno is provided
+        let query = `
+            SELECT 
+                t.id AS thing_id,
+                t.thingName,
+                t.thingid,
+                t.macAddress,
+                t.createdby,
+                t.serialno,
+                a.status AS admin_stock_status,
+                a.addedAt,
+                a.addedby,
+                tf.failureReason,
+                tf.fixed_by,
+                tf.loggedAt
+            FROM Things t
+            LEFT JOIN AdminStock a ON t.id = a.thingId
+            LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+            WHERE a.status = $1
+        `;
+        
+        // If serialno is provided, modify the query to filter by serialno using ILIKE
+        if (serialno) {
+            query += ` AND t.serialno ILIKE $2`;
+        }
+
+        // Log the query and parameters for debugging
+        console.log('Executing query:', query);
+        console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
+
+        // Execute the query with appropriate parameters
+        const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
+
+        // Check if results exist
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No matching records found' });
+        }
+
+        // Return results
+        res.json(result.rows);
     } catch (err) {
-      console.error('Error executing query', err);
-      res.status(500).json({ error: 'Internal Server Error' });
+        // Log the full error for debugging
+        console.error('Error executing query', err);
+
+        // Respond with more detailed error information
+        res.status(500).json({ error: 'Internal Server Error', details: err.message });
     }
-  });
+});
+
 
  // 
 app.get('/api/adminstock/search/:model',
