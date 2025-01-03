@@ -279,8 +279,7 @@ app.get('/',(req,res)=>{
 })
 
 // Protect the /app/addThing endpoint for admins and staff
-app.post(
-    "/app/addThing",
+app.post(  "/app/addThing",
     // validateJwt,
     // authorizeRoles("admin", "staff"), // Allow only admin and staff
     async (req, res) => {
@@ -937,6 +936,7 @@ app.get('/api/search/things', async (req, res) => {
   
   
 app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (req, res) => {
+    console.log(req.file)
     const { userId } = req.params;
     
     if (!req.file) {
