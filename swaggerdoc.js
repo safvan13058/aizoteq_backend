@@ -383,7 +383,7 @@ const Swaggerdoc = {
 "/api/searchThings/working/{status}": {
       "get": {
         "tags": ["Test APP APIs"],
-        "summary": "Search for Things",
+        "summary": "display thing with status and search on serialno",
         "description": "Fetch details about Things based on their serial number and status.",
         "parameters": [
           {
