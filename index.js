@@ -421,23 +421,47 @@ app.post(
 //count the stock item with status is new , rework etc
 app.get('/api/adminstock/:status/count', async (req, res) => {
     try {
-        const {status}=req.params
-        // SQL query to count 'new' status
-        const query = `SELECT COUNT(*) AS count FROM AdminStock WHERE status = ${status};`;
+        const { status } = req.params;
 
-        // Execute the query
-        const result = await db.query(query);
+        // Ensure the status parameter is not empty and is a valid string
+        if (!status || typeof status !== 'string') {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid or missing status parameter',
+            });
+        }
 
-        // Return the count
-        res.status(200).json({
-            status: 'success',
-            count: result.rows[0].count,
-        });
+        // SQL query with parameterized value to prevent SQL injection
+        const query = `
+            SELECT COUNT(*) AS count
+            FROM AdminStock
+            WHERE status = $1
+        `;
+
+        // Execute the query with the status parameter
+        const result = await db.query(query, [status]);
+
+        // Check if result is returned
+        if (result.rows.length > 0) {
+            // Return the count of the records with the given status
+            res.status(200).json({
+                status: 'success',
+                count: result.rows[0].count,
+            });
+        } else {
+            res.status(404).json({
+                status: 'error',
+                message: 'No records found with the specified status',
+            });
+        }
     } catch (error) {
         console.error('Error fetching count:', error);
+
+        // Return an internal server error response
         res.status(500).json({
             status: 'error',
             message: 'Internal server error',
+            details: error.message, // Include error details for debugging
         });
     }
 });
