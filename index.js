@@ -527,7 +527,6 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
           t.id AS thing_id,
           t.thingName,
           t.thingid,
-          t.deviceId,
           t.macAddress,
           t.createdby,
           t.serialno,
