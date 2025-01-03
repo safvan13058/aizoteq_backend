@@ -596,7 +596,66 @@ const Swaggerdoc = {
         }
       }
     },
-
+"/api/display/user": {
+      "get": {
+        "summary": "Fetch User Details",
+        "description": "Fetches user details based on the user ID provided in the request.",
+        "parameters": [
+          {
+            "name": "userid",
+            "in": "query",
+            "description": "ID of the user to fetch details for. Can also be obtained from the authenticated user's token.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with user details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "string" },
+                    "name": { "type": "string" },
+                    "email": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch user by ID.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+},
 "/api/adminstock/{status}/count": {
       "get": {
         "tags": ["Test APP APIs"],
@@ -1304,7 +1363,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/app/add/home/": {
+  "/app/add/home/": {
   post: {
     summary: "Add a new home",
     description: "Create a new home entry in the database with the specified name. The created_by field is automatically set based on the authenticated user's information.",
