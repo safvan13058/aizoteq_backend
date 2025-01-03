@@ -480,6 +480,7 @@ const Swaggerdoc = {
     },
 "/api/recent/adminstock/activities": {
       "get": {
+        "tags": ["Test APP APIs"],
         "summary": "Fetch recent admin stock activities",
         "description": "Fetch devices in AdminStock, including failure details (if available), ordered by their added date.",
         "parameters": [],
@@ -547,6 +548,7 @@ const Swaggerdoc = {
     },
 "/api/adminstock/{status}/count": {
       "get": {
+        "tags": ["Test APP APIs"],
         "summary": "Count AdminStock items by status",
         "description": "Returns the total count of AdminStock items where the status matches the given parameter.",
         "parameters": [
