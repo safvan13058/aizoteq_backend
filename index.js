@@ -935,7 +935,25 @@ app.get('/api/search/things', async (req, res) => {
     }
   });
   
+app.get("/api/users/:userId", async (req, res) => {
+    const { userId } = req.params;
+    const fetchUserQuery = "SELECT * FROM Users WHERE id = $1";
   
+    try {
+      const result = await db.query(fetchUserQuery, [userId]);
+  
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "User not found." });
+      }
+  
+      res.status(200).json(result.rows[0]);
+    } catch (error) {
+      console.error("Error fetching user by ID:", error);
+      res.status(500).json({ error: "Failed to fetch user by ID." });
+    }
+  });
+
+
 app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (req, res) => {
     console.log(req.file)
     const { userId } = req.params;
