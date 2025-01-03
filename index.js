@@ -545,11 +545,11 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
       
       // If serialno is provided, modify the query to filter by serialno
       if (serialno) {
-        query += ` AND t.serialno = $2`;
+        query += ` AND t.serialno = ILIKE $2`;
       }
   
       // Execute the query with appropriate parameters
-      const result = await db.query(query, serialno ? [status, serialno] : [status]);
+      const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
   
       // Check if results exist
       if (result.rows.length === 0) {
@@ -709,39 +709,72 @@ app.put("/api/update_adminstock/status/:thingId",
 
   app.get('/api/recent/adminstock/activities', async (req, res) => {
     try {
-      const query = `
-        SELECT 
-          t.id AS thing_id,
-          t.thingName,
-          t.serialno,
-          t.batchId,
-          t.model ,
-          a.addedAt,
-          a.status AS admin_stock_status,
-          a.addedBy,
-          u.userName AS addedByUserName,
-          tf.fixed_by,
-          tf.failureReason
-        FROM AdminStock a
-        JOIN Things t ON a.thingId = t.id
-        JOIN Users u ON a.addedBy = u.userName
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        ORDER BY a.addedAt DESC;
-      `;
-  
-      const result = await db.query(query);
-  
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No devices found in AdminStock' });
-      }
-  
-      res.status(200).json(result.rows);
+        // Get the page and limit query parameters from the request
+        const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+        const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+
+        // Validate page and limit
+        if (page < 1 || limit < 1) {
+            return res.status(400).json({ error: 'Invalid page or limit value' });
+        }
+
+        const offset = (page - 1) * limit; // Calculate offset based on the current page and limit
+
+        // SQL query to fetch things in admin stock with pagination
+        const query = `
+            SELECT 
+                t.id AS thing_id,
+                t.thingName,
+                t.serialno,
+                t.batchId,
+                t.model,
+                a.addedAt,
+                a.status AS admin_stock_status,
+                a.addedBy,
+                u.userName AS addedByUserName,
+                tf.fixed_by,
+                tf.failureReason
+            FROM AdminStock a
+            JOIN Things t ON a.thingId = t.id
+            JOIN Users u ON a.addedBy = u.userName
+            LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+            ORDER BY a.addedAt DESC
+            LIMIT $1 OFFSET $2;
+        `;
+
+        // Fetch paginated results from the database
+        const result = await db.query(query, [limit, offset]);
+
+        // Fetch total count for the records
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM AdminStock a
+            JOIN Things t ON a.thingId = t.id
+            JOIN Users u ON a.addedBy = u.userName
+            LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId;
+        `;
+        const countResult = await db.query(countQuery);
+        const total = parseInt(countResult.rows[0].total, 10);
+        const totalPages = Math.ceil(total / limit); // Calculate total pages
+
+        if (result.rows.length > 0) {
+            // Return paginated data with meta information
+            res.status(200).json({
+                page,
+                limit,
+                total,
+                totalPages,
+                data: result.rows,
+            });
+        } else {
+            res.status(404).json({ message: 'No devices found in AdminStock' });
+        }
     } catch (error) {
-      console.error('Error fetching data from database:', error);  // More specific error logging
-      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+        console.error('Error fetching data from database:', error);  // More specific error logging
+        res.status(500).json({ error: 'Internal Server Error', details: error.message });
     }
-  });
-  
+});
+
   
 // DELETE endpoint to delete a Thing by ID
 app.delete('/api/delete/things/:id',

@@ -480,58 +480,108 @@ const Swaggerdoc = {
     },
 "/api/recent/adminstock/activities": {
       "get": {
-        "tags": ["Test APP APIs"],
-        "summary": "Fetch recent admin stock activities",
-        "description": "Fetch devices in AdminStock, including failure details (if available), ordered by their added date.",
-        "parameters": [],
+        "summary": "Fetch recent activities in AdminStock",
+        "description": "Retrieve the list of devices in AdminStock with pagination support.",
+        "operationId": "getAdminStockActivities",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of records per page",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "Successful response",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "thing_id": {
-                    "type": "integer",
-                    "description": "ID of the device"
-                  },
-                  "thingName": {
-                    "type": "string",
-                    "description": "Name of the device"
-                  },
-                  "serialno": {
-                    "type": "string",
-                    "description": "Serial number of the device"
-                  },
-                  "deviceId": {
-                    "type": "string",
-                    "description": "Device ID"
-                  },
-                  "addedAt": {
-                    "type": "string",
-                    "format": "date-time",
-                    "description": "Timestamp when the device was added to AdminStock"
-                  },
-                  "admin_stock_status": {
-                    "type": "string",
-                    "description": "Current status of the device in AdminStock"
-                  },
-                  "addedBy": {
-                    "type": "string",
-                    "description": "Username of the user who added the device"
-                  },
-                  "addedByUserName": {
-                    "type": "string",
-                    "description": "Username of the user who added the device"
-                  },
-                  "fixed_by": {
-                    "type": "string",
-                    "description": "Technician who fixed the device (if available)"
-                  },
-                  "failureReason": {
-                    "type": "string",
-                    "description": "Reason for failure (if available)"
+            "description": "A paginated list of admin stock activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer",
+                      "description": "Current page"
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "description": "Records per page"
+                    },
+                    "total": {
+                      "type": "integer",
+                      "description": "Total number of records"
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "description": "Total number of pages"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "thing_id": {
+                            "type": "integer",
+                            "description": "ID of the thing"
+                          },
+                          "thingName": {
+                            "type": "string",
+                            "description": "Name of the thing"
+                          },
+                          "serialno": {
+                            "type": "string",
+                            "description": "Serial number of the thing"
+                          },
+                          "batchId": {
+                            "type": "string",
+                            "description": "Batch ID of the thing"
+                          },
+                          "model": {
+                            "type": "string",
+                            "description": "Model of the thing"
+                          },
+                          "addedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "description": "Timestamp when the thing was added to admin stock"
+                          },
+                          "admin_stock_status": {
+                            "type": "string",
+                            "description": "Status of the thing in admin stock"
+                          },
+                          "addedBy": {
+                            "type": "string",
+                            "description": "Username of the user who added the thing"
+                          },
+                          "addedByUserName": {
+                            "type": "string",
+                            "description": "Full name of the user who added the thing"
+                          },
+                          "fixed_by": {
+                            "type": "string",
+                            "description": "Username of the person who fixed the device, if applicable"
+                          },
+                          "failureReason": {
+                            "type": "string",
+                            "description": "Reason for device failure, if applicable"
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -541,11 +591,12 @@ const Swaggerdoc = {
             "description": "No devices found in AdminStock"
           },
           "500": {
-            "description": "Internal server error"
+            "description": "Internal Server Error"
           }
         }
       }
     },
+
 "/api/adminstock/{status}/count": {
       "get": {
         "tags": ["Test APP APIs"],
