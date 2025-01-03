@@ -935,7 +935,7 @@ app.get('/api/search/things', async (req, res) => {
   
 app.get("/api/display/user", async (req, res) => {
   const userId = req.user?.id || req.body.userid;
-  const fetchUserQuery = "SELECT  FROM Users WHERE id = $1";
+  const fetchUserQuery = "SELECT  userName,userRole,profilePic FROM Users WHERE id = $1";
 
   try {
     const result = await db.query(fetchUserQuery, [userId]);

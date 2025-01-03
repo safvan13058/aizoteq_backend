@@ -626,9 +626,9 @@ const Swaggerdoc = {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "string" },
-                    "name": { "type": "string" },
-                    "email": { "type": "string" }
+                    "userName": { "type": "string", "description": "Name of the user." },
+                    "userRole": { "type": "string", "description": "Role of the user." },
+                    "profilePic": { "type": "string", "description": "URL of the user's profile picture." }
                   }
                 }
               }
