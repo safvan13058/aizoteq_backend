@@ -955,7 +955,7 @@ app.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (r
         Key: fileName,
         Body: req.file.buffer,
         ContentType: req.file.mimetype,
-        ACL: "public-read", // Makes the file publicly accessible
+        // ACL: "public-read", // Makes the file publicly accessible
       };
   
       const s3Response = await s3.upload(params).promise();
