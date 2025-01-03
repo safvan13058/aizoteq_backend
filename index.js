@@ -526,7 +526,6 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
             SELECT 
                 t.id AS thing_id,
                 t.thingName,
-                t.thingid,
                 t.macAddress,
                 t.createdby,
                 t.serialno,
