@@ -362,6 +362,16 @@ app.post(  "/app/addThing",
             // Handle AdminStock and Failed Devices if status is 'rework'
     
     if (status === 'rework') {
+
+         // Validate failureReason
+      if (!failureReason || typeof failureReason !== 'string' || failureReason.trim().length === 0) {
+        return res.status(400).json({
+            error: {
+                code: "INVALID_FAILURE_REASON",
+                message: "Failure reason must be provided and cannot be empty when the status is 'rework'.",
+            },
+        });
+       }
         // const failureReason = `Rework needed due to ${thing.reason || 'unspecified issues'}`;
 
         // Update AdminStock status to 'rework'
