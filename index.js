@@ -759,6 +759,7 @@ app.put("/api/update_adminstock/status/:thingId",
         const offset = (page - 1) * limit; // Calculate offset based on the current page and limit
 
         // SQL query to fetch things in admin stock with pagination
+        // JOIN Users u ON a.addedBy = u.userName
         const query = `
             SELECT 
                 t.id AS thing_id,
@@ -774,7 +775,7 @@ app.put("/api/update_adminstock/status/:thingId",
                 tf.failureReason
             FROM AdminStock a
             JOIN Things t ON a.thingId = t.id
-            JOIN Users u ON a.addedBy = u.userName
+            
             LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
             ORDER BY a.addedAt DESC
             LIMIT $1 OFFSET $2;
@@ -782,13 +783,14 @@ app.put("/api/update_adminstock/status/:thingId",
 
         // Fetch paginated results from the database
         const result = await db.query(query, [limit, offset]);
-
+        console.log(result)
         // Fetch total count for the records
+        // JOIN Users u ON a.addedBy = u.userName
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM AdminStock a
             JOIN Things t ON a.thingId = t.id
-            JOIN Users u ON a.addedBy = u.userName
+
             LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId;
         `;
         const countResult = await db.query(countQuery);
