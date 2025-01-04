@@ -1,5 +1,5 @@
 const express = require('express');
-const dashboard = express();
+const dashboard = express.Router();
 const db = require('./dbconnection');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
@@ -128,3 +128,5 @@ const s3 = new AWS.S3({
   dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
   })
+
+module.exports=dashboard;
