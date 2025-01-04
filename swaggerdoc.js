@@ -380,6 +380,91 @@ const Swaggerdoc = {
       }
     },
 
+"/api/devices/{device_id}/change/{newroomid}": {
+      "put": {
+        "summary": "Change room for a device",
+        "description": "Updates the room assignment for a specific device.",
+        "parameters": [
+          {
+            "name": "device_id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the device to update.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "newroomid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the new room to assign to the device.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Room updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "device_id": {
+                      "type": "string"
+                    },
+                    "new_room_id": {
+                      "type": "integer"
+                    }
+                  }
+                },
+                "example": {
+                  "message": "Device room updated successfully.",
+                  "device_id": "DEVICE123",
+                  "new_room_id": 456
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "new_room_id is required"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device or room not found.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Device not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "An error occurred while updating the room."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
 "/api/searchThings/working/{status}": {
       "get": {
         "tags": ["Test APP APIs"],

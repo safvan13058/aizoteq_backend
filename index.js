@@ -2343,6 +2343,70 @@ app.get('/api/display/device/rooms/:roomid',
     }
 );
 
+//change device to other rooms
+app.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
+    const { device_id,newroomid } = req.params;
+    // const { newroomid } = req.body;
+    
+    const new_room_id=newroomid;
+    // Validate input
+    if (!new_room_id) {
+        return res.status(400).json({ error: "new_room_id is required" });
+    }
+
+    try {
+        const client = await pool.connect();
+
+        try {
+            // Check if the device exists
+            const deviceResult = await client.query(
+                'SELECT * FROM devices WHERE deviceid = $1',
+                [device_id]
+            );
+            if (deviceResult.rowCount === 0) {
+                return res.status(404).json({ error: "Device not found" });
+            }
+
+            // Check if the new room exists
+            const roomResult = await client.query(
+                'SELECT * FROM room WHERE id = $1',
+                [new_room_id]
+            );
+            if (roomResult.rowCount === 0) {
+                return res.status(404).json({ error: "Room not found" });
+            }
+
+            // Check if a mapping for the device exists
+            const mappingResult = await client.query(
+                'SELECT * FROM room_device WHERE device_id = $1',
+                [device_id]
+            );
+            if (mappingResult.rowCount === 0) {
+                return res.status(404).json({ error: "Device mapping not found" });
+            }
+
+            // Update the room for the device
+            await client.query(
+                'UPDATE room_device SET room_id = $1 WHERE device_id = $2',
+                [new_room_id, device_id]
+            );
+
+            res.status(200).json({
+                message: "Device room updated successfully.",
+                device_id: device_id,
+                new_room_id: new_room_id,
+            });
+        } catch (error) {
+            console.error("Error executing query", error);
+            res.status(500).json({ error: "An error occurred while updating the room." });
+        } finally {
+            client.release(); // Release the client back to the pool
+        }
+    } catch (error) {
+        console.error("Error connecting to the database", error);
+        res.status(500).json({ error: "Database connection error" });
+    }
+});
 
 
 //display all devices with floor name and room name 
@@ -2684,6 +2748,7 @@ app.delete('/api/delete/scene_devices/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 
 
