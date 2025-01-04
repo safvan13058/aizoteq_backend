@@ -8,10 +8,12 @@ const { promisify } = require('util');
 const Joi = require('joi');
 const login = require('./login');
 const signup=require('./signup')
+const dashboard=require('./dashboard.js')
 const path = require('path');
 
 app.use('/signup',signup);
 app.use('/signup',login);
+app.use('/dashboard',dashboard);
 
 app.use(express.json());
 // app.use(bodyParser.json());
@@ -745,7 +747,7 @@ app.put("/api/update_adminstock/status/:thingId",
   });
 
 
-//   app.get('/api/recent/adminstock/activities', async (req, res) => {
+// /   app.get('/api/recent/adminstock/activities', async (req, res) => {
 //     try {
 //         // Get the page and limit query parameters from the request
 //         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
@@ -814,6 +816,7 @@ app.put("/api/update_adminstock/status/:thingId",
 //         res.status(500).json({ error: 'Internal Server Error', details: error.message });
 //     }
 // });
+
 
 app.get('/api/recent/adminstock/activities', async (req, res) => {
     try {
