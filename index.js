@@ -1009,7 +1009,8 @@ app.get('/api/search/things', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while searching', details: err.message });
     }
   });
-  
+
+
 app.get("/api/display/user", async (req, res) => {
   const userId = req.user?.id || req.body.userid;
   const fetchUserQuery = "SELECT  userName,userRole,profilePic FROM Users WHERE id = $1";
@@ -1686,7 +1687,7 @@ app.put('/app/update/rooms/:id',
                 Key: fileKey,
                 Body: file.buffer,
                 ContentType: file.mimetype,
-                ACL: 'public-read', // Make the file publicly readable
+                // ACL: 'public-read', // Make the file publicly readable
             };
 
             // Upload file to S3

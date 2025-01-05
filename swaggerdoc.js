@@ -382,6 +382,7 @@ const Swaggerdoc = {
 
 "/api/devices/{device_id}/change/{newroomid}": {
       "put": {
+        "tags": ["device"],
         "summary": "Change room for a device",
         "description": "Updates the room assignment for a specific device.",
         "parameters": [
@@ -1078,6 +1079,7 @@ const Swaggerdoc = {
     },
 "/api/reorder/devices/{roomid}": {
       "put": {
+        "tags": ["device"],
         "summary": "Reorder devices in a room",
         "description": "Updates the orderIndex for devices in a specified room based on the provided order array.",
         "parameters": [
@@ -1159,6 +1161,7 @@ const Swaggerdoc = {
     },
 "/api/device/favorite/{deviceid}": {
       "put": {
+        "tags": ["device"],
         "summary": "Mark a device as favorite",
         "parameters": [
           {
@@ -1183,6 +1186,7 @@ const Swaggerdoc = {
     },
 "/api/favorite-devices/{userId}": {
       "get": {
+        "tags": ["device"],
         "summary": "Retrieve favorite devices for a user",
         "parameters": [
           {
@@ -2866,101 +2870,102 @@ const Swaggerdoc = {
       }
     },
 
-"/api/display/test/{type}": {
-    get: {
-        summary: "Get thing by type",
-        description: "Fetch a thing record based on the provided type parameter.",
-        tags: ["Things"],
-        parameters: [
-            {
-                in: "path",
-                name: "type",
-                required: true,
-                description: "Type of the thing to be retrieved",
-                schema: {
-                    type: "string"
-                }
-            }
-        ],
-        responses: {
-            200: {
-                description: "Thing retrieved successfully",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                success: {
-                                    type: "boolean",
-                                    example: true
-                                },
-                                data: {
-                                    type: "object",
-                                    properties: {
-                                        id: {
-                                            type: "integer",
-                                            example: 1
-                                        },
-                                        name: {
-                                            type: "string",
-                                            example: "Laptop"
-                                        },
-                                        type: {
-                                            type: "string",
-                                            example: "Electronics"
-                                        },
-                                        // Add additional thing properties as per your 'things' table schema
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            404: {
-                description: "No records found for the given type",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                success: {
-                                    type: "boolean",
-                                    example: false
-                                },
-                                message: {
-                                    type: "string",
-                                    example: "No records found"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            500: {
-                description: "Internal server error",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                success: {
-                                    type: "boolean",
-                                    example: false
-                                },
-                                message: {
-                                    type: "string",
-                                    example: "An error occurred while fetching data"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-},
+// "/api/display/test/{type}": {
+//     get: {
+//         summary: "Get thing by type",
+//         description: "Fetch a thing record based on the provided type parameter.",
+//         tags: ["Things"],
+//         parameters: [
+//             {
+//                 in: "path",
+//                 name: "type",
+//                 required: true,
+//                 description: "Type of the thing to be retrieved",
+//                 schema: {
+//                     type: "string"
+//                 }
+//             }
+//         ],
+//         responses: {
+//             200: {
+//                 description: "Thing retrieved successfully",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 success: {
+//                                     type: "boolean",
+//                                     example: true
+//                                 },
+//                                 data: {
+//                                     type: "object",
+//                                     properties: {
+//                                         id: {
+//                                             type: "integer",
+//                                             example: 1
+//                                         },
+//                                         name: {
+//                                             type: "string",
+//                                             example: "Laptop"
+//                                         },
+//                                         type: {
+//                                             type: "string",
+//                                             example: "Electronics"
+//                                         },
+//                                         // Add additional thing properties as per your 'things' table schema
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             404: {
+//                 description: "No records found for the given type",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 success: {
+//                                     type: "boolean",
+//                                     example: false
+//                                 },
+//                                 message: {
+//                                     type: "string",
+//                                     example: "No records found"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             500: {
+//                 description: "Internal server error",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 success: {
+//                                     type: "boolean",
+//                                     example: false
+//                                 },
+//                                 message: {
+//                                     type: "string",
+//                                     example: "An error occurred while fetching data"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// },
 // ------------------------
+
 "/api/display/status/{status}": {
     get: {
         summary: "Get things by status",
@@ -3242,6 +3247,7 @@ const Swaggerdoc = {
 
 "/api/display/all/devices/{userId}": {
       "get": {
+        "tags": ["device"],
         "summary": "Get All Devices for a User",
         "description": "Fetch all devices with their details, along with the floor and room they are located in, for a specific user.",
         "parameters": [
@@ -3929,7 +3935,7 @@ const Swaggerdoc = {
       "post": {
         "summary": "Customer Signup",
         "description": "Registers a new customer with AWS Cognito and stores user details in the PostgreSQL database.",
-        "tags": ["Customer"],
+        "tags": ["Authentication"],
         "requestBody": {
           "required": true,
           "content": {

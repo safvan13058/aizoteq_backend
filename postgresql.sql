@@ -60,7 +60,7 @@ CREATE TABLE AdminStock (
     FOREIGN KEY (thingId) REFERENCES Things(id),
     FOREIGN KEY (addedBy) REFERENCES Users(userName),
 );
-
+ 
 -- Table to store home information
 CREATE TABLE HOME (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
