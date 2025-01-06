@@ -1188,13 +1188,15 @@ app.post( '/app/add/home/',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) =>  {
+        console.log(req.body)
+        console.log(req.body.id)
         try {
             const {name}   = req.body; // Destructure the required fields from the request body
             const username = req.user?.username || req.body.username; // Authenticated user's username
             const id   = req.user?.id|| req.body.id; // Authenticated user's ID
             const user_id =id;
             // Check if required data is provided
-            if (!name || !created_by) {
+            if (!name || !username) {
                 return res.status(400).json({ error: 'name and created_by are required' });
             }
 
