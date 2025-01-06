@@ -179,3 +179,27 @@ CREATE TABLE TestFailedDevices (
     FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE CASCADE -- Automatically delete when the associated Thing is deleted
 );
 
+
+CREATE TABLE UserFCMTokens (
+    id SERIAL PRIMARY KEY,                 -- Auto-incrementing primary key
+    userId INT NOT NULL,                   -- Foreign key to Users table
+    fcmToken TEXT NOT NULL,                -- Firebase Cloud Messaging token
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the token was created
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE -- Cascading delete with Users table
+);
+
+CREATE TABLE Notifications (
+    id SERIAL PRIMARY KEY,                    -- Auto-incrementing primary key
+    userId INT NOT NULL,                      -- Foreign key to Users table
+    deviceId INT NOT NULL,                    -- Foreign key to Devices table
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of notification creation
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE, -- Cascade delete if user is deleted
+    FOREIGN KEY (deviceId) REFERENCES Devices(id) ON DELETE CASCADE -- Cascade delete if device is deleted
+);
+
+CREATE TABLE NotificationMessages (
+    id SERIAL PRIMARY KEY,                    -- Auto-incrementing primary key
+    notificationId INT NOT NULL,              -- Foreign key to Notifications table
+    message TEXT NOT NULL,                    -- Message content of the notification
+    FOREIGN KEY (notificationId) REFERENCES Notifications(id) ON DELETE CASCADE -- Cascade delete if notification is deleted
+);

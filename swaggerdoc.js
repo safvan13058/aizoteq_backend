@@ -683,6 +683,91 @@ const Swaggerdoc = {
         }
       }
     },
+
+// "/api/display/devices/{thingid}": {
+//       "get": {
+//         "summary": "Get devices by Thing ID",
+//         "description": "Fetch devices from the database using a specified Thing ID.",
+//         "parameters": [
+//           {
+//             "name": "thingid",
+//             "in": "path",
+//             "required": true,
+//             "description": "The unique identifier for the device.",
+//             "schema": {
+//               "type": "string"
+//             }
+//           }
+//         ],
+//         "responses": {
+//           "200": {
+//             "description": "Devices retrieved successfully.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "array",
+//                   "items": {
+//                     "type": "object",
+//                     "properties": {
+//                       "id": {
+//                         "type": "integer",
+//                         "description": "The unique ID of the device."
+//                       },
+//                       "thingid": {
+//                         "type": "string",
+//                         "description": "The Thing ID of the device."
+//                       },
+//                       "name": {
+//                         "type": "string",
+//                         "description": "The name of the device."
+//                       },
+//                       "status": {
+//                         "type": "string",
+//                         "description": "The status of the device."
+//                       }
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "404": {
+//             "description": "No records found for the provided Thing ID.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": {
+//                       "type": "string",
+//                       "example": "No records found"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "500": {
+//             "description": "Internal Server Error",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "error": {
+//                       "type": "string",
+//                       "example": "Internal Server Error"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         "tags": ["Devices"]
+//       }
+//     },
+
 "/api/display/user": {
       "get": {
         "summary": "Fetch User Details",
@@ -1460,6 +1545,316 @@ const Swaggerdoc = {
         }
       }
     },
+
+
+"/api/register/fcmtoken": {
+      "post": {
+        "summary": "Register FCM Token",
+        "description": "Registers a new FCM token for a user.",
+        "tags": ["UserFCMTokens"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fcmToken": {
+                    "type": "string",
+                    "description": "Firebase Cloud Messaging token",
+                    "example": "abcd1234efgh5678"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "description": "User ID (if not derived from authentication)",
+                    "example": 42
+                  }
+                },
+                "required": ["fcmToken"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Token added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Token added successfully"
+                    },
+                    "token": {
+                      "type": "object",
+                      "description": "The newly added token",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "userId": {
+                          "type": "integer",
+                          "example": 42
+                        },
+                        "fcmToken": {
+                          "type": "string",
+                          "example": "abcd1234efgh5678"
+                        },
+                        "createdAt": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-01-06T12:00:00Z"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error adding token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error adding token"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/api/retrieve/fcmtokens/{userId}": {
+      "get": {
+        "summary": "Retrieve FCM Tokens",
+        "description": "Retrieves all FCM tokens for a given user.",
+        "tags": ["UserFCMTokens"],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the user whose tokens are being retrieved.",
+            "schema": {
+              "type": "integer",
+              "example": 42
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tokens retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tokens": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "userId": {
+                            "type": "integer",
+                            "example": 42
+                          },
+                          "fcmToken": {
+                            "type": "string",
+                            "example": "abcd1234efgh5678"
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-01-06T12:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error retrieving tokens",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error retrieving tokens"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+"/api/create/notifications": {
+      "post": {
+        "summary": "Create Notification",
+        "description": "Creates a new notification and associated message.",
+        "tags": ["Notifications"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userId": { "type": "integer", "example": 1 },
+                  "deviceId": { "type": "integer", "example": 2 },
+                  "message": { "type": "string", "example": "Your device has been updated." }
+                },
+                "required": ["userId", "deviceId", "message"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Notification created successfully" },
+                    "notification": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "userId": { "type": "integer", "example": 1 },
+                        "deviceId": { "type": "integer", "example": 2 },
+                        "createdAt": { "type": "string", "format": "date-time", "example": "2025-01-06T12:00:00Z" }
+                      }
+                    },
+                    "notificationMessage": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer", "example": 1 },
+                        "notificationId": { "type": "integer", "example": 1 },
+                        "message": { "type": "string", "example": "Your device has been updated." }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/api/retrieve/notifications/{userId}": {
+      "get": {
+        "summary": "Retrieve Notifications",
+        "description": "Retrieves all notifications and messages for a specific user.",
+        "tags": ["Notifications"],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The ID of the user.",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "notifications": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "notificationId": { "type": "integer", "example": 1 },
+                          "userId": { "type": "integer", "example": 1 },
+                          "deviceId": { "type": "integer", "example": 2 },
+                          "createdAt": { "type": "string", "format": "date-time", "example": "2025-01-06T12:00:00Z" },
+                          "messageId": { "type": "integer", "example": 1 },
+                          "message": { "type": "string", "example": "Your device has been updated." }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/api/delete/notifications/{notificationId}": {
+      "delete": {
+        "summary": "Delete Notification",
+        "description": "Deletes a notification and its associated message.",
+        "tags": ["Notifications"],
+        "parameters": [
+          {
+            "name": "notificationId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The ID of the notification.",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Notification deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "Notification not found" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }, 
+    
 "/app/add/home/": {
   post: {
     summary: "Add a new home",
@@ -1546,6 +1941,9 @@ const Swaggerdoc = {
     }
   }
 },
+
+
+
     //------------------------
 "/app/display/homes/": {
         get: {

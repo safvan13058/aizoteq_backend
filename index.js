@@ -1081,17 +1081,117 @@ app.use(cors({
     credentials: true, // Allow cookies to be sent
 }));
 
+// 1. Add a new FCM token
+app.post('/api/register/fcmtoken', async (req, res) => {
+    const {  fcmToken } = req.body;
+    const {userId}=req.user?.id || req.body.id
+
+    try {
+        const result = await db.query(
+            `INSERT INTO UserFCMTokens (userId, fcmToken) VALUES ($1, $2) RETURNING *`,
+            [userId, fcmToken]
+        );
+        res.status(201).json({ message: 'Token added successfully', token: result.rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error adding token' });
+    }
+});
+
+app.get('/api/retrieve/fcmtokens/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await db.query(
+            `SELECT * FROM UserFCMTokens WHERE userId = $1`,
+            [userId]
+        );
+        res.status(200).json({ tokens: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error retrieving tokens' });
+    }
+});
+
+// 1. Create a new notification
+app.post('/api/notifications', async (req, res) => {
+    const { userId, deviceId, message } = req.body;
+
+    try {
+        // Insert into Notifications table
+        const notificationResult = await db.query(
+            `INSERT INTO Notifications (userId, deviceId) VALUES ($1, $2) RETURNING *`,
+            [userId, deviceId]
+        );
+
+        const notificationId = notificationResult.rows[0].id;
+
+        // Insert into NotificationMessages table
+        const messageResult = await db.query(
+            `INSERT INTO NotificationMessages (notificationId, message) VALUES ($1, $2) RETURNING *`,
+            [notificationId, message]
+        );
+
+        res.status(201).json({
+            message: 'Notification created successfully',
+            notification: notificationResult.rows[0],
+            notificationMessage: messageResult.rows[0],
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error creating notification' });
+    }
+});
+
+// 2. Retrieve notifications for a user
+app.get('/api/notifications/:userId', async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await db.query(
+            `SELECT n.id AS notificationId, n.userId, n.deviceId, n.createdAt, nm.id AS messageId, nm.message
+             FROM Notifications n
+             INNER JOIN NotificationMessages nm ON n.id = nm.notificationId
+             WHERE n.userId = $1`,
+            [userId]
+        );
+        res.status(200).json({ notifications: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error retrieving notifications' });
+    }
+});
+
+// 3. Delete a notification
+app.delete('/api/notifications/:notificationId', async (req, res) => {
+    const { notificationId } = req.params;
+
+    try {
+        const result = await db.query(
+            `DELETE FROM Notifications WHERE id = $1 RETURNING *`,
+            [notificationId]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Notification not found' });
+        }
+
+        res.status(200).json({ message: 'Notification deleted successfully' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error deleting notification' });
+    }
+});
 
 //ADD home
-app.post(
-    '/app/add/home/',
+app.post( '/app/add/home/',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) =>  {
         try {
             const {name}   = req.body; // Destructure the required fields from the request body
-            const {username} = req.user || req.body; // Authenticated user's username
-            const {id}    = req.user|| req.body; // Authenticated user's ID
+            const username = req.user?.username || req.body.username; // Authenticated user's username
+            const id   = req.user?.id|| req.body.id; // Authenticated user's ID
             const user_id =id;
             // Check if required data is provided
             if (!name || !created_by) {
@@ -1122,13 +1222,12 @@ app.post(
 
 
 //display home
-app.get(
-    '/app/display/homes/',
+app.get('/app/display/homes/',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {          
         try {
-            const userId = req.user.id || req.body.id; // Get the user_id from the authenticated user
+            const userId = req.user?.id || req.body.id; // Get the user_id from the authenticated user
             // const userId = req.body; // for testing
 
             // Query to fetch homes by user_id
@@ -1166,7 +1265,7 @@ app.put('/app/update/home/:id',
     try {
         const homeId = req.params.id; // Get home ID from URL parameter
         const { name } = req.body; 
-        const created_by = req.user.username||req.body.username; // Extract fields to update from request body
+        const created_by = req.user?.username||req.body.username; // Extract fields to update from request body
 
         // Validate input
         if (!name && !created_by) {
@@ -1239,8 +1338,7 @@ app.delete('/app/delete/home/:id',
 
 // ADD floor
 
-app.post(
-    '/app/add/floor/:home_id',
+app.post('/app/add/floor/:home_id',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {
@@ -1456,18 +1554,18 @@ app.post('/app/add/room/:floor_id',
         // Placeholder for S3 file upload (if needed in the future)
         let fileUrl = null;
         if (req.file) {
-            // const file=req.file
-            // const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
-            // const params = {
-            //     Bucket: process.env.S3_BUCKET_NAME,
-            //     Key: fileKey,
-            //     Body: file.buffer,
-            //     ContentType: file.mimetype,
-            //     ACL: 'public-read', // Make the file publicly readable
-            // };
+            const file=req.file
+            const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileKey,
+                Body: file.buffer,
+                ContentType: file.mimetype,
+                // ACL: 'public-read', // Make the file publicly readable
+            };
 
-            // const uploadResult = await s3.upload(params).promise();
-            // fileUrl = uploadResult.Location; // S3 file URL
+            const uploadResult = await s3.upload(params).promise();
+            fileUrl = uploadResult.Location; // S3 file URL
         }; // Implement S3 upload logic here and set fileUrl accordingly
 
         // Start a database transaction
@@ -1494,7 +1592,7 @@ app.post('/app/add/room/:floor_id',
             name,
             alias_name || null, // Optional field
             fileUrl, // Replace with actual file URL if integrating S3
-            1 // Replace with actual home_id if available
+            null // Replace with actual home_id if available
         ];
 
         const roomResult = await db.query(roomQuery, roomValues);
@@ -1766,7 +1864,7 @@ app.get('/api/display/things/:id',
  //display all things
  app.get('/api/display/things',
     // validateJwt,
-    // authorizeRoles('customer'), 
+    // authorizeRoles('admin,staff'), 
     async (req, res) => {
         try {
             // Get `page` and `limit` query parameters, with default values if not provided
@@ -1965,67 +2063,67 @@ app.get('/api/display/devices/:thingid',
 });
 
 
-//display thing that new,rework,failed,etc.....
-app.get('/api/display/test/:type',
-    // validateJwt,
-    // authorizeRoles('admin', 'staff'),
-    async (req, res) => {
-        try {
-            // Get the 'type' parameter and pagination parameters from the request
-            const { type } = req.params;
-            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
-            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+// //display thing that new,rework,failed,etc.....
+// app.get('/api/display/test/:type',
+//     // validateJwt,
+//     // authorizeRoles('admin', 'staff'),
+//     async (req, res) => {
+//         try {
+//             // Get the 'type' parameter and pagination parameters from the request
+//             const { type } = req.params;
+//             const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+//             const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-            if (page < 1 || limit < 1) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Invalid page or limit value',
-                });
-            }
+//             if (page < 1 || limit < 1) {
+//                 return res.status(400).json({
+//                     success: false,
+//                     message: 'Invalid page or limit value',
+//                 });
+//             }
 
-            const offset = (page - 1) * limit; // Calculate offset for pagination
+//             const offset = (page - 1) * limit; // Calculate offset for pagination
 
-            // Perform the paginated query
-            const query = `
-                SELECT * FROM things 
-                WHERE type = $1
-                ORDER BY id ASC
-                LIMIT $2 OFFSET $3
-            `;
-            const values = [type, limit, offset];
-            const result = await db.query(query, values);
+//             // Perform the paginated query
+//             const query = `
+//                 SELECT * FROM things 
+//                 WHERE type = $1
+//                 ORDER BY id ASC
+//                 LIMIT $2 OFFSET $3
+//             `;
+//             const values = [type, limit, offset];
+//             const result = await db.query(query, values);
 
-            // Fetch total count for the specified type
-            const countQuery = 'SELECT COUNT(*) AS total FROM things WHERE type = $1';
-            const countResult = await db.query(countQuery, [type]);
-            const total = parseInt(countResult.rows[0].total, 10);
-            const totalPages = Math.ceil(total / limit);
+//             // Fetch total count for the specified type
+//             const countQuery = 'SELECT COUNT(*) AS total FROM things WHERE type = $1';
+//             const countResult = await db.query(countQuery, [type]);
+//             const total = parseInt(countResult.rows[0].total, 10);
+//             const totalPages = Math.ceil(total / limit);
 
-            if (result.rows.length > 0) {
-                res.status(200).json({
-                    success: true,
-                    page,
-                    limit,
-                    total,
-                    totalPages,
-                    data: result.rows,
-                });
-            } else {
-                res.status(404).json({
-                    success: false,
-                    message: 'No records found',
-                });
-            }
-        } catch (error) {
-            // Handle any errors
-            console.error('Error fetching data from the database:', error);
-            res.status(500).json({
-                success: false,
-                message: 'An error occurred while fetching data',
-            });
-        }
-    }
-);
+//             if (result.rows.length > 0) {
+//                 res.status(200).json({
+//                     success: true,
+//                     page,
+//                     limit,
+//                     total,
+//                     totalPages,
+//                     data: result.rows,
+//                 });
+//             } else {
+//                 res.status(404).json({
+//                     success: false,
+//                     message: 'No records found',
+//                 });
+//             }
+//         } catch (error) {
+//             // Handle any errors
+//             console.error('Error fetching data from the database:', error);
+//             res.status(500).json({
+//                 success: false,
+//                 message: 'An error occurred while fetching data',
+//             });
+//         }
+//     }
+// );
 
 
 //display things with  status
