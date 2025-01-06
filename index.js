@@ -1337,7 +1337,6 @@ app.delete('/app/delete/home/:id',
 
 
 // ADD floor
-
 app.post('/app/add/floor/:home_id',
     // validateJwt,
     // authorizeRoles('customer'),
@@ -2848,8 +2847,76 @@ app.delete('/api/delete/scene_devices/:id', async (req, res) => {
     }
 });
 
+// 1. Create a new SceneEvent
+app.post('/api/scene-events', async (req, res) => {
+    const { sceneId, deviceId, action,datatime} = req.body;
 
+    try {
+        const result = await db.query(
+            `INSERT INTO SceneEvent (sceneId, deviceId, action,eventTime) VALUES ($1, $2, $3,$4) RETURNING *`,
+            [sceneId, deviceId, action,datatime]
+        );
+        res.status(201).json({
+            message: 'SceneEvent created successfully',
+            sceneEvent: result.rows[0],
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error creating SceneEvent' });
+    }
+});
 
+app.put('/api/update/scene-events/scene/:sceneId', async (req, res) => {
+    const { sceneId } = req.params; // Scene ID from the route parameters
+    const { deviceId, action, datatime } = req.body; // Fields to update
+
+    try {
+        // Update all SceneEvent records for the given sceneId
+        const result = await db.query(
+            `UPDATE SceneEvent
+             SET deviceId = COALESCE($1, deviceId),
+                 action = COALESCE($2, action),
+                 eventTime = COALESCE($3, eventTime)
+             WHERE sceneId = $4
+             RETURNING *`,
+            [deviceId, action, datatime, sceneId]
+        );
+
+        // Check if any records were updated
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'No SceneEvents found for the specified sceneId' });
+        }
+
+        // Respond with the updated records
+        res.status(200).json({
+            message: 'SceneEvents updated successfully',
+            updatedSceneEvents: result.rows,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error updating SceneEvents' });
+    }
+});
+
+app.get('/api/scene-events/scene/:sceneId', async (req, res) => {
+    const { sceneId } = req.params;
+
+    try {
+        const result = await db.query(
+            `SELECT se.id, se.sceneId, se.deviceId, se.action, se.eventTime,
+            s.name AS sceneName, d.name AS deviceName
+            FROM SceneEvent se
+            JOIN Scenes s ON se.sceneId = s.id
+            JOIN Devices d ON se.deviceId = d.id
+            WHERE se.sceneId = $1`,
+            [sceneId]
+        );
+        res.status(200).json({ sceneEvents: result.rows });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Error retrieving SceneEvents for sceneId' });
+    }
+});
 
 const { swaggerUi, specs } = require("./swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));

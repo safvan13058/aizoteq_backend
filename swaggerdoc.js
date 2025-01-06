@@ -564,6 +564,321 @@ const Swaggerdoc = {
         }
       }
     },
+
+"/api/scene-events": {
+      "post": {
+        "summary": "Create a new SceneEvent",
+        "description": "Creates a new SceneEvent.",
+        "tags": ["SceneEvent"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sceneId": {
+                    "type": "integer",
+                    "description": "The ID of the scene associated with the event.",
+                    "example": 1
+                  },
+                  "deviceId": {
+                    "type": "integer",
+                    "description": "The ID of the device associated with the event.",
+                    "example": 2
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "The action performed during the event (e.g., ON, OFF).",
+                    "example": "ON"
+                  },
+                  "datatime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The date and time of the event.",
+                    "example": "2025-01-06T14:30:00Z"
+                  }
+                },
+                "required": ["sceneId", "deviceId", "action", "datatime"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "SceneEvent created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "SceneEvent created successfully"
+                    },
+                    "sceneEvent": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "sceneId": {
+                          "type": "integer",
+                          "example": 1
+                        },
+                        "deviceId": {
+                          "type": "integer",
+                          "example": 2
+                        },
+                        "action": {
+                          "type": "string",
+                          "example": "ON"
+                        },
+                        "eventTime": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-01-06T14:30:00Z"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error creating SceneEvent",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error creating SceneEvent"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+"/api/scene-events/scene/{sceneId}": {
+      "get": {
+        "summary": "Retrieve SceneEvents by Scene ID",
+        "description": "Retrieves all SceneEvents associated with a specific Scene ID.",
+        "tags": ["SceneEvent"],
+        "parameters": [
+          {
+            "name": "sceneId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the scene whose events are being retrieved.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SceneEvents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sceneEvents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "sceneId": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "deviceId": {
+                            "type": "integer",
+                            "example": 2
+                          },
+                          "action": {
+                            "type": "string",
+                            "example": "ON"
+                          },
+                          "eventTime": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-01-06T14:30:00Z"
+                          },
+                          "sceneName": {
+                            "type": "string",
+                            "example": "Living Room Scene"
+                          },
+                          "deviceName": {
+                            "type": "string",
+                            "example": "Smart Light"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error retrieving SceneEvents for sceneId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error retrieving SceneEvents for sceneId"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/api/update/scene-events/scene/{sceneId}": {
+      "put": {
+        "summary": "Update all SceneEvents by Scene ID",
+        "description": "Updates all SceneEvents associated with a specific Scene ID.",
+        "tags": ["SceneEvent"],
+        "parameters": [
+          {
+            "name": "sceneId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the scene whose events are being updated.",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "deviceId": {
+                    "type": "integer",
+                    "description": "The updated device ID for all events.",
+                    "example": 3
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "The updated action for all events.",
+                    "example": "OFF"
+                  },
+                  "datatime": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "The updated date and time for all events.",
+                    "example": "2025-01-06T15:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "SceneEvents updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "SceneEvents updated successfully"
+                    },
+                    "updatedSceneEvents": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "sceneId": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "deviceId": {
+                            "type": "integer",
+                            "example": 3
+                          },
+                          "action": {
+                            "type": "string",
+                            "example": "OFF"
+                          },
+                          "eventTime": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2025-01-06T15:00:00Z"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No SceneEvents found for the specified sceneId",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No SceneEvents found for the specified sceneId"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error updating SceneEvents",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Error updating SceneEvents"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 "/api/recent/adminstock/activities": {
       "get": {
         "tags": ["Test APP APIs"],

@@ -137,6 +137,16 @@ CREATE TABLE scene_device (
     status VARCHAR(255)
 );
 
+CREATE TABLE SceneEvent (
+    id SERIAL PRIMARY KEY,                    -- Auto-incrementing primary key
+    sceneId INT NOT NULL,                     -- Foreign key to Scenes table
+    deviceId INT NOT NULL,                    -- Foreign key to Devices table
+    action VARCHAR(255) NOT NULL,             -- Action performed (e.g., "ON", "OFF", etc.)
+    eventTime TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of the event
+    FOREIGN KEY (sceneId) REFERENCES Scenes(id) ON DELETE CASCADE, -- Cascade delete with Scenes table
+    FOREIGN KEY (deviceId) REFERENCES Devices(id) ON DELETE CASCADE -- Cascade delete with Devices table
+);
+
 
 CREATE TABLE UserDevicesorder (
     userId INT NULL REFERENCES Users(id) ON DELETE CASCADE,
