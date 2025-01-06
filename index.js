@@ -280,7 +280,7 @@ app.get('/',(req,res)=>{
 })
 
 // Protect the /app/addThing endpoint for admins and staff
-app.post(  "/app/addThing",
+app.post( "/app/addThing",
     // validateJwt,
     // authorizeRoles("admin", "staff"), // Allow only admin and staff
     async (req, res) => {
@@ -476,8 +476,6 @@ app.get('/api/adminstock/:status/count', async (req, res) => {
     }
 });
 
-
-
 app.get('/app/searchThings/:status',
      // validateJwt,
     // authorizeRoles("admin", "staff"), 
@@ -548,7 +546,6 @@ app.get('/app/searchThings/:status',
     }
 });
 
-
 //display thing with status "new","rework",etc.. and search on serialno
 app.get('/api/searchThings/working/:status', async (req, res) => {
     const { serialno } = req.query;
@@ -602,7 +599,6 @@ app.get('/api/searchThings/working/:status', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error', details: err.message });
     }
 });
-
 
  // 
 app.get('/api/adminstock/search/:model',
@@ -746,7 +742,6 @@ app.put("/api/update_adminstock/status/:thingId",
     }
   });
 
-
 // /   app.get('/api/recent/adminstock/activities', async (req, res) => {
 //     try {
 //         // Get the page and limit query parameters from the request
@@ -816,7 +811,6 @@ app.put("/api/update_adminstock/status/:thingId",
 //         res.status(500).json({ error: 'Internal Server Error', details: error.message });
 //     }
 // });
-
 
 app.get('/api/recent/adminstock/activities', async (req, res) => {
     try {
@@ -1373,7 +1367,7 @@ app.post('/app/add/floor/:home_id',
         }
     }
 );
-
+ 
 
     
 // Display floor

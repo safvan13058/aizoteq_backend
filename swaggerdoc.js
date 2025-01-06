@@ -2261,7 +2261,7 @@ const Swaggerdoc = {
       "post": {
         "summary": "Add a new home",
         "description": "Creates a new home record and associates it with the authenticated user.",
-        "tags": ["Home"],
+        "tags": ["Homes"],
         "requestBody": {
           "required": true,
           "content": {
@@ -2359,6 +2359,25 @@ const Swaggerdoc = {
               bearerAuth: [], // Include if your API uses JWT authentication
             },
           ],
+             "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                 
+                  "userId": {
+                    "type": "integer",
+                    "description": "User ID (optional if authenticated)",
+                    "example": 123
+                  }
+                },
+                "required": ["name"]
+              }
+            }
+          }
+        },
           responses: {
             200: {
               description: "A list of homes for the authenticated user",
