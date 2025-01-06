@@ -2170,93 +2170,182 @@ const Swaggerdoc = {
       }
     }, 
     
+// "/app/add/home/": {
+//   post: {
+//     summary: "Add a new home",
+//     description: "Create a new home entry in the database with the specified name. The created_by field is automatically set based on the authenticated user's information.",
+//     tags: ["Homes"],
+//     security: [
+//       {
+//         bearerAuth: []  // Ensure that your security scheme is defined globally for JWT
+//       }
+//     ],
+//     requestBody: {
+//       required: true,
+//       content: {
+//         "application/json": {
+//           schema: {
+//             type: "object",
+//             properties: {
+//               name: {
+//                 type: "string",
+//                 description: "Name of the home"
+//               }
+//             },
+//             required: ["name"],
+//             example: {
+//               name: "My Sweet Home"
+//             }
+//           }
+//         }
+//       }
+//     },
+//     responses: {
+//       201: {
+//         description: "Home added successfully",
+//         content: {
+//           "application/json": {
+//             schema: {
+//               type: "object",
+//               properties: {
+//                 message: {
+//                   type: "string",
+//                   example: "Home added successfully"
+//                 },
+//                 homeId: {
+//                   type: "integer",
+//                   example: 1
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+//       400: {
+//         description: "Bad Request - Missing or invalid data",
+//         content: {
+//           "application/json": {
+//             schema: {
+//               type: "object",
+//               properties: {
+//                 error: {
+//                   type: "string",
+//                   example: "name and created_by are required"
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+//       500: {
+//         description: "Internal Server Error",
+//         content: {
+//           "application/json": {
+//             schema: {
+//               type: "object",
+//               properties: {
+//                 error: {
+//                   type: "string",
+//                   example: "An error occurred while adding the home"
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+// },
+
 "/app/add/home/": {
-  post: {
-    summary: "Add a new home",
-    description: "Create a new home entry in the database with the specified name. The created_by field is automatically set based on the authenticated user's information.",
-    tags: ["Homes"],
-    security: [
-      {
-        bearerAuth: []  // Ensure that your security scheme is defined globally for JWT
-      }
-    ],
-    requestBody: {
-      required: true,
-      content: {
-        "application/json": {
-          schema: {
-            type: "object",
-            properties: {
-              name: {
-                type: "string",
-                description: "Name of the home"
+      "post": {
+        "summary": "Add a new home",
+        "description": "Creates a new home record and associates it with the authenticated user.",
+        "tags": ["Home"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the home",
+                    "example": "My Sweet Home"
+                  },
+                  "username": {
+                    "type": "string",
+                    "description": "Username of the creator (optional if authenticated)",
+                    "example": "johndoe"
+                  },
+                  "id": {
+                    "type": "integer",
+                    "description": "User ID (optional if authenticated)",
+                    "example": 123
+                  }
+                },
+                "required": ["name"]
               }
-            },
-            required: ["name"],
-            example: {
-              name: "My Sweet Home"
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Home added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Home added successfully"
+                    },
+                    "homeId": {
+                      "type": "integer",
+                      "example": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Name is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while adding the home"
+                    }
+                  }
+                }
+              }
             }
           }
         }
       }
     },
-    responses: {
-      201: {
-        description: "Home added successfully",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                message: {
-                  type: "string",
-                  example: "Home added successfully"
-                },
-                homeId: {
-                  type: "integer",
-                  example: 1
-                }
-              }
-            }
-          }
-        }
-      },
-      400: {
-        description: "Bad Request - Missing or invalid data",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                error: {
-                  type: "string",
-                  example: "name and created_by are required"
-                }
-              }
-            }
-          }
-        }
-      },
-      500: {
-        description: "Internal Server Error",
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                error: {
-                  type: "string",
-                  example: "An error occurred while adding the home"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-},
-
 
 
     //------------------------
