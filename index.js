@@ -2541,7 +2541,7 @@ app.get('/api/display/all/devices/:userId',
             FROM 
                 Users u
             JOIN 
-                HOME h ON u.id = h.userid
+                home h ON u.id = h.userid
             JOIN 
                 floor f ON h.id = f.home_id
             JOIN 
