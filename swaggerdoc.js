@@ -2349,106 +2349,200 @@ const Swaggerdoc = {
 
 
     //------------------------
-"/app/display/homes/": {
-        get: {
-          summary: "Get all homes for a user",
-          description: "Retrieve a list of homes associated with the authenticated user.",
-          tags: ["Homes"],
-          security: [
-            {
-              bearerAuth: [], // Include if your API uses JWT authentication
-            },
-          ],
-             "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
+// "/app/display/homes/": {
+//         get: {
+//           summary: "Get all homes for a user",
+//           description: "Retrieve a list of homes associated with the authenticated user.",
+//           tags: ["Homes"],
+//           security: [
+//             {
+//               bearerAuth: [], // Include if your API uses JWT authentication
+//             },
+//           ],
+//              "requestBody": {
+//           "required": true,
+//           "content": {
+//             "application/json": {
+//               "schema": {
+//                 "type": "object",
+//                 "properties": {
                  
-                  "userId": {
-                    "type": "integer",
-                    "description": "User ID (optional if authenticated)",
-                    "example": 123
+//                   "userId": {
+//                     "type": "integer",
+//                     "description": "User ID (optional if authenticated)",
+//                     "example": 123
+//                   }
+//                 },
+//                 "required": ["name"]
+//               }
+//             }
+//           }
+//         },
+//           responses: {
+//             200: {
+//               description: "A list of homes for the authenticated user",
+//               content: {
+//                 "application/json": {
+//                   schema: {
+//                     type: "array",
+//                     items: {
+//                       type: "object",
+//                       properties: {
+//                         id: {
+//                           type: "integer",
+//                           description: "Unique identifier for the home",
+//                           example: 1,
+//                         },
+//                         name: {
+//                           type: "string",
+//                           description: "Name of the home",
+//                           example: "My Sweet Home",
+//                         },
+//                         created_by: {
+//                           type: "string",
+//                           description: "User who created the home",
+//                           example: "john_doe",
+//                         },
+//                         userid: {
+//                           type: "integer",
+//                           description: "ID of the user associated with the home",
+//                           example: 42,
+//                         },
+//                       },
+//                     },
+//                   },
+//                 },
+//               },
+//             },
+//             404: {
+//               description: "No homes found for the user",
+//               content: {
+//                 "application/json": {
+//                   schema: {
+//                     type: "object",
+//                     properties: {
+//                       error: {
+//                         type: "string",
+//                         example: "No homes found for this user",
+//                       },
+//                     },
+//                   },
+//                 },
+//               },
+//             },
+//             500: {
+//               description: "Internal server error",
+//               content: {
+//                 "application/json": {
+//                   schema: {
+//                     type: "object",
+//                     properties: {
+//                       error: {
+//                         type: "string",
+//                         example: "An error occurred while fetching homes",
+//                       },
+//                     },
+//                   },
+//                 },
+//               },
+//             },
+//           },
+//         },
+//       },
+
+"/app/display/homes/": {
+      "get": {
+        "summary": "Fetch homes for a user",
+        "description": "Retrieves a list of homes associated with the authenticated user or a provided user ID.",
+        "tags": ["Homes"],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": true,
+            "description": "JWT token for authentication",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "body",
+            "required": false,
+            "description": "Optional user ID for testing purposes",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of homes for the user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "example": 1
+                      },
+                      "userid": {
+                        "type": "string",
+                        "example": "123"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "My sweet home"
+                      }
+                    }
                   }
-                },
-                "required": ["name"]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No homes found for this user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No homes found for this user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "An error occurred while fetching homes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while fetching homes"
+                    }
+                  }
+                }
               }
             }
           }
         },
-          responses: {
-            200: {
-              description: "A list of homes for the authenticated user",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        id: {
-                          type: "integer",
-                          description: "Unique identifier for the home",
-                          example: 1,
-                        },
-                        name: {
-                          type: "string",
-                          description: "Name of the home",
-                          example: "My Sweet Home",
-                        },
-                        created_by: {
-                          type: "string",
-                          description: "User who created the home",
-                          example: "john_doe",
-                        },
-                        userid: {
-                          type: "integer",
-                          description: "ID of the user associated with the home",
-                          example: 42,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            404: {
-              description: "No homes found for the user",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      error: {
-                        type: "string",
-                        example: "No homes found for this user",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-            500: {
-              description: "Internal server error",
-              content: {
-                "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      error: {
-                        type: "string",
-                        example: "An error occurred while fetching homes",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     //   --------------------------------------
 "/app/update/home/{id}": {
         put: {
