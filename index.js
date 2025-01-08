@@ -2521,7 +2521,7 @@ app.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
 app.get('/api/display/all/devices/:userId',
      async (req, res) => {
     const userId = req.params.userId;
-
+    console.log(req.params)
     try {
         const [rows] = await db.query(`
            SELECT 
@@ -2560,12 +2560,14 @@ ORDER BY
 
         if (rows.length === 0) {
             return res.status(404).json({ message: 'No devices found for this user.' });
+       
+       
         }
 
         res.status(200).json(rows);
     } catch (error) {
         console.error('Error fetching devices with full details:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
+        res.status(500).json({ error: 'Internal Server Error'});
     }
 });
 
