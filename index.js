@@ -2524,37 +2524,38 @@ app.get('/api/display/all/devices/:userId',
 
     try {
         const [rows] = await db.query(`
-            SELECT 
-                d.id AS device_id,
-                d.deviceId,
-                d.macAddress,
-                d.hubIndex,
-                d.createdBy,
-                d.enable,
-                d.status,
-                d.icon,
-                d.name AS device_name,
-                d.type AS device_type,
-                d.lastModified AS device_last_modified,
-                f.name AS floor_name,
-                r.name AS room_name
-            FROM 
-                Users u
-            JOIN 
-                home h ON u.id = h.userid
-            JOIN 
-                floor f ON h.id = f.home_id
-            JOIN 
-                room r ON f.id = r.floor_id
-            JOIN 
-                room_device rd ON r.id = rd.room_id
-            JOIN 
-                Devices d ON rd.device_id = d.deviceId
-            WHERE 
-                u.id = ?
-            ORDER BY 
-                f.name ASC,
-                r.name ASC;
+           SELECT 
+    d.id AS device_id,
+    d.deviceId,
+    d.macAddress,
+    d.hubIndex,
+    d.createdBy,
+    d.enable,
+    d.status,
+    d.icon,
+    d.name AS device_name,
+    d.type AS device_type,
+    d.lastModified AS device_last_modified,
+    f.name AS floor_name,
+    r.name AS room_name
+FROM 
+    "Users" u
+JOIN 
+    "home" h ON u.id = h.userid
+JOIN 
+    "floor" f ON h.id = f.home_id
+JOIN 
+    "room" r ON f.id = r.floor_id
+JOIN 
+    "room_device" rd ON r.id = rd.room_id
+JOIN 
+    "devices" d ON rd.device_id = d.deviceId
+WHERE 
+    u.id = $1
+ORDER BY 
+    f.name ASC,
+    r.name ASC;
+
         `, [userId]);
 
         if (rows.length === 0) {
