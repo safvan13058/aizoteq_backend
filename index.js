@@ -2539,7 +2539,7 @@ app.get('/api/display/all/devices/:userId',
     f.name AS floor_name,
     r.name AS room_name
 FROM 
-    "Users" u
+    "users" u
 JOIN 
     "home" h ON u.id = h.userid
 JOIN 
