@@ -1410,47 +1410,56 @@ app.get('/app/display/floors/:home_id',
 app.put('/app/update/floors/:id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        console.log(req.params.id)
-        console.log(req.params)
-        const floorId = req.params.id;  // Extract floor ID from the request URL
-        const { name} = req.body;  // Extract fields to update from the request body
-        // Validate input
-        if (!name) {
-            return res.status(400).json({ error: 'At least one of name or home_id must be provided' });
+    async (req, res) => {
+        try {
+            console.log(req.params.id);
+            console.log(req.params);
+
+            const floorId = req.params.id; // Extract floor ID from the request URL
+            const { name } = req.body; // Extract fields to update from the request body
+
+            // Validate input
+            if (!name) {
+                return res.status(400).json({ error: 'Name must be provided for update' });
+            }
+
+            // Build dynamic query based on provided fields
+            const updates = [];
+            const values = [];
+
+            if (name) {
+                updates.push(`name = $${updates.length + 1}`);
+                values.push(name);
+            }
+
+            // Ensure there are updates to make
+            if (updates.length === 0) {
+                return res.status(400).json({ error: 'No valid fields to update' });
+            }
+
+            values.push(floorId); // Add floorId as the last parameter
+
+            const query = `
+                UPDATE floor
+                SET ${updates.join(', ')}
+                WHERE id = $${values.length}
+            `;
+
+            // Execute the update query
+            const result = await db.query(query, values);
+
+            if (result.rowCount === 0) {
+                return res.status(404).json({ message: 'Floor not found or no changes made' });
+            }
+
+            res.status(200).json({ message: 'Floor updated successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while updating the floor' });
         }
-
-        // Build dynamic query based on provided fields
-        const updates = [];
-        const values = [];
-
-        if (name) {
-            updates.push('name = ?');
-            values.push(name);
-        }
-
-        values.push(floorId);  // Add floorId for the WHERE clause
-
-        const query = `
-            UPDATE floor
-            SET ${updates.join(', ')}
-            WHERE id = ?
-        `;
-
-        // Execute the update query
-        const [result] = await db.query(query, values);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Floor not found or no changes made' });
-        }
-
-        res.status(200).json({ message: 'Floor updated successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while updating the floor' });
     }
-});
+);
+
 
 //Delete Floor
 app.delete('/app/delete/floors/:id',
