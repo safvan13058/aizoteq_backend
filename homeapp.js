@@ -899,7 +899,6 @@ homeapp.get('/app/display/scenes/:userid', async (req, res) => {
     }
 });
 
-
 //  Update a Scene
 homeapp.put('/app/update/scenes/:id', upload.single('icon'), async (req, res) => {
     const { id } = req.params;
@@ -967,7 +966,6 @@ homeapp.put('/app/update/scenes/:id', upload.single('icon'), async (req, res) =>
     }
 });
 
-
 // 5. Delete a Scene
 homeapp.delete('/app/delete/scenes/:id', async (req, res) => {
     const { id } = req.params;
@@ -981,8 +979,6 @@ homeapp.delete('/app/delete/scenes/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
-
-
 
 homeapp.post('/app/create/scene_devices/:scene_id/:device_id', async (req, res) => {
     // const { device_id, scene_id } = req.body;

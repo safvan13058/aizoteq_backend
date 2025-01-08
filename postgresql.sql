@@ -231,25 +231,89 @@ CREATE TABLE customersStock (
     CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username) -- Foreign key constraint
 );
 
+-- Create customer_details table
 CREATE TABLE customer_details (
-    id SERIAL PRIMARY KEY,          -- Unique identifier for each record
-    name VARCHAR(255) NOT NULL,     -- Name of the customer
-    address TEXT NOT NULL,          -- Address of the customer
-    phone VARCHAR(15) NOT NULL,     -- Primary phone number
-    alt_phone VARCHAR(15),          -- Alternate phone number (optional)
-    total_amount DECIMAL(10, 2),    -- Total amount associated with the customer
-    balance DECIMAL(10, 2),          -- Balance amount for the customer
-    lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,                 -- Name of the customer
+    address TEXT NOT NULL,                      -- Address of the customer
+    phone VARCHAR(15) NOT NULL,                 -- Primary phone number
+    alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
+    total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
+    balance NUMERIC(10, 2),                     -- Balance amount for the customer
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
 
+-- Create dealers_details table
 CREATE TABLE dealers_details (
-    id SERIAL PRIMARY KEY,          -- Unique identifier for each record
-    name VARCHAR(255) NOT NULL,     -- Name of the dealer
-    address TEXT NOT NULL,          -- Address of the dealer
-    phone VARCHAR(15) NOT NULL,     -- Primary phone number
-    alt_phone VARCHAR(15),          -- Alternate phone number (optional)
-    total_amount DECIMAL(10, 2),    -- Total amount associated with the dealer
-    balance DECIMAL(10, 2),         -- Balance amount for the dealer
-    lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,                 -- Name of the dealer
+    address TEXT NOT NULL,                      -- Address of the dealer
+    phone VARCHAR(15) NOT NULL,                 -- Primary phone number
+    alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
+    total_amount NUMERIC(10, 2),                -- Total amount associated with the dealer
+    balance NUMERIC(10, 2),                     -- Balance amount for the dealer
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+);
+
+-- Create price_table
+CREATE TABLE price_table (
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for each row
+    model VARCHAR(255) NOT NULL,                -- Model name or identifier
+    mrp NUMERIC(10, 2) NOT NULL,                -- Maximum retail price
+    retail_price NUMERIC(10, 2) NOT NULL,       -- Actual retail price
+    tax NUMERIC(10, 2) NOT NULL,                -- Applicable tax amount
+    discount NUMERIC(10, 2),                    -- Discount applied (optional)
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+);
+
+-- Create billing_receipt
+CREATE TABLE billing_receipt (
+    id SERIAL PRIMARY KEY,                             -- Unique identifier for each record
+    receipt_no VARCHAR(50) NOT NULL UNIQUE,           -- Receipt number
+    name VARCHAR(255) NOT NULL,                       -- Customer or dealer name
+    phone VARCHAR(15) NOT NULL,                       -- Primary phone number
+    billing_address TEXT NOT NULL,                    -- Billing address
+    shipping_address TEXT,                            -- Shipping address (optional)
+    dealer_or_customer VARCHAR(10) NOT NULL CHECK (dealer_or_customer IN ('dealer', 'customer')), -- Indicates dealer or customer
+    total_amount NUMERIC(10, 2) NOT NULL,             -- Total billed amount
+    balance NUMERIC(10, 2),                           -- Remaining balance to be paid
+    billing_createdby VARCHAR(255) NOT NULL,          -- Name or ID of the creator
+    datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+);
+
+-- Add a trigger to automatically update `lastmodified` for billing_receipt
+CREATE OR REPLACE FUNCTION update_billing_receipt_lastmodified()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.lastmodified = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_billing_receipt_lastmodified
+BEFORE UPDATE ON billing_receipt
+FOR EACH ROW
+EXECUTE FUNCTION update_billing_receipt_lastmodified();
+
+-- Create payment_details table
+CREATE TABLE payment_details (
+    id SERIAL PRIMARY KEY,                             -- Unique identifier for each payment record
+    receipt_id INT NOT NULL,                           -- Links to the `billing_receipt` table
+    payment_method VARCHAR(10) NOT NULL CHECK (payment_method IN ('cash', 'online', 'bank')), -- Payment method
+    amount NUMERIC(10, 2) NOT NULL,                    -- Amount paid for this method
+    FOREIGN KEY (receipt_id) REFERENCES billing_receipt(id) ON DELETE CASCADE
+);
+
+-- Create billing_items table
+CREATE TABLE billing_items (
+    id SERIAL PRIMARY KEY,                             -- Unique identifier for each record
+    receipt_no VARCHAR(50) NOT NULL,                  -- Foreign key referencing `billing_receipt`
+    item_name VARCHAR(255) NOT NULL,                  -- Name or description of the item
+    model VARCHAR(255) NOT NULL,                      -- Model of the item
+    mrp NUMERIC(10, 2) NOT NULL,                      -- Maximum Retail Price (MRP)
+    serial_no VARCHAR(255) NOT NULL,                  -- Serial number of the item
+    retail_price NUMERIC(10, 2) NOT NULL,             -- Retail price of the item
+    FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
 );
 
