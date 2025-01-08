@@ -2315,7 +2315,7 @@ app.post('/api/access/customer/:roomid',
             const maxOrderIndexQuery = `
                 SELECT COALESCE(MAX(orderIndex), 0) AS max_order_index 
                 FROM UserDevicesorder 
-                WHERE  room_id= $1
+                WHERE  roomid= $1
             `;
             const maxOrderIndexResult = await client.query(maxOrderIndexQuery, [user_id]);
             let currentOrderIndex = maxOrderIndexResult.rows[0].max_order_index;
@@ -2326,7 +2326,7 @@ app.post('/api/access/customer/:roomid',
                 VALUES ($1, $2)
             `;
             const userDeviceQuery = `
-                INSERT INTO UserDevicesorder (room_id, device_id, orderIndex)
+                INSERT INTO UserDevicesorder (roomid, device_id, orderIndex)
                 VALUES ($1, $2, $3)
             `;
 
