@@ -2518,56 +2518,115 @@ app.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
 
 
 //display all devices with floor name and room name 
-app.get('/api/display/all/devices/:userId',
-     async (req, res) => {
+// app.get('/api/display/all/devices/:userId',
+//      async (req, res) => {
+//     const userId = req.params.userId;
+//     console.log(req.params)
+//     try {
+//         const [rows] = await db.query(`
+//            SELECT 
+//     d.id AS device_id,
+//     d.deviceId,
+//     d.macAddress,
+//     d.hubIndex,
+//     d.createdBy,
+//     d.enable,
+//     d.status,
+//     d.icon,
+//     d.name AS device_name,
+//     d.type AS device_type,
+//     d.lastModified AS device_last_modified,
+//     f.name AS floor_name,
+//     r.name AS room_name
+// FROM 
+//     "users" u
+// JOIN 
+//     "home" h ON u.id = h.userid
+// JOIN 
+//     "floor" f ON h.id = f.home_id
+// JOIN 
+//     "room" r ON f.id = r.floor_id
+// JOIN 
+//     "room_device" rd ON r.id = rd.room_id
+// JOIN 
+//     "devices" d ON rd.device_id = d.deviceId
+// WHERE 
+//     u.id = $1
+// ORDER BY 
+//     f.name ASC,
+//     r.name ASC;
+
+//         `, [userId]);
+
+//         if (rows.length === 0) {
+//             return res.status(404).json({ message: 'No devices found for this user.' });
+       
+       
+//         }
+
+//         res.status(200).json(rows);
+//     } catch (error) {
+//         console.error('Error fetching devices with full details:', error);
+//         res.status(500).json({ error: 'Internal Server Error'});
+//     }
+// });
+app.get('/api/display/all/devices/:userId', async (req, res) => {
     const userId = req.params.userId;
-    console.log(req.params)
+    console.log('Fetching devices for userId:', userId);
+
     try {
-        const [rows] = await db.query(`
-           SELECT 
-    d.id AS device_id,
-    d.deviceId,
-    d.macAddress,
-    d.hubIndex,
-    d.createdBy,
-    d.enable,
-    d.status,
-    d.icon,
-    d.name AS device_name,
-    d.type AS device_type,
-    d.lastModified AS device_last_modified,
-    f.name AS floor_name,
-    r.name AS room_name
-FROM 
-    "users" u
-JOIN 
-    "home" h ON u.id = h.userid
-JOIN 
-    "floor" f ON h.id = f.home_id
-JOIN 
-    "room" r ON f.id = r.floor_id
-JOIN 
-    "room_device" rd ON r.id = rd.room_id
-JOIN 
-    "devices" d ON rd.device_id = d.deviceId
-WHERE 
-    u.id = $1
-ORDER BY 
-    f.name ASC,
-    r.name ASC;
+        // Execute the query
+        const result = await db.query(
+            `
+            SELECT 
+                d.id AS device_id,
+                d.deviceId,
+                d.macAddress,
+                d.hubIndex,
+                d.createdBy,
+                d.enable,
+                d.status,
+                d.icon,
+                d.name AS device_name,
+                d.type AS device_type,
+                d.lastModified AS device_last_modified,
+                f.name AS floor_name,
+                r.name AS room_name
+            FROM 
+                users u
+            JOIN 
+                home h ON u.id = h.userid
+            JOIN 
+                floor f ON h.id = f.home_id
+            JOIN 
+                room r ON f.id = r.floor_id
+            JOIN 
+                room_device rd ON r.id = rd.room_id
+            JOIN 
+                devices d ON rd.device_id = d.deviceId
+            WHERE 
+                u.id = $1
+            ORDER BY 
+                f.name ASC,
+                r.name ASC;
+            `,
+            [userId] // Parameterized query
+        );
 
-        `, [userId]);
+        // Debug the result structure
+        console.log('Query Result:', result);
 
-        if (rows.length === 0) {
+        // Extract rows from the result object
+        const rows = result.rows;
+
+        if (!rows || rows.length === 0) {
             return res.status(404).json({ message: 'No devices found for this user.' });
-       
-       
         }
 
         res.status(200).json(rows);
     } catch (error) {
-        console.error('Error fetching devices with full details:', error);
-        res.status(500).json({ error: 'Internal Server Error'});
+        console.error('Error fetching devices with full details:', { userId, error });
+        res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
