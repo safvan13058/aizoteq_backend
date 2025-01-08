@@ -213,6 +213,15 @@ CREATE TABLE NotificationMessages (
     message TEXT NOT NULL,                    -- Message content of the notification
     FOREIGN KEY (notificationId) REFERENCES Notifications(id) ON DELETE CASCADE -- Cascade delete if notification is deleted
 );
+-- Create sharedusers table
+CREATE TABLE sharedusers (
+    id SERIAL PRIMARY KEY,                              -- Unique identifier for each record
+    user_id INT NOT NULL,                               -- Foreign key referencing users table
+    entity_id INT NOT NULL,                             -- ID of the shared entity
+    entity_type VARCHAR(255) NOT NULL,                 -- Type of the entity (e.g., document, folder, etc.)
+    access_type VARCHAR(50) NOT NULL,                  -- Type of access (e.g., read, write, admin, etc.)
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE -- Enforces relationship with users table
+);
 
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
