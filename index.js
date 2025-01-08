@@ -1223,7 +1223,7 @@ app.get('/app/display/homes/',
     // authorizeRoles('customer'),
     async (req, res) => {          
         try {
-            const userId = req.user?.id || req.body.id; // Get the user_id from the authenticated user
+            const userId = req.user?.id || req.body.userId; // Get the user_id from the authenticated user
             // const userId = req.body; // for testing
 
             // Query to fetch homes by user_id
