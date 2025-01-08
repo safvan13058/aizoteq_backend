@@ -2451,291 +2451,194 @@ const Swaggerdoc = {
 //       },
 
 // "/app/display/homes/": {
-//       "get": {
-//         "summary": "Fetch homes for a user",
-//         "description": "Retrieves a list of homes associated with the authenticated user or a provided user ID.",
-//         "tags": ["Homes"],
-//         "parameters": [
-        
-//           {
-//             "name": "userId",
-//             "in": "body",
-//             "required": false,
-//             "description": "Optional user ID for testing purposes",
-//             "schema": {
-//               "type": "string"
-//             }
-//           }
-//         ],
-//         "responses": {
-//           "200": {
-//             "description": "A list of homes for the user",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "array",
-//                   "items": {
-//                     "type": "object",
-//                     "properties": {
-//                       "id": {
-//                         "type": "integer",
-//                         "example": 1
-//                       },
-//                       "userid": {
-//                         "type": "string",
-//                         "example": "123"
-//                       },
-//                       "name": {
-//                         "type": "string",
-//                         "example": "My sweet home"
-//                       }
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "404": {
-//             "description": "No homes found for this user",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "error": {
-//                       "type": "string",
-//                       "example": "No homes found for this user"
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "500": {
-//             "description": "An error occurred while fetching homes",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "error": {
-//                       "type": "string",
-//                       "example": "An error occurred while fetching homes"
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           }
-//         },
-//         "security": [
-//           {
-//             "bearerAuth": []
-//           }
-//         ]
+//   "get": {
+//     "summary": "Get all homes for a user",
+//     "description": "Retrieve a list of homes associated with the authenticated user.",
+//     "tags": ["Homes"],
+//     "security": [
+//       {
+//         "bearerAuth": []
 //       }
-//     },
-// "/app/display/homes/": {
-//       "get": {
-//         "summary": "Get all homes for a user",
-//         "description": "Retrieve a list of homes associated with the authenticated user.",
-//         "tags": ["Homes"],
-//         "security": [
-//           {
-//             "bearerAuth": []
-//           }
-//         ],
-//         "requestBody": {
-//           "required": true,
-//           "content": {
-//             "application/json": {
-//               "schema": {
-//                 "type": "object",
-//                 "properties": {
-//                   "userId": {
-//                     "type": "integer",
-//                     "description": "User ID (optional if authenticated)",
-//                     "example": 123
-//                   }
-//                 }
-//               }
-//             }
-//           }
-//         },
-//         "responses": {
-//           "200": {
-//             "description": "A list of homes for the authenticated user",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "array",
-//                   "items": {
-//                     "type": "object",
-//                     "properties": {
-//                       "id": {
-//                         "type": "integer",
-//                         "description": "Unique identifier for the home",
-//                         "example": 1
-//                       },
-//                       "name": {
-//                         "type": "string",
-//                         "description": "Name of the home",
-//                         "example": "My Sweet Home"
-//                       },
-//                       "created_by": {
-//                         "type": "string",
-//                         "description": "User who created the home",
-//                         "example": "john_doe"
-//                       },
-//                       "userid": {
-//                         "type": "integer",
-//                         "description": "ID of the user associated with the home",
-//                         "example": 42
-//                       }
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "404": {
-//             "description": "No homes found for the user",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "error": {
-//                       "type": "string",
-//                       "description": "Error message when no homes are found",
-//                       "example": "No homes found for this user"
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "500": {
-//             "description": "Internal server error",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "error": {
-//                       "type": "string",
-//                       "description": "Error message when an internal server error occurs",
-//                       "example": "An error occurred while fetching homes"
-//                     }
-//                   }
-//                 }
+//     ],
+//     "requestBody": {
+//       "required": true,
+//       "content": {
+//         "application/json": {
+//           "schema": {
+//             "type": "object",
+//             "properties": {
+//               "userId": {
+//                 "type": "integer",
+//                 "description": "User ID (optional if authenticated)",
+//                 "example": 123
 //               }
 //             }
 //           }
 //         }
 //       }
 //     },
+//     "responses": {
+//       "200": {
+//         "description": "A list of homes for the authenticated user",
+//         "content": {
+//           "application/json": {
+//             "schema": {
+//               "type": "array",
+//               "items": {
+//                 "type": "object",
+//                 "properties": {
+//                   "id": {
+//                     "type": "integer",
+//                     "description": "Unique identifier for the home",
+//                     "example": 1
+//                   },
+//                   "name": {
+//                     "type": "string",
+//                     "description": "Name of the home",
+//                     "example": "My Sweet Home"
+//                   },
+//                   "created_by": {
+//                     "type": "string",
+//                     "description": "User who created the home",
+//                     "example": "john_doe"
+//                   },
+//                   "userid": {
+//                     "type": "integer",
+//                     "description": "ID of the user associated with the home",
+//                     "example": 42
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+//       "404": {
+//         "description": "No homes found for the user",
+//         "content": {
+//           "application/json": {
+//             "schema": {
+//               "type": "object",
+//               "properties": {
+//                 "error": {
+//                   "type": "string",
+//                   "description": "Error message when no homes are found",
+//                   "example": "No homes found for this user"
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       },
+//       "500": {
+//         "description": "Internal server error",
+//         "content": {
+//           "application/json": {
+//             "schema": {
+//               "type": "object",
+//               "properties": {
+//                 "error": {
+//                   "type": "string",
+//                   "description": "Error message when an internal server error occurs",
+//                   "example": "An error occurred while fetching homes"
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+// },
 
 "/app/display/homes/": {
-  "get": {
-    "summary": "Get all homes for a user",
-    "description": "Retrieve a list of homes associated with the authenticated user.",
-    "tags": ["Homes"],
-    "security": [
-      {
-        "bearerAuth": []
-      }
-    ],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "userId": {
-                "type": "integer",
-                "description": "User ID (optional if authenticated)",
-                "example": 123
-              }
+      "get": {
+        "summary": "Fetch homes for a user",
+        "description": "Retrieves a list of homes associated with the user ID provided in query parameters.",
+        "tags": ["Homes"],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "description": "User ID to fetch associated homes",
+            "schema": {
+              "type": "string",
+              "example": "123"
             }
           }
-        }
-      }
-    },
-    "responses": {
-      "200": {
-        "description": "A list of homes for the authenticated user",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "integer",
-                    "description": "Unique identifier for the home",
-                    "example": 1
-                  },
-                  "name": {
-                    "type": "string",
-                    "description": "Name of the home",
-                    "example": "My Sweet Home"
-                  },
-                  "created_by": {
-                    "type": "string",
-                    "description": "User who created the home",
-                    "example": "john_doe"
-                  },
-                  "userid": {
-                    "type": "integer",
-                    "description": "ID of the user associated with the home",
-                    "example": 42
+        ],
+        "responses": {
+          "200": {
+            "description": "List of homes successfully retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "Unique identifier for the home",
+                        "example": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "Name of the home",
+                        "example": "My Sweet Home"
+                      },
+                      "created_by": {
+                        "type": "string",
+                        "description": "User who created the home",
+                        "example": "john_doe"
+                      },
+                      "userid": {
+                        "type": "integer",
+                        "description": "ID of the user associated with the home",
+                        "example": 42
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No homes found for the user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "No homes found for this user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while fetching homes"
+                    }
                   }
                 }
               }
             }
           }
         }
-      },
-      "404": {
-        "description": "No homes found for the user",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string",
-                  "description": "Error message when no homes are found",
-                  "example": "No homes found for this user"
-                }
-              }
-            }
-          }
-        }
-      },
-      "500": {
-        "description": "Internal server error",
-        "content": {
-          "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "error": {
-                  "type": "string",
-                  "description": "Error message when an internal server error occurs",
-                  "example": "An error occurred while fetching homes"
-                }
-              }
-            }
-          }
-        }
       }
-    }
-  }
-},
+    },
     //   --------------------------------------
 "/app/update/home/{id}": {
         put: {
