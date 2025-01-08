@@ -1553,10 +1553,10 @@ app.post('/app/add/room/:floor_id',
     async (req, res) => {
     try {
         const floor_id = req.params.floor_id;
-        const { name, alias_name, user_id } = req.body; // Include `user_id` in the request body
-
+        const { name, alias_name } = req.body; // Include `user_id` in the request body
+        const {user_id}=req.user?.id||req.body;
         // Validate input
-        if (!floor_id || !name || !user_id) {
+        if (!floor_id || !name) {
             return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
         }
 

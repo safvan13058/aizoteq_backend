@@ -3118,7 +3118,12 @@ const Swaggerdoc = {
                                 type: "string",
                                 format: "binary",
                                 description: "Optional image file for the room"
-                            }
+                            },
+                            user_id: {
+                              type: "string",
+                             example: "123",
+                              description: "Optional image file for the room"
+                          }
                         },
                         required: ["name"]
                     }
