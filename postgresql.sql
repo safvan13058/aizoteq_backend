@@ -213,3 +213,43 @@ CREATE TABLE NotificationMessages (
     message TEXT NOT NULL,                    -- Message content of the notification
     FOREIGN KEY (notificationId) REFERENCES Notifications(id) ON DELETE CASCADE -- Cascade delete if notification is deleted
 );
+
+--------------------------------------------------------------
+CREATE TABLE dealersStock (
+    id SERIAL PRIMARY KEY,             -- Unique identifier for each record
+    user_id INT NOT NULL,              -- Reference to the user ID
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
+    CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username) -- Foreign key constraint
+);
+
+CREATE TABLE customersStock (
+    id SERIAL PRIMARY KEY,             -- Unique identifier for each record
+    user_id INT NOT NULL,              -- Reference to the user ID
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
+    CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username) -- Foreign key constraint
+);
+
+CREATE TABLE customer_details (
+    id SERIAL PRIMARY KEY,          -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,     -- Name of the customer
+    address TEXT NOT NULL,          -- Address of the customer
+    phone VARCHAR(15) NOT NULL,     -- Primary phone number
+    alt_phone VARCHAR(15),          -- Alternate phone number (optional)
+    total_amount DECIMAL(10, 2),    -- Total amount associated with the customer
+    balance DECIMAL(10, 2),          -- Balance amount for the customer
+    lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE dealers_details (
+    id SERIAL PRIMARY KEY,          -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,     -- Name of the dealer
+    address TEXT NOT NULL,          -- Address of the dealer
+    phone VARCHAR(15) NOT NULL,     -- Primary phone number
+    alt_phone VARCHAR(15),          -- Alternate phone number (optional)
+    total_amount DECIMAL(10, 2),    -- Total amount associated with the dealer
+    balance DECIMAL(10, 2),         -- Balance amount for the dealer
+    lastmodified TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
