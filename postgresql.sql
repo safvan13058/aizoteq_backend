@@ -222,7 +222,6 @@ CREATE TABLE sharedusers (
     access_type VARCHAR(50) NOT NULL,                  -- Type of access (e.g., read, write, admin, etc.)
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE -- Enforces relationship with users table
 );
-
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
