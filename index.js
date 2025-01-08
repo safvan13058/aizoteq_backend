@@ -2656,7 +2656,7 @@ app.post('/app/add/scenes/:userid', upload.single('icon'),async (req, res) => {
 app.get('/app/display/scenes/:userid', async (req, res) => {
     try {
         const { userid } = req.params;
-        const result = await db.query('SELECT * FROM Scenes WHERE userid = $1', [userid]);
+        const result = await db.query('SELECT * FROM Scenes WHERE user_id = $1', [userid]);
         
         res.status(200).json(result.rows);
     } catch (error) {
