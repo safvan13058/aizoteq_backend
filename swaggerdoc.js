@@ -2456,15 +2456,7 @@ const Swaggerdoc = {
         "description": "Retrieves a list of homes associated with the authenticated user or a provided user ID.",
         "tags": ["Homes"],
         "parameters": [
-          {
-            "name": "Authorization",
-            "in": "header",
-            "required": true,
-            "description": "JWT token for authentication",
-            "schema": {
-              "type": "string"
-            }
-          },
+        
           {
             "name": "userId",
             "in": "body",
