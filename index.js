@@ -1412,6 +1412,8 @@ app.put('/app/update/floors/:id',
     // authorizeRoles('customer'),
      async (req, res) => {
     try {
+        console.log(req.params.id)
+        console.log(req.params)
         const floorId = req.params.id;  // Extract floor ID from the request URL
         const { name} = req.body;  // Extract fields to update from the request body
         // Validate input
