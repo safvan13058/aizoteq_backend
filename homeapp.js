@@ -219,6 +219,7 @@ homeapp.post('/app/add/floor/:home_id',
             console.log(result)
             console.log(result.rows.length)
             if (result.rows.length > 0) {
+                console.log(result.rows[0].name)
                 const lastFloorName = result.rows[0].name;
                 const match = lastFloorName.match(/^floor(\d+)$/); // Match pattern like 'floor1', 'floor2', etc.
                 if (match) {
