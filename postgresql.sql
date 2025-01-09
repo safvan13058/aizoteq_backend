@@ -302,7 +302,8 @@ CREATE TABLE price_table (
     mrp NUMERIC(10, 2) NOT NULL,                -- Maximum retail price
     retail_price NUMERIC(10, 2) NOT NULL,       -- Actual retail price
     tax NUMERIC(10, 2) NOT NULL,                -- Applicable tax amount
-    discount NUMERIC(10, 2),                    -- Discount applied (optional)
+    discount NUMERIC(10, 2), 
+    warranty_period INTERVAL DEFAULT INTERVAL '3 years',                -- Discount applied (optional)
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
 
@@ -314,13 +315,17 @@ CREATE TABLE billing_receipt (
     phone VARCHAR(15) NOT NULL,                       -- Primary phone number
     billing_address TEXT NOT NULL,                    -- Billing address
     shipping_address TEXT,                            -- Shipping address (optional)
-    dealer_or_customer VARCHAR(10) NOT NULL CHECK (dealer_or_customer IN ('dealer', 'customer')), -- Indicates dealer or customer
+    dealer_or_customer VARCHAR(10) NOT NULL, -- Indicates dealer or customer
     total_amount NUMERIC(10, 2) NOT NULL,             -- Total billed amount
     balance NUMERIC(10, 2),                           -- Remaining balance to be paid
-    billing_createdby VARCHAR(255) NOT NULL,          -- Name or ID of the creator
+    billing_createdby VARCHAR(255) NOT NULL,  
+    dealers_id INT,
+    customers_id INT, 
+    onlinecustomers_id INT;       -- Name or ID of the creator
     datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
-    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
-);
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
+    
+);   
 
 -- Add a trigger to automatically update `lastmodified` for billing_receipt
 CREATE OR REPLACE FUNCTION update_billing_receipt_lastmodified()
@@ -357,3 +362,11 @@ CREATE TABLE billing_items (
     FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
 );
 
+CREATE TABLE thing_warranty (
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for the warranty record
+    serial_no VARCHAR(50) NOT NULL,             -- Serial number of the thing
+    receipt_id INT NOT NULL,                    -- ID of the associated receipt (foreign key to billing_receipt table)
+    date DATE DEFAULT CURRENT_DATE,             -- Date when the warranty starts (default: current date)
+    due_date DATE NOT NULL,                     -- Warranty expiration date
+    FOREIGN KEY (receipt_id) REFERENCES billing_receipt(id) ON DELETE CASCADE
+);

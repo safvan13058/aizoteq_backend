@@ -1,4 +1,4 @@
-const db = require('./middlewares/dbconnection');
+const db = require('../middlewares/dbconnection');
 
 // Helper function: Check if thing exists in `Things` table using serialno
 const getThingBySerialNo = async (serialNo) => {
@@ -13,10 +13,10 @@ const getThingBySerialNo = async (serialNo) => {
   };
   
   // Helper function: Add thing to dealer's or customer's stock
-  const addToStock = async (stockTable, thingId, addedBy, status = "new") => {
+  const addToStock = async (stockTable, thingId,userid, addedBy, status = "new") => {
     await db.query(
-      `INSERT INTO ${stockTable} (thingId, addedBy, status) VALUES ($1, $2, $3)`,
-      [thingId, addedBy, status]
+      `INSERT INTO ${stockTable} (thing_id,user_id,added_by, status) VALUES ($1, $2, $3,$4)`,
+      [thingId,userid, addedBy, status]
     );
   };
   

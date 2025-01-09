@@ -195,11 +195,11 @@ homeapp.delete('/app/delete/home/:id',
 //     }
 // );
 
+
 homeapp.post('/app/add/floor/:home_id', 
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
-
             // Check if home_id is provided
             if (!home_id) {
                 return res.status(400).json({ error: 'home_id is required' });

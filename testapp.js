@@ -21,10 +21,10 @@ testapp.get('/testapp',(req,res)=>{
 })
 // Protect the /app/addThing endpoint for admins and staff
 testapp.post( "/app/addThing",
-    validateJwt,
-    authorizeRoles("admin", "staff"), // Allow only admin and staff
+    // validateJwt,
+    // authorizeRoles("admin", "staff"), // Allow only admin and staff
     async (req, res) => {
-        const { error } = bodySchema.validate(req.body);
+        // const { error } = bodySchema.validate(req.body);
         // if (error) {
         //     return res.status(400).json({ message: "Invalid input data", error: error.details });
         // }
