@@ -1,6 +1,6 @@
 const express = require('express');
 const dashboard = express.Router();
-const db = require('./dbconnection');
+const db = require('./middlewares/dbconnection');
 
 const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
