@@ -2718,98 +2718,190 @@ const Swaggerdoc = {
     },
     // -----------------
 
+// "/app/add/floor/{home_id}": {
+//         post: {
+//             summary: "Add a new floor to a home",
+//             description: "Create a new floor entry in the database associated with a specific home.",
+//             tags: ["Floors"],
+//             parameters: [
+//                 {
+//                     in: "path",
+//                     name: "home_id",
+//                     required: true,
+//                     description: "ID of the home to which the floor belongs",
+//                     schema: {
+//                         type: "integer",
+//                     },
+//                 },
+//             ],
+//             requestBody: {
+//                 required: true,
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 name: {
+//                                     type: "string",
+//                                     description: "Name of the floor",
+//                                 },
+//                             },
+//                         },
+//                         example: {
+//                             name: "Ground Floor",
+//                         },
+//                     },
+//                 },
+//             },
+//             responses: {
+//                 201: {
+//                     description: "Floor added successfully",
+//                     content: {
+//                         "application/json": {
+//                             schema: {
+//                                 type: "object",
+//                                 properties: {
+//                                     message: {
+//                                         type: "string",
+//                                         example: "Floor added successfully",
+//                                     },
+//                                     floorId: {
+//                                         type: "integer",
+//                                         example: 1,
+//                                     },
+//                                 },
+//                             },
+//                         },
+//                     },
+//                 },
+//                 400: {
+//                     description: "Bad Request - Missing or invalid data",
+//                     content: {
+//                         "application/json": {
+//                             schema: {
+//                                 type: "object",
+//                                 properties: {
+//                                     error: {
+//                                         type: "string",
+//                                         example: "home_id and name are required",
+//                                     },
+//                                 },
+//                             },
+//                         },
+//                     },
+//                 },
+//                 500: {
+//                     description: "Internal server error",
+//                     content: {
+//                         "application/json": {
+//                             schema: {
+//                                 type: "object",
+//                                 properties: {
+//                                     error: {
+//                                         type: "string",
+//                                         example: "An error occurred while adding the floor",
+//                                     },
+//                                 },
+//                             },
+//                         },
+//                     },
+//                 },
+//             },
+//         },
+//     },
 "/app/add/floor/{home_id}": {
-        post: {
-            summary: "Add a new floor to a home",
-            description: "Create a new floor entry in the database associated with a specific home.",
-            tags: ["Floors"],
-            parameters: [
-                {
-                    in: "path",
-                    name: "home_id",
-                    required: true,
-                    description: "ID of the home to which the floor belongs",
-                    schema: {
-                        type: "integer",
-                    },
+      "post": {
+        "summary": "Add a floor to a home",
+        "description": "This endpoint allows adding a new floor to a specific home. The floor name is automatically incremented based on existing floor names.",
+        "operationId": "addFloor",
+        "parameters": [
+          {
+            "name": "home_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the home to add a floor to",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the floor to be added."
+                  }
                 },
-            ],
-            requestBody: {
-                required: true,
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                name: {
-                                    type: "string",
-                                    description: "Name of the floor",
-                                },
-                            },
-                        },
-                        example: {
-                            name: "Ground Floor",
-                        },
-                    },
-                },
-            },
-            responses: {
-                201: {
-                    description: "Floor added successfully",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    message: {
-                                        type: "string",
-                                        example: "Floor added successfully",
-                                    },
-                                    floorId: {
-                                        type: "integer",
-                                        example: 1,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                400: {
-                    description: "Bad Request - Missing or invalid data",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    error: {
-                                        type: "string",
-                                        example: "home_id and name are required",
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                500: {
-                    description: "Internal server error",
-                    content: {
-                        "application/json": {
-                            schema: {
-                                type: "object",
-                                properties: {
-                                    error: {
-                                        type: "string",
-                                        example: "An error occurred while adding the floor",
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
+                "required": ["name"]
+              }
+            }
+          }
         },
-    },
-
+        "responses": {
+          "201": {
+            "description": "Floor added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Floor added successfully"
+                    },
+                    "floorId": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "floorName": {
+                      "type": "string",
+                      "example": "floor3"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request due to missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "home_id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while adding the floor"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+},
     // --------------------
 "/app/display/floors/{home_id}": {
     get: {

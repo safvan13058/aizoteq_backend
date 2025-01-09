@@ -224,21 +224,53 @@ CREATE TABLE sharedusers (
 );
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
-    id SERIAL PRIMARY KEY,             -- Unique identifier for each record
-    user_id INT NOT NULL,              -- Reference to the user ID
+    id SERIAL PRIMARY KEY, 
+    thing_id INT NOT NULL,            -- Unique identifier for each record
+    user_id INT NOT NULL,  
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));            -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
-    CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username) -- Foreign key constraint
+    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
+    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES dealers_details(id) -- Foreign key constraint
 );
 
 CREATE TABLE customersStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
-    user_id INT NOT NULL,              -- Reference to the user ID
+    thing_id INT NOT NULL,     
+    user_id INT NOT NULL,             -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
-    CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username) -- Foreign key constraint
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
+    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
+    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);    
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customer_details(id) -- Foreign key constraint
 );
 
+CREATE TABLE onlineStock (
+    id SERIAL PRIMARY KEY,             -- Unique identifier for each record
+    user_id INT NOT NULL,  
+    thing_id INT NOT NULL,            -- Reference to the user ID
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
+    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username),-- Foreign key constraint
+    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);    
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES onlinecustomer_details(id) -- Foreign key constraint
+
+);
+
+-- Create customer_details table
+CREATE TABLE onlinecustomer_details (
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,                 -- Name of the customer
+    address TEXT NOT NULL,                      -- Address of the customer
+    phone VARCHAR(15) NOT NULL,                 -- Primary phone number
+    alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
+    total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
+    balance NUMERIC(10, 2),                     -- Balance amount for the customer
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+);
 -- Create customer_details table
 CREATE TABLE customer_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record

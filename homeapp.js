@@ -160,33 +160,86 @@ homeapp.delete('/app/delete/home/:id',
 });
 
 // ADD floor
-homeapp.post('/app/add/floor/:home_id',
+// homeapp.post('/app/add/floor/:home_id',
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     async (req, res) => {
+//         try {
+//             const home_id = req.params.home_id;
+//             const { name } = req.body; // Destructure the required fields from the request body
+
+//             // Check if required data is provided
+//             if (!home_id || !name) {
+//                 return res.status(400).json({ error: 'home_id and name are required' });
+//             }
+
+//             // Insert query with RETURNING clause to get the inserted row ID
+//             const query = `
+//                 INSERT INTO floor (home_id, name) 
+//                 VALUES ($1, $2)
+//                 RETURNING id
+//             `;
+
+//             // Execute the query
+//             const result = await db.query(query, [home_id, name]);
+
+//             // Respond with success message and the inserted row ID
+//             res.status(201).json({
+//                 message: 'Floor added successfully',
+//                 floorId: result.rows[0].id // Retrieve the ID of the inserted row
+//             });
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).json({ error: 'An error occurred while adding the floor' });
+//         }
+//     }
+// );
+homeapp.post('/app/add/floor/:home_id', 
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
-            const { name } = req.body; // Destructure the required fields from the request body
 
-            // Check if required data is provided
-            if (!home_id || !name) {
-                return res.status(400).json({ error: 'home_id and name are required' });
+            // Check if home_id is provided
+            if (!home_id) {
+                return res.status(400).json({ error: 'home_id is required' });
             }
 
-            // Insert query with RETURNING clause to get the inserted row ID
+            // Step 1: Get the highest floor number for the given home_id
             const query = `
+                SELECT name 
+                FROM floor 
+                WHERE home_id = $1
+                ORDER BY name DESC LIMIT 1
+            `;
+            const result = await db.query(query, [home_id]);
+
+            let newFloorName = 'floor1'; // Default name if no floor exists
+
+            if (result.rows.length > 0) {
+                const lastFloorName = result.rows[0].name;
+                const match = lastFloorName.match(/^floor(\d+)$/); // Match pattern like 'floor1', 'floor2', etc.
+                if (match) {
+                    const lastNumber = parseInt(match[1], 10); // Extract the last number
+                    newFloorName = `floor${lastNumber + 1}`; // Increment the floor number
+                }
+            }
+
+            // Step 2: Insert the new floor with the incremented name
+            const insertQuery = `
                 INSERT INTO floor (home_id, name) 
                 VALUES ($1, $2)
                 RETURNING id
             `;
 
-            // Execute the query
-            const result = await db.query(query, [home_id, name]);
+            const insertResult = await db.query(insertQuery, [home_id, newFloorName]);
 
-            // Respond with success message and the inserted row ID
+            // Step 3: Respond with success and the inserted floor ID
             res.status(201).json({
                 message: 'Floor added successfully',
-                floorId: result.rows[0].id // Retrieve the ID of the inserted row
+                floorId: insertResult.rows[0].id, // Retrieve the ID of the inserted row
+                floorName: newFloorName // Return the determined floor name
             });
         } catch (error) {
             console.error(error);
@@ -194,6 +247,7 @@ homeapp.post('/app/add/floor/:home_id',
         }
     }
 );
+
 
 // Display floor
 homeapp.get('/app/display/floors/:home_id',
@@ -1278,5 +1332,6 @@ homeapp.delete('/api/notifications/:notificationId', async (req, res) => {
         res.status(500).json({ error: 'Error deleting notification' });
     }
 });
+
 
 module.exports=homeapp;

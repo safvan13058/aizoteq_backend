@@ -7,7 +7,7 @@ const login = require('./login');
 const signup=require('./signup');
 const testapp=require('./testapp.js');
 const homeapp=require('./homeapp.js');
-const dashboard=require('./dashboard.js')
+const dashboard=require('./dashboard/dashboard.js')
 
 
 app.use('/',testapp)
