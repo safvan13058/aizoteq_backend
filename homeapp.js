@@ -216,7 +216,8 @@ homeapp.post('/app/add/floor/:home_id',
             const result = await db.query(query, [home_id]);
 
             let newFloorName = 'floor1'; // Default name if no floor exists
-
+            console.log(result)
+            console.log(result.rows.length)
             if (result.rows.length > 0) {
                 const lastFloorName = result.rows[0].name;
                 const match = lastFloorName.match(/^floor(\d+)$/); // Match pattern like 'floor1', 'floor2', etc.
