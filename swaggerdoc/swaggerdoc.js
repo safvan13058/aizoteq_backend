@@ -2814,6 +2814,7 @@ const Swaggerdoc = {
         "summary": "Add a floor to a home",
         "description": "This endpoint allows adding a new floor to a specific home. The floor name is automatically incremented based on existing floor names.",
         "operationId": "addFloor",
+        "tag":["floors"],
         "parameters": [
           {
             "name": "home_id",
