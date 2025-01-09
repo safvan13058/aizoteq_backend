@@ -3,7 +3,7 @@ const AWS = require('aws-sdk');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 require('dotenv').config();
-const db = require('./dbconnection');
+const db = require('./middlewares/dbconnection');
 const login = express.Router();
 login.use(express.json());
 

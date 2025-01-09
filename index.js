@@ -1,7 +1,7 @@
 const express = require('express');
 const app = express();
 app.use(express.json());
-
+const db = require('./middlewares/dbconnection');
 
 const login = require('./login');
 const signup=require('./signup');
