@@ -1,6 +1,6 @@
 const express=require('express');
 const signup=express.Router();
-const db = require('./dbconnection');
+const db = require('./middlewares/dbconnection');
 const AWS=require('aws-sdk');
 require('dotenv').config();
 signup.use(express.json());
