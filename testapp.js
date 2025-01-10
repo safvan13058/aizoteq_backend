@@ -236,8 +236,9 @@ testapp.get('/api/display/things/:id',
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count', async (req, res) => {
     try {
+        console.log("working");
         const { status } = req.params;
-
+ 
         // Ensure the status parameter is not empty and is a valid string
         if (!status || typeof status !== 'string') {
             return res.status(400).json({
