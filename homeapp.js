@@ -306,6 +306,7 @@ homeapp.post('/app/add/floor/:home_id',
     }
 );
 
+ 
 
 // Display floor
 homeapp.get('/app/display/floors/:home_id',
@@ -436,6 +437,7 @@ homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
         client.release(); // Release the client back to the pool
     }
 });
+
 //Delete Floor
 homeapp.delete('/app/delete/floors/:id',
     // validateJwt,

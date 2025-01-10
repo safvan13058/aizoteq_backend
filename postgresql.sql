@@ -75,6 +75,7 @@ CREATE TABLE HOME (
 CREATE TABLE floor (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
     home_id INT NOT NULL, -- Foreign key referencing home table
+    floor_index INT NOT NULL, -- Index of the floor
     name VARCHAR(255) NOT NULL, -- Name of the floor
     last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last modification timestamp
     FOREIGN KEY (home_id) REFERENCES HOME(id) ON DELETE CASCADE

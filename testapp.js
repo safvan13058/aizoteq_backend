@@ -168,6 +168,71 @@ testapp.post( "/app/addThing",
         }
     }
 );
+ //display all things
+ testapp.get('/api/display/things',
+    // validateJwt,
+    // authorizeRoles('admin,staff'), 
+    async (req, res) => {
+        try {
+            // Get `page` and `limit` query parameters, with default values if not provided
+            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({ error: 'Invalid page or limit value' });
+            }
+
+            const offset = (page - 1) * limit; // Calculate the offset
+
+            // Fetch records with LIMIT and OFFSET for pagination
+            const result = await db.query(
+                'SELECT * FROM things ORDER BY id ASC LIMIT $1 OFFSET $2',
+                [limit, offset]
+            );
+
+            // Fetch the total number of records to calculate total pages
+            const countResult = await db.query('SELECT COUNT(*) AS total FROM things');
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
+
+            res.status(200).json({
+                page,
+                limit,
+                total,
+                totalPages,
+                data: result.rows,
+            });
+        } catch (error) {
+            console.error('Error fetching things:', error); // Log the error for debugging
+            res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+        }
+    }
+);
+// display things with id
+testapp.get('/api/display/things/:id',
+    // validateJwt,
+    // authorizeRoles('customer'),
+     async (req, res) => {
+    const id = req.params.id;
+    try {
+        const query = `
+            SELECT * 
+            FROM things 
+            WHERE id = $1
+        `;
+
+        const result = await db.query(query, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Thing not found' });
+        }
+
+        res.status(200).json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count', async (req, res) => {
     try {
