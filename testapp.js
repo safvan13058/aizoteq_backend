@@ -260,12 +260,13 @@ testapp.get('/api/adminstock/:status/count', async (req, res) => {
         // Check if result is returned
         if (result.rows.length > 0) {
             // Return the count of the records with the given status
+            console.log("working success");
             res.status(200).json({
                 status: 'success',
                 count: result.rows[0].count,
             });
         } else {
-            console.log("working success");
+            
             res.status(404).json({
                 status: 'error',
                 message: 'No records found with the specified status',
