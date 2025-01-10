@@ -465,6 +465,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       shipping_address,
       phone,
       alt_phone,
+      email,
       items,
       payment_methods,
       billing_createdby,
@@ -498,9 +499,9 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       if (entity.rows.length === 0) {
         const totalAmount = items.reduce((sum, item) => sum + (item.retail_price || 0), 0);
         const result = await client.query(
-          `INSERT INTO ${entityTable} (name, address, phone, alt_phone, total_amount, balance)
-           VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-          [name, address, phone, alt_phone, totalAmount, totalAmount]
+          `INSERT INTO ${entityTable} (name, address, phone,email, alt_phone, total_amount, balance)
+           VALUES ($1, $2, $3, $4, $5, $6,$7) RETURNING id,email`,
+          [name, address, phone,email, alt_phone, totalAmount, totalAmount]
         );
         entity = result.rows[0];
       } else {
@@ -555,9 +556,9 @@ dashboard.get('/api/things/model-count', async (req, res) => {
   
       const billingReceiptResult = await client.query(
         `INSERT INTO billing_receipt 
-         (receipt_no, name, phone, billing_address, shipping_address, dealer_or_customer, total_amount, balance, billing_createdby, ${type}_id, lastmodified, datetime)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
-        [receiptno, name, phone, address, shipping_address || null, type, TotalAmount, Balance, billing_createdby, entity.id]
+         (receipt_no, name, phone,email, billing_address, shipping_address, dealer_or_customer, total_amount, balance, billing_createdby, ${type}_id, lastmodified, datetime)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,$11, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
+        [receiptno, name, phone,entity.email, address, shipping_address || null, type, TotalAmount, Balance, billing_createdby, entity.id]
       );
   
       const { id: billingReceiptId, receipt_no: receiptNo } = billingReceiptResult.rows[0];

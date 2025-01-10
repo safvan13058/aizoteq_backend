@@ -265,6 +265,7 @@ CREATE TABLE onlinecustomer_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
     address TEXT NOT NULL,                      -- Address of the customer
+    email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
@@ -276,6 +277,7 @@ CREATE TABLE customer_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
     address TEXT NOT NULL,                      -- Address of the customer
+    email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
@@ -288,6 +290,7 @@ CREATE TABLE dealers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the dealer
     address TEXT NOT NULL,                      -- Address of the dealer
+    email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the dealer
@@ -313,6 +316,7 @@ CREATE TABLE billing_receipt (
     receipt_no VARCHAR(50) NOT NULL UNIQUE,           -- Receipt number
     name VARCHAR(255) NOT NULL,                       -- Customer or dealer name
     phone VARCHAR(15) NOT NULL,                       -- Primary phone number
+    email VARCHAR(255) NULL,
     billing_address TEXT NOT NULL,                    -- Billing address
     shipping_address TEXT,                            -- Shipping address (optional)
     dealer_or_customer VARCHAR(10) NOT NULL, -- Indicates dealer or customer

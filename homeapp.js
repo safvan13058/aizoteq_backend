@@ -196,40 +196,108 @@ homeapp.delete('/app/delete/home/:id',
 // );
 
 
+// homeapp.post('/app/add/floor/:home_id', 
+//     async (req, res) => {
+//         try {
+//             const home_id = req.params.home_id;
+//             // Check if home_id is provided
+//             if (!home_id) {
+//                 return res.status(400).json({ error: 'home_id is required' });
+//             }
+
+//             // Step 1: Count how many floors already exist for the given home_id
+//             const countQuery = `
+//                 SELECT COUNT(*) AS floor_count
+//                 FROM floor
+//                 WHERE home_id = $1
+//             `;
+//             const countResult = await db.query(countQuery, [home_id]);
+//             const floorCount = parseInt(countResult.rows[0].floor_count, 10);
+
+//             // Step 2: Determine the new floor name based on the count
+//             const newFloorName = `floor${floorCount + 1}`; // Increment floor count by 1 for the new floor
+
+//             // Step 3: Insert the new floor with the incremented name
+//             const insertQuery = `
+//                 INSERT INTO floor (home_id, name) 
+//                 VALUES ($1, $2)
+//                 RETURNING id
+//             `;
+//             const insertResult = await db.query(insertQuery, [home_id, newFloorName]);
+
+//             // Step 4: Respond with success and the inserted floor ID
+//             res.status(201).json({
+//                 message: 'Floor added successfully',
+//                 floorId: insertResult.rows[0].id, // Retrieve the ID of the inserted row
+//                 floorName: newFloorName // Return the determined floor name
+//             });
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).json({ error: 'An error occurred while adding the floor' });
+//         }
+//     }
+// );
+
+
 homeapp.post('/app/add/floor/:home_id', 
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
+            const { index } = req.body; // Optional index from request body
+
             // Check if home_id is provided
             if (!home_id) {
                 return res.status(400).json({ error: 'home_id is required' });
             }
 
-            // Step 1: Count how many floors already exist for the given home_id
-            const countQuery = `
-                SELECT COUNT(*) AS floor_count
+            // Step 1: Retrieve existing floors for the given home_id ordered by floor_index
+            const floorsQuery = `
+                SELECT floor_index, name
                 FROM floor
                 WHERE home_id = $1
+                ORDER BY floor_index
             `;
-            const countResult = await db.query(countQuery, [home_id]);
-            const floorCount = parseInt(countResult.rows[0].floor_count, 10);
+            const floorsResult = await db.query(floorsQuery, [home_id]);
+            const floors = floorsResult.rows; // List of floors with index and names
 
-            // Step 2: Determine the new floor name based on the count
-            const newFloorName = `floor${floorCount + 1}`; // Increment floor count by 1 for the new floor
+            // Determine the insertion index
+            let insertionIndex;
+            if (index !== undefined) {
+                // Validate the specified index
+                if (index < 0 || index > floors.length) {
+                    return res.status(400).json({ error: 'Invalid index specified' });
+                }
+                insertionIndex = index;
+            } else {
+                // Append to the end if no index is specified
+                insertionIndex = floors.length;
+            }
 
-            // Step 3: Insert the new floor with the incremented name
+            // Step 2: Shift indices of floors at or after the insertion index
+            const shiftQuery = `
+                UPDATE floor
+                SET floor_index = floor_index + 1
+                WHERE home_id = $1 AND floor_index >= $2
+            `;
+            await db.query(shiftQuery, [home_id, insertionIndex]);
+
+            // Step 3: Determine the new floor name
+            const newFloorName = `floor${insertionIndex + 1}`;
+
+            // Step 4: Insert the new floor
             const insertQuery = `
-                INSERT INTO floor (home_id, name) 
-                VALUES ($1, $2)
+                INSERT INTO floor (home_id, name, floor_index) 
+                VALUES ($1, $2, $3)
                 RETURNING id
             `;
-            const insertResult = await db.query(insertQuery, [home_id, newFloorName]);
+            const insertResult = await db.query(insertQuery, [home_id, newFloorName, insertionIndex]);
 
-            // Step 4: Respond with success and the inserted floor ID
+            // Step 5: Respond with success and the inserted floor details
             res.status(201).json({
                 message: 'Floor added successfully',
-                floorId: insertResult.rows[0].id, // Retrieve the ID of the inserted row
-                floorName: newFloorName // Return the determined floor name
+                floorId: insertResult.rows[0].id,
+                floorName: newFloorName,
+                floorIndex: insertionIndex
             });
         } catch (error) {
             console.error(error);
