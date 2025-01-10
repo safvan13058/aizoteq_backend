@@ -114,7 +114,7 @@ CREATE TABLE room_device (
     FOREIGN KEY (room_id) REFERENCES room(id),
     FOREIGN KEY (device_id) REFERENCES Devices(deviceId)
 );
-
+ 
 -- Table to store Scenes
 CREATE TABLE Scenes (
     id SERIAL PRIMARY KEY,

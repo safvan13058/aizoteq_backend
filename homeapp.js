@@ -649,6 +649,67 @@ homeapp.get('/app/display/rooms/:floor_id',
         res.status(500).json({ error: 'An error occurred while retrieving rooms' });
     }
 });
+//change room from floor to other floor
+homeapp.put('/api/room/:room_id/change-floor/:floor_id', async (req, res) => {
+    const client = await db.connect();
+    try {
+        const room_id = req.params.room_id;
+        const new_floor_id = req.params.floor_id; // Retrieve new floor ID from params
+        const user_id = req.user?.id || req.body.user_id; // Fetch user ID dynamically
+
+        // Validate input
+        if (!room_id || !new_floor_id || !user_id) {
+            return res.status(400).json({ message: "Missing required parameters" });
+        }
+
+        // Start a transaction
+        await client.query('BEGIN');
+
+        // Check if the room exists and is associated with the user
+        const checkRoomQuery = `
+            SELECT r.id, r.floor_id
+            FROM room r
+            INNER JOIN UserRoomOrder uro ON r.id = uro.room_id
+            WHERE r.id = $1 AND uro.user_id = $2;
+        `;
+        const checkRoomResult = await client.query(checkRoomQuery, [room_id, user_id]);
+
+        if (checkRoomResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "Room not found or not associated with the user" });
+        }
+
+        const current_floor_id = checkRoomResult.rows[0].floor_id;
+
+        // Update the floor of the room
+        const updateRoomQuery = `
+            UPDATE room
+            SET floor_id = $1, last_modified = CURRENT_TIMESTAMP
+            WHERE id = $2;
+        `;
+        await client.query(updateRoomQuery, [new_floor_id, room_id]);
+
+        // Update the UserRoomOrder to reflect the new floor
+        const updateOrderQuery = `
+            UPDATE UserRoomOrder
+            SET floor_id = $1, last_modified = CURRENT_TIMESTAMP
+            WHERE room_id = $2 AND user_id = $3;
+        `;
+        await client.query(updateOrderQuery, [new_floor_id, room_id, user_id]);
+
+        // Commit the transaction
+        await client.query('COMMIT');
+
+        res.status(200).json({ message: "Room floor updated successfully" });
+    } catch (error) {
+        // Rollback on error
+        await client.query('ROLLBACK');
+        console.error("Error updating room floor:", error);
+        res.status(500).json({ message: "Internal server error" });
+    } finally {
+        client.release();
+    }
+});
 
 // Update room
 homeapp.put('/app/update/rooms/:id',
@@ -754,7 +815,7 @@ homeapp.post('/api/access/customer/:roomid',
         const client = await db.connect(); // Get a client from the db
         try {
             const roomid = req.params.roomid;
-            const user_id = 1; // Replace with actual user ID
+            const user_id = req.user?.id||req.body.userid; // Replace with actual user ID
             const { securitykey, serialno } = req.body;
 
             await client.query('BEGIN'); // Start a transaction
@@ -823,7 +884,78 @@ homeapp.post('/api/access/customer/:roomid',
         }
     }
 );
+//remove access
+homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
+    const client = await db.connect(); // Get a client from the database pool
+    try {
+        const roomid = req.params.roomid;
+        const thingid = req.params.thingid;
+        const user_id = req.user?.id||req.body.userid; // Fetch the user ID dynamically from authentication context
 
+        if (!roomid || !thingid || !user_id) {
+            return res.status(400).json({ message: "Missing required parameters" });
+        }
+
+        await client.query('BEGIN'); // Start a transaction
+
+        // Verify the user has access to the specified thing and room
+        const accessCheckQuery = `
+            SELECT ca.id
+            FROM customer_access ca
+            INNER JOIN devices d ON ca.thing_id = d.thingid
+            INNER JOIN room_device rd ON rd.device_id = d.id
+            WHERE ca.user_id = $1 AND ca.thing_id = $2 AND rd.room_id = $3
+            LIMIT 1;
+        `;
+        const accessCheckResult = await client.query(accessCheckQuery, [user_id, thingid, roomid]);
+
+        if (accessCheckResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ message: "No access found for the specified thing in the room" });
+        }
+
+        // Remove devices associated with the specified thing from `room_device`
+        const deleteRoomDeviceQuery = `
+            DELETE FROM room_device
+            WHERE room_id = $1 AND device_id IN (
+                SELECT id FROM devices WHERE thingid = $2
+            );
+        `;
+        await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
+
+        // Remove devices associated with the specified thing from `UserDevicesorder`
+        const deleteUserDevicesOrderQuery = `
+            DELETE FROM UserDevicesorder
+            WHERE roomid = $1 AND device_id IN (
+                SELECT id FROM devices WHERE thingid = $2
+            );
+        `;
+        await client.query(deleteUserDevicesOrderQuery, [roomid, thingid]);
+
+        // Optionally, remove customer access if no devices of the thing are linked to any rooms
+        const deleteCustomerAccessQuery = `
+            DELETE FROM customer_access
+            WHERE user_id = $1 AND thing_id = $2
+            AND NOT EXISTS (
+                SELECT 1 FROM devices d
+                INNER JOIN room_device rd ON rd.device_id = d.id
+                WHERE d.thingid = $2
+            );
+        `;
+        await client.query(deleteCustomerAccessQuery, [user_id, thingid]);
+
+        await client.query('COMMIT'); // Commit the transaction
+        res.status(200).json({ message: "Access for the specified thing removed successfully" });
+    } catch (error) {
+        await client.query('ROLLBACK'); // Rollback the transaction on error
+        console.error("Error removing access for thing:", error);
+        res.status(500).json({ message: "Internal server error" });
+    } finally {
+        client.release(); // Release the client back to the database pool
+    }
+});
+
+//reorder devices in an room
 homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
     const client = await db.connect();
     try {
@@ -1401,6 +1533,38 @@ homeapp.get('/api/display/device/rooms/:roomid',
         }
     }
 );
+// update the enable/disable
+homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
+    const deviceId = req.params.deviceId;
+    const { enable } = req.body;
+  
+    if (typeof enable !== 'boolean') {
+      return res.status(400).json({ error: "The 'enable' field must be a boolean." });
+    }
+  
+    try {
+      const query = `
+        UPDATE Devices
+        SET enable = $1, lastModified = CURRENT_TIMESTAMP
+        WHERE id = $2
+        RETURNING *;
+      `;
+      const values = [enable, deviceId];
+      const result = await db.query(query, values);
+  
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Device not found.' });
+      }
+  
+      res.json({
+        message: 'Device updated successfully.',
+        device: result.rows[0],
+      });
+    } catch (error) {
+      console.error('Error updating device:', error);
+      res.status(500).json({ error: 'Internal server error.' });
+    }
+  });
 
 homeapp.get("/api/display/user", async (req, res) => {
     const userId = req.user?.id || req.body.userid;

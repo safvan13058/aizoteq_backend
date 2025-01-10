@@ -4181,96 +4181,486 @@ const Swaggerdoc = {
     }
 },
 // -------------------
+// "/api/access/customer/{roomid}": {
+//     post: {
+//         summary: "Share access to a room with a customer",
+//         description: "Share access by verifying the thing's serial number and security key, then linking devices to the specified room.",
+//         tags: ["Access", "Customer"],
+//         parameters: [
+//             {
+//                 in: "path",
+//                 name: "roomid",
+//                 required: true,
+//                 description: "The room ID where the devices will be linked.",
+//                 schema: {
+//                     type: "integer"
+//                 }
+//             }
+//         ],
+//         requestBody: {
+//             required: true,
+//             content: {
+//                 "application/json": {
+//                     schema: {
+//                         type: "object",
+//                         properties: {
+//                             securitykey: {
+//                                 type: "string",
+//                                 description: "Security key of the thing to verify."
+//                             },
+//                             serialno: {
+//                                 type: "string",
+//                                 description: "Serial number of the thing to verify."
+//                             }
+//                         },
+//                         required: ["securitykey", "serialno"]
+//                     }
+//                 }
+//             }
+//         },
+//         responses: {
+//             201: {
+//                 description: "Access shared successfully",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "Access shared successfully"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             404: {
+//                 description: "Thing not found or no devices linked to the thing",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "Thing not found or invalid security key"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             500: {
+//                 description: "Internal server error",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "Internal server error"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// },
 "/api/access/customer/{roomid}": {
-    post: {
-        summary: "Share access to a room with a customer",
-        description: "Share access by verifying the thing's serial number and security key, then linking devices to the specified room.",
-        tags: ["Access", "Customer"],
-        parameters: [
-            {
-                in: "path",
-                name: "roomid",
-                required: true,
-                description: "The room ID where the devices will be linked.",
-                schema: {
-                    type: "integer"
-                }
-            }
-        ],
-        requestBody: {
-            required: true,
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            securitykey: {
-                                type: "string",
-                                description: "Security key of the thing to verify."
-                            },
-                            serialno: {
-                                type: "string",
-                                description: "Serial number of the thing to verify."
-                            }
-                        },
-                        required: ["securitykey", "serialno"]
-                    }
-                }
-            }
-        },
-        responses: {
-            201: {
-                description: "Access shared successfully",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "Access shared successfully"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            404: {
-                description: "Thing not found or no devices linked to the thing",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "Thing not found or invalid security key"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            500: {
-                description: "Internal server error",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "Internal server error"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+  "post": {
+    "tags": ["Access"],
+    "summary": "Share access for a thing in a room",
+    "description": "Assigns a thing and its devices to a room for a customer, allowing access to the devices.",
+    "parameters": [
+      {
+        "name": "roomid",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the room.",
+        "schema": {
+          "type": "string"
         }
+      }
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "userid": {
+                "type": "integer",
+                "description": "The ID of the user (optional, used as a fallback if authentication context is unavailable)."
+              },
+              "securitykey": {
+                "type": "string",
+                "description": "The security key of the thing.",
+                "required": true
+              },
+              "serialno": {
+                "type": "string",
+                "description": "The serial number of the thing.",
+                "required": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "responses": {
+      "201": {
+        "description": "Access shared successfully.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Thing not found or invalid security key.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
     }
+  }
+},
+"/api/remove/access/{roomid}/{thingid}": {
+      "delete": {
+        "tags": ["Access"],
+        "summary": "Remove access for a specific thing in a room",
+        "description": "Removes access to devices associated with a specific thing in a room for a customer.",
+        "parameters": [
+          {
+            "name": "roomid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the room.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "thingid",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the thing to remove.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access for the specified thing removed successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No access found for the specified thing in the room.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
 },
 
+"/api/room/{room_id}/change-floor/{floor_id}": {
+      "put": {
+        "summary": "Change the floor of a room",
+         "tags":["Rooms"],
+        "description": "Update the floor associated with a specific room.",
+        "parameters": [
+          {
+            "name": "room_id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the room to update.",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "floor_id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the new floor.",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "description": "The ID of the user making the request."
+                  }
+                },
+                "required": ["user_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Floor updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Room floor updated successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required parameters"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Room not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Room not found or not associated with the user"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Internal server error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/app/devices/enable/{deviceId}": {
+  "put": {
+    "tags":["Devices"],
+    "summary": "Update device enable status",
+    "description": "Updates the `enable` field of a device by its `deviceId`.",
+    "parameters": [
+      {
+        "name": "deviceId",
+        "in": "path",
+        "required": true,
+        "description": "The unique ID of the device to update.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "enable": {
+                "type": "boolean",
+                "description": "The new value for the enable field."
+              }
+            },
+            "required": ["enable"]
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "Device updated successfully.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "string",
+                  "example": "Device updated successfully."
+                },
+                "device": {
+                  "type": "object",
+                  "description": "The updated device object.",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "thingId": { "type": "integer" },
+                    "deviceId": { "type": "string" },
+                    "macAddress": { "type": "string" },
+                    "hubIndex": { "type": "string" },
+                    "createdBy": { "type": "string" },
+                    "enable": { "type": "boolean" },
+                    "status": { "type": "string" },
+                    "icon": { "type": "string" },
+                    "name": { "type": "string" },
+                    "type": { "type": "string" },
+                    "lastModified": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "400": {
+        "description": "Invalid input.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "The 'enable' field must be a boolean."
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "Device not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Device not found."
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Internal server error.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "error": {
+                  "type": "string",
+                  "example": "Internal server error."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+},
 
 "/api/display/device/rooms/{roomid}": {
     get: {

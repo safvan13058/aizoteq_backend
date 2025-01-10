@@ -626,7 +626,6 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
   
-
   dashboard.get("/api/billing/:receipt_no", async (req, res) => {
     const { receipt_no } = req.params;
   
@@ -1151,7 +1150,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
-  
+  //warranty
   dashboard.get("/api/warranty/:serial_no", async (req, res) => {
     const { serial_no } = req.params;
   
