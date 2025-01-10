@@ -5,7 +5,7 @@ const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
-
+const {getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment}=require("./functions.js");
 dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
   })
@@ -597,7 +597,18 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       ]);
   
       await client.query("COMMIT");
-  
+      // Generate PDF
+    const pdfPath = `./receipt_${receiptNo}.pdf`;
+    await generatePDF(pdfPath, name, receiptNo, TotalAmount, totalPaid, Balance);
+
+    // Send email with PDF attachment
+    await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
+
+    // Cleanup generated PDF file
+    if (fs.existsSync(pdfPath)) {
+      fs.unlinkSync(pdfPath);
+    }
+
       return res.status(200).json({
         message: "Billing receipt created successfully",
         entity_id: entity.id,
