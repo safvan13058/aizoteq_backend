@@ -1,7 +1,7 @@
 const express = require('express');
 const dashboard = express.Router();
 const db = require('../middlewares/dbconnection');
-const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
+// const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
