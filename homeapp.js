@@ -321,7 +321,12 @@ homeapp.get('/app/display/floors/:home_id',
         }
 
         // Query to fetch floors by home_id
-        const query = `SELECT * FROM floor WHERE home_id = $1`;
+        const query = ` 
+                SELECT * 
+                FROM floor 
+                WHERE home_id = $1 
+                ORDER BY floor_index ASC
+            `;
 
         // Execute the query
         const result = await db.query(query, [homeId]);
