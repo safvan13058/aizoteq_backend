@@ -1377,7 +1377,7 @@ const Swaggerdoc = {
     },
 "/app/reorder/rooms/{floor_id}": {
       "put": {
-        "tags":["rooms"],
+        "tags":["Rooms"],
         "summary": "Reorder rooms in a floor",
         "description": "Updates the orderIndex for rooms within a specified floor.",
         "parameters": [
@@ -3354,7 +3354,7 @@ const Swaggerdoc = {
 "/app/reorder/floor/{floor_id}": {
       "put": {
         "summary": "Reorder floor index",
-        "tags": ["floors"],
+        "tags": ["Floors"],
         "description": "Reorders the floor index for a specific floor in a home. Adjusts the floor_index of other floors to maintain order.",
         "parameters": [
           {
