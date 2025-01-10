@@ -1377,6 +1377,7 @@ const Swaggerdoc = {
     },
 "/app/reorder/rooms/{floor_id}": {
       "put": {
+        "tags":["rooms"],
         "summary": "Reorder rooms in a floor",
         "description": "Updates the orderIndex for rooms within a specified floor.",
         "parameters": [
@@ -3349,6 +3350,114 @@ const Swaggerdoc = {
         }
     }
 },
+
+"/app/reorder/floor/{floor_id}": {
+      "put": {
+        "summary": "Reorder floor index",
+        "tags": ["floors"],
+        "description": "Reorders the floor index for a specific floor in a home. Adjusts the floor_index of other floors to maintain order.",
+        "parameters": [
+          {
+            "name": "floor_id",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the floor to reorder.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "home_id": {
+                    "type": "integer",
+                    "description": "The ID of the home containing the floor.",
+                    "example": 1
+                  },
+                  "new_floor_index": {
+                    "type": "integer",
+                    "description": "The new index for the floor.",
+                    "example": 2
+                  }
+                },
+                "required": ["home_id", "new_floor_index"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Floor index updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Floor index updated successfully."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request. Missing or invalid parameters.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "home_id and new_floor_index are required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Floor not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Floor not found for the specified home_id."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal server error."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 // -----------------
 "/app/display/rooms/{floor_id}": {
     get: {

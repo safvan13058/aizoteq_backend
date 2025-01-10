@@ -306,7 +306,6 @@ homeapp.post('/app/add/floor/:home_id',
     }
 );
 
- 
 
 // Display floor
 homeapp.get('/app/display/floors/:home_id',
@@ -345,6 +344,64 @@ homeapp.get('/app/display/floors/:home_id',
     }
 });
 
+homeapp.put('/app/reorder/floor/:floor_id', async (req, res) => {
+    const floorId = parseInt(req.params.floor_id, 10);
+    const { home_id, new_floor_index } = req.body;
+  
+    if (!home_id || new_floor_index === undefined) {
+      return res.status(400).json({ error: 'home_id and new_floor_index are required.' });
+    }
+  
+    try {
+      // Start a transaction
+      const client = await pool.connect();
+      await client.query('BEGIN');
+  
+      // Get the current floor_index for the specified floor
+      const currentFloorQuery = 'SELECT floor_index FROM floor WHERE id = $1 AND home_id = $2';
+      const currentFloorResult = await client.query(currentFloorQuery, [floorId, home_id]);
+  
+      if (currentFloorResult.rowCount === 0) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ error: 'Floor not found for the specified home_id.' });
+      }
+  
+      const currentFloorIndex = currentFloorResult.rows[0].floor_index;
+  
+      if (currentFloorIndex < new_floor_index) {
+        // Shift down all floors between the current index and the new index
+        const shiftDownQuery = `
+          UPDATE floor
+          SET floor_index = floor_index - 1
+          WHERE home_id = $1 AND floor_index > $2 AND floor_index <= $3
+        `;
+        await client.query(shiftDownQuery, [home_id, currentFloorIndex, new_floor_index]);
+      } else if (currentFloorIndex > new_floor_index) {
+        // Shift up all floors between the current index and the new index
+        const shiftUpQuery = `
+          UPDATE floor
+          SET floor_index = floor_index + 1
+          WHERE home_id = $1 AND floor_index >= $3 AND floor_index < $2
+        `;
+        await client.query(shiftUpQuery, [home_id, currentFloorIndex, new_floor_index]);
+      }
+  
+      // Update the floor_index for the specified floor
+      const updateFloorQuery = `
+        UPDATE floor
+        SET floor_index = $1, last_modified = CURRENT_TIMESTAMP
+        WHERE id = $2 AND home_id = $3
+      `;
+      await client.query(updateFloorQuery, [new_floor_index, floorId, home_id]);
+  
+      // Commit the transaction
+      await client.query('COMMIT');
+      res.status(200).json({ message: 'Floor index updated successfully.' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).json({ error: 'Internal server error.' });
+    }
+  });
 //Update Floor
 homeapp.put('/app/update/floors/:id',
     // validateJwt,
