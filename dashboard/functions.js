@@ -20,8 +20,8 @@ const getThingBySerialNo = async (serialNo) => {
     );
   };
   
-const PDFDocument = require("pdfkit");
-const fs = require("fs");
+// const PDFDocument = require("pdfkit");
+// const fs = require("fs");
 
 /**
  * Generates a PDF receipt.
@@ -61,7 +61,7 @@ async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, ba
   });
 }
 
-const nodemailer = require("nodemailer");
+// const nodemailer = require("nodemailer");
 
 /**
  * Sends an email with a PDF receipt attached.
