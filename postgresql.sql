@@ -59,7 +59,7 @@ CREATE TABLE AdminStock (
     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
     FOREIGN KEY (thingId) REFERENCES Things(id),
     FOREIGN KEY (addedBy) REFERENCES Users(userName),
-);
+); 
  
 -- Table to store home information
 CREATE TABLE HOME (
@@ -270,6 +270,7 @@ CREATE TABLE onlinecustomer_details (
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
+    paid_amount NUMERIC(10, 2) DEFAULT 0;,               
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
@@ -281,7 +282,8 @@ CREATE TABLE customer_details (
     email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
-    total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
+    total_amount NUMERIC(10, 2),               -- Total amount associated with the customer
+    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
@@ -295,6 +297,7 @@ CREATE TABLE dealers_details (
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the dealer
+    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
     balance NUMERIC(10, 2),                     -- Balance amount for the dealer
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );

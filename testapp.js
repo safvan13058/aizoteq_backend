@@ -319,6 +319,7 @@ testapp.get('/app/searchThings/:status',
                 t.id AS thingId,
                 t.thingName,
                 t.serialno,
+                t.batchId,
                 t.lastModified,
                 t.model,
                 as_.status AS adminStockStatus,
@@ -367,6 +368,7 @@ testapp.get('/api/searchThings/working/:status', async (req, res) => {
                 t.thingName,
                 t.createdby,
                 t.batchId,
+                t.securityKey,
                 t.serialno,
                 a.status AS admin_stock_status,
                 a.addedAt,
@@ -910,4 +912,6 @@ testapp.get('/api/display/devices/:thingid',
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+
 module.exports = testapp;

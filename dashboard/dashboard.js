@@ -22,6 +22,68 @@ dashboard.get('/api/users/count', async (req, res) => {
     }
 });
 
+//api to display things
+dashboard.get('/api/display/things', async (req, res) => {
+  try {
+      // Get `page`, `limit`, and `serialno` query parameters
+      const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+      const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+      const serialno = req.query.serialno || null; // Search by serial number if provided
+
+      if (page < 1 || limit < 1) {
+          return res.status(400).json({ error: 'Invalid page or limit value' });
+      }
+
+      const offset = (page - 1) * limit; // Calculate the offset
+
+      // Query for filtering by `serialno` or listing all available things in `AdminStock`
+      let query = `
+          SELECT t.*, a.status AS stock_status, a.addedAt
+          FROM AdminStock a
+          INNER JOIN Things t ON a.thingId = t.id
+      `;
+      let countQuery = `
+          SELECT COUNT(*) AS total
+          FROM AdminStock a
+          INNER JOIN Things t ON a.thingId = t.id
+      `;
+      const params = [];
+      let whereClause = '';
+
+      // Add a filter for `serialno` if provided
+      if (serialno) {
+          whereClause = ' WHERE t.serialno = $1';
+          params.push(serialno);
+      }
+
+      // Add pagination
+      query += whereClause + ' ORDER BY t.id ASC LIMIT $2 OFFSET $3';
+      countQuery += whereClause;
+
+      params.push(limit, offset);
+
+      // Fetch records with pagination
+      const result = await db.query(query, params);
+
+      // Fetch the total number of records to calculate total pages
+      const countResult = await db.query(countQuery, serialno ? [serialno] : []);
+      const total = parseInt(countResult.rows[0].total, 10);
+      const totalPages = Math.ceil(total / limit);
+
+      // Respond with data
+      res.status(200).json({
+          page,
+          limit,
+          total,
+          totalPages,
+          data: result.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching things:', error); // Log the error for debugging
+      res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+  }
+});
+
 // API endpoint for full count
 dashboard.get('/api/things/count', async (req, res) => {
     try {
@@ -639,6 +701,134 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     } catch (error) {
       await client.query("ROLLBACK");
       console.error("Error processing billing:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    } finally {
+      client.release();
+    }
+  });
+
+  dashboard.post("/api/billing/return", async (req, res) => {
+    const { serial_no, returned_by } = req.body;
+  
+    if (!serial_no) {
+      return res.status(400).json({ error: "Serial number is required" });
+    }
+  
+    const client = await db.connect();
+  
+    try {
+      await client.query("BEGIN");
+  
+      // Locate the item in the relevant stock tables using serial_no
+      const itemQuery = await client.query(
+        `
+        SELECT 'dealersStock' AS source, id, user_id, thing_id, retail_price 
+        FROM dealersStock 
+        WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+  
+        UNION ALL
+  
+        SELECT 'customersStock' AS source, id, user_id, thing_id, retail_price 
+        FROM customersStock 
+        WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+  
+        UNION ALL
+  
+        SELECT 'onlineStock' AS source, id, user_id, thing_id, retail_price 
+        FROM onlineStock 
+        WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+        `,
+        [serial_no]
+      );
+  
+      if (itemQuery.rows.length === 0) {
+        throw new Error("Item not found in any stock table or already returned");
+      }
+  
+      const { source, id: stockId, user_id, thing_id, retail_price } = itemQuery.rows[0];
+  
+      // Remove item from its source stock table
+      await client.query(`DELETE FROM ${source} WHERE id = $1`, [stockId]);
+  
+      // Add item to AdminStock with status "returned"
+      await client.query(
+        `
+        INSERT INTO AdminStock (thingId, addedBy, status) 
+        VALUES ($1, $2, 'returned')
+        `,
+        [thing_id, returned_by]
+      );
+  
+      // Generate the next receipt number
+      const lastReceiptQuery = await client.query(
+        `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
+      );
+      const receiptNo =
+        lastReceiptQuery.rows.length > 0 ? parseInt(lastReceiptQuery.rows[0].receipt_no) + 1 : 1000;
+  
+      // Insert return record into `billing_receipt`
+      const billingReceiptResult = await client.query(
+        `
+        INSERT INTO billing_receipt (
+          receipt_no, name, phone, dealer_or_customer, total_amount, balance, billing_createdby, 
+          dealers_id, customers_id, onlinecustomers_id, datetime
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, CURRENT_TIMESTAMP
+        ) RETURNING id, receipt_no
+        `,
+        [
+          receiptNo,
+          returned_by, // Name of the person performing the return
+          null, // Phone number (optional, can be updated if required)
+          source.replace("Stock", ""), // Source type (dealers, customers, or onlinecustomers)
+          -retail_price, // Return amount as a negative value
+          0, // Balance for this return
+          returned_by, // User who processed the return
+          source === "dealersStock" ? user_id : null,
+          source === "customersStock" ? user_id : null,
+          source === "onlineStock" ? user_id : null,
+        ]
+      );
+  
+      const { id: billingReceiptId } = billingReceiptResult.rows[0];
+  
+      // Insert returned item details into `billing_items`
+      await client.query(
+        `
+        INSERT INTO billing_items (
+          receipt_no, item_name, model, serial_no, mrp, retail_price
+        ) VALUES ($1, $2, $3, $4, $5, $6)
+        `,
+        [
+          receiptNo,
+          "Returned Item", // Placeholder for item name, update if available
+          null, // Model (optional, can be retrieved if needed)
+          serial_no,
+          0, // MRP (optional)
+          -retail_price, // Refund amount
+        ]
+      );
+  
+      // Update warranty table if applicable
+      await client.query(
+        `
+        DELETE FROM thing_warranty 
+        WHERE serial_no = $1
+        `,
+        [serial_no]
+      );
+  
+      await client.query("COMMIT");
+  
+      // Respond with success details
+      return res.status(200).json({
+        message: "Item successfully returned and added to AdminStock",
+        return_amount: retail_price,
+        receipt_no: receiptNo,
+      });
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error processing return:", error);
       return res.status(500).json({ error: "Internal server error" });
     } finally {
       client.release();
@@ -1282,6 +1472,8 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
   
+
+
 
   
   
