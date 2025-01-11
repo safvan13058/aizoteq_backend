@@ -91,7 +91,7 @@ testapp.post( "/app/addThing",
                             username,
                             true,
                             null,
-                            null,
+                            attr.attributeName,
                             name,
                             attr.attributeName,
                         ]);

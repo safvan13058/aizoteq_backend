@@ -5,6 +5,8 @@ const db = require('../middlewares/dbconnection');
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
+const path = require('path');
+const fs = require('fs');
 const {getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment}=require("./functions.js");
 dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
@@ -492,13 +494,13 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     const client = await db.connect();
   
     try {
-      await client.query("BEGIN");
+      
   
       // Step 1: Check if entity exists or create it
-      let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
+      let entity = await db.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
       if (entity.rows.length === 0) {
         const totalAmount = items.reduce((sum, item) => sum + (item.retail_price || 0), 0);
-        const result = await client.query(
+        const result = await db.query(
           `INSERT INTO ${entityTable} (name, address, phone,email, alt_phone, total_amount, balance)
            VALUES ($1, $2, $3, $4, $5, $6,$7) RETURNING id,email`,
           [name, address, phone,email, alt_phone, totalAmount, totalAmount]
@@ -507,7 +509,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       } else {
         entity = entity.rows[0];
       }
-  
+      await client.query("BEGIN");
       let totalAmount = 0;
       const billingItems = [];
       const warrantyEntries = [];
@@ -521,6 +523,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
           [model]
         );
         if (priceQuery.rows.length === 0) {
+          client.query("ROLLBACK");
           return res.status(404).json({ error: `Model ${model} not found in price_table` });
         }
   
@@ -535,7 +538,15 @@ dashboard.get('/api/things/model-count', async (req, res) => {
         if (!thing) {
           return res.status(404).json({ error: `Thing with serial_no ${serial_no} not found in Things table` });
         }
-  
+        const adminStockCheck = await client.query(
+          `SELECT * FROM AdminStock WHERE thingId = $1`,
+          [thing.id]
+        );
+        if (adminStockCheck.rows.length === 0) {
+          client.query("ROLLBACK");
+          return res.status(400).json({ error: `Item with serial_no ${serial_no} is not available in AdminStock` });
+        }
+        console.log( entity.id)
         await removeFromAdminStock(thing.id);
         await addToStock(stockTable, thing.id, entity.id, billing_createdby);
   
@@ -596,19 +607,27 @@ dashboard.get('/api/things/model-count', async (req, res) => {
         entity.id,
       ]);
   
-      await client.query("COMMIT");
+      
       // Generate PDF
-    const pdfPath = `./receipt_${receiptNo}.pdf`;
-    await generatePDF(pdfPath, name, receiptNo, TotalAmount, totalPaid, Balance);
+      if(email){
+        // Ensure the receipt directory exists
+         const receiptDir = path.join(__dirname, 'receipt');
+          if (!fs.existsSync(receiptDir)) {
+              fs.mkdirSync(receiptDir);
+              }
+              const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
+        await generatePDF(pdfPath, name, receiptNo, TotalAmount, totalPaid, Balance);
 
-    // Send email with PDF attachment
-    await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
+        // Send email with PDF attachment
+        await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
 
-    // Cleanup generated PDF file
-    if (fs.existsSync(pdfPath)) {
-      fs.unlinkSync(pdfPath);
-    }
-
+       // Cleanup generated PDF file
+        if (fs.existsSync(pdfPath)) {
+        fs.unlinkSync(pdfPath);
+        }
+        console.log("email send")
+      }
+      await client.query("COMMIT");
       return res.status(200).json({
         message: "Billing receipt created successfully",
         entity_id: entity.id,
@@ -1201,7 +1220,68 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
   
-
+  dashboard.get("/api/details", async (req, res) => {
+    const { phone, name, email } = req.query; // Extract search parameters from query string
+    const client = await db.connect();
+  
+    try {
+      // Construct where clauses for search filters
+      let whereClauses = [];
+      let values = [];
+  
+      if (phone) {
+        whereClauses.push(`phone ILIKE $${values.length + 1}`); // ILIKE for case-insensitive matching
+        values.push(`%${phone}%`); // Add phone to the values array
+      }
+  
+      if (name) {
+        whereClauses.push(`name ILIKE $${values.length + 1}`);
+        values.push(`%${name}%`);
+      }
+  
+      if (email) {
+        whereClauses.push(`email ILIKE $${values.length + 1}`);
+        values.push(`%${email}%`);
+      }
+  
+      // If there are search filters, apply them to the queries
+      let queryText = '';
+      if (whereClauses.length > 0) {
+        queryText = `WHERE ${whereClauses.join(' AND ')}`;
+      }
+  
+      // Query for customer details with the search filters (if any)
+      const customerQuery = await client.query(
+        `SELECT * FROM customer_details ${queryText}`, 
+        values
+      );
+      const onlineCustomerQuery = await client.query(
+        `SELECT * FROM onlinecustomer_details ${queryText}`, 
+        values
+      );
+      const dealerQuery = await client.query(
+        `SELECT * FROM dealers_details ${queryText}`, 
+        values
+      );
+  
+      const response = {
+        customers: customerQuery.rows,
+        onlineCustomers: onlineCustomerQuery.rows,
+        dealers: dealerQuery.rows
+      };
+  
+      return res.status(200).json({
+        message: "Details retrieved successfully",
+        data: response
+      });
+    } catch (error) {
+      console.error("Error fetching details:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    } finally {
+      client.release();
+    }
+  });
+  
 
   
   
