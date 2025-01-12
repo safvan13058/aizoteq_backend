@@ -108,4 +108,49 @@ login.post('/logout', async (req, res) => {
     }
 });
 
+// Endpoint to initiate the forgot password process
+login.post('/forgotpassword', async (req, res) => {
+    const { username } = req.body;
+
+    if (!username) {
+        return res.status(400).json({ message: 'Missing required field: username' });
+    }
+
+    const params = {
+        ClientId: process.env.clientId,
+        Username: username,
+        SecretHash: calculateSecretHash(username),
+    };
+
+    try {
+        await cognito.forgotPassword(params).promise();
+        res.status(200).json({ message: 'Password reset initiated. Please check your email for the verification code.' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error during password reset', error: err.message });
+    }
+});
+
+// Endpoint to confirm the new password with the verification code
+login.post('/confirmforgotpassword', async (req, res) => {
+    const { username, verificationCode, newPassword } = req.body;
+
+    if (!username || !verificationCode || !newPassword) {
+        return res.status(400).json({ message: 'Missing required fields' });
+    }
+
+    const params = {
+        ClientId: process.env.clientId,
+        Username: username,
+        ConfirmationCode: verificationCode,
+        Password: newPassword,
+        SecretHash: calculateSecretHash(username),
+    };
+
+    try {
+        await cognito.confirmForgotPassword(params).promise();
+        res.status(200).json({ message: 'Password has been successfully reset.' });
+    } catch (err) {
+        res.status(500).json({ message: 'Error during password confirmation', error: err.message });
+    }
+});
 module.exports = login;

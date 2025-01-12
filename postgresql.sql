@@ -215,14 +215,28 @@ CREATE TABLE NotificationMessages (
     FOREIGN KEY (notificationId) REFERENCES Notifications(id) ON DELETE CASCADE -- Cascade delete if notification is deleted
 );
 -- Create sharedusers table
+-- CREATE TABLE sharedusers (
+--     id SERIAL PRIMARY KEY,                              -- Unique identifier for each record
+--     user_id INT NOT NULL,                               -- Foreign key referencing users table
+--     entity_id INT NOT NULL,                             -- ID of the shared entity
+--     entity_type VARCHAR(255) NOT NULL,                 -- Type of the entity (e.g., document, folder, etc.)
+--     access_type VARCHAR(50) NOT NULL,                  -- Type of access (e.g., read, write, admin, etc.)
+--     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE -- Enforces relationship with users table
+-- );
+
 CREATE TABLE sharedusers (
-    id SERIAL PRIMARY KEY,                              -- Unique identifier for each record
-    user_id INT NOT NULL,                               -- Foreign key referencing users table
-    entity_id INT NOT NULL,                             -- ID of the shared entity
-    entity_type VARCHAR(255) NOT NULL,                 -- Type of the entity (e.g., document, folder, etc.)
-    access_type VARCHAR(50) NOT NULL,                  -- Type of access (e.g., read, write, admin, etc.)
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE -- Enforces relationship with users table
+    id SERIAL PRIMARY KEY,              -- Unique identifier for each share access record
+    user_id INT NOT NULL,               -- Foreign key referencing Users table (user sharing the entity)
+    shared_with_user_email VARCHAR(255), -- The email address of the user being shared with
+    entity_id INT NOT NULL,             -- ID of the shared entity (home, floor, or room)
+    entity_type VARCHAR(50) NOT NULL,   -- The type of entity ('home', 'floor', or 'room')
+    access_type VARCHAR(50) NOT NULL,   -- Access type ('read', 'write', 'admin')
+    status VARCHAR(50) DEFAULT 'pending', -- Status of the sharing request ('pending', 'accepted', 'rejected')
+    shared_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the share was created
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
     id SERIAL PRIMARY KEY, 
@@ -245,10 +259,10 @@ CREATE TABLE customersStock (
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
     CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);    
-    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customer_details(id) -- Foreign key constraint
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) -- Foreign key constraint
 );
 
-CREATE TABLE onlineStock (
+CREATE TABLE onlinecustomerStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
     user_id INT NOT NULL,  
     thing_id INT NOT NULL,            -- Reference to the user ID
@@ -270,12 +284,13 @@ CREATE TABLE onlinecustomer_details (
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
-    paid_amount NUMERIC(10, 2) DEFAULT 0;,               
+    paid_amount NUMERIC(10, 2) DEFAULT 0,               
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
+    refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
 -- Create customer_details table
-CREATE TABLE customer_details (
+CREATE TABLE customers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
     address TEXT NOT NULL,                      -- Address of the customer
@@ -283,8 +298,9 @@ CREATE TABLE customer_details (
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),               -- Total amount associated with the customer
-    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
+    paid_amount NUMERIC(10, 2) DEFAULT 0, 
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
+    refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
 
@@ -297,8 +313,9 @@ CREATE TABLE dealers_details (
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
     total_amount NUMERIC(10, 2),                -- Total amount associated with the dealer
-    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
+    paid_amount NUMERIC(10, 2) DEFAULT 0, 
     balance NUMERIC(10, 2),                     -- Balance amount for the dealer
+    refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
 );
 
@@ -323,13 +340,15 @@ CREATE TABLE billing_receipt (
     email VARCHAR(255) NULL,
     billing_address TEXT NOT NULL,                    -- Billing address
     shipping_address TEXT,                            -- Shipping address (optional)
-    dealer_or_customer VARCHAR(10) NOT NULL, -- Indicates dealer or customer
+    dealer_or_customer VARCHAR(100) NOT NULL, -- Indicates dealer or customer
     total_amount NUMERIC(10, 2) NOT NULL,             -- Total billed amount
+    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
     balance NUMERIC(10, 2),                           -- Remaining balance to be paid
     billing_createdby VARCHAR(255) NOT NULL,  
     dealers_id INT,
     customers_id INT, 
-    onlinecustomers_id INT;       -- Name or ID of the creator
+    onlinecustomer_id INT,      -- Name or ID of the creator
+    type VARCHAR(50);
     datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
     
@@ -362,11 +381,12 @@ CREATE TABLE payment_details (
 CREATE TABLE billing_items (
     id SERIAL PRIMARY KEY,                             -- Unique identifier for each record
     receipt_no VARCHAR(50) NOT NULL,                  -- Foreign key referencing `billing_receipt`
-    item_name VARCHAR(255) NOT NULL,                  -- Name or description of the item
+    item_name VARCHAR(255) NULL,                  -- Name or description of the item
     model VARCHAR(255) NOT NULL,                      -- Model of the item
     mrp NUMERIC(10, 2) NOT NULL,                      -- Maximum Retail Price (MRP)
     serial_no VARCHAR(255) NOT NULL,                  -- Serial number of the item
     retail_price NUMERIC(10, 2) NOT NULL,             -- Retail price of the item
+    type VARCHAR(50);
     FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
 );
 

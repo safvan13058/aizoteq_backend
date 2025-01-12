@@ -34,7 +34,28 @@ homeapp.post( '/app/add/home/',
 
             // Execute the query
             const result = await db.query(query, [name, username, user_id]);
+            
+             // Retrieve the ID of the inserted home
+            const homeId =result.rows[0].id;
 
+             // Insert query for the sharedaccess table
+             const sharedAccessQuery = `
+                 INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+                 VALUES ($1, $2, $3, $4, $5, $6)
+             `;
+ 
+             // Owner's data insertion into sharedaccess table
+             const sharedAccessValues = [
+                 user_id,            // Owner's ID
+                 username,           // Owner's email or username
+                 homeId,             // Home ID
+                 'home',             // Entity type
+                 'admin',            // Access type (Owner gets 'admin' access)
+                 'accepted'          // Status (Automatically accepted for the owner)
+             ];
+ 
+             // Execute the query for sharedaccess
+             await db.query(sharedAccessQuery, sharedAccessValues);
             // Respond with success message and the inserted row ID
             res.status(201).json({
                 message: 'Home added successfully',
@@ -48,40 +69,80 @@ homeapp.post( '/app/add/home/',
 );
 
 //display home
-homeapp.get('/app/display/homes/',
-    // validateJwt,
-    // authorizeRoles('customer'),
-    async (req, res) => {          
-        try {
-            console.log(req.body)
-            console.log(req.query)
+// homeapp.get('/app/display/homes/',
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     async (req, res) => {          
+//         try {
+//             console.log(req.body)
+//             console.log(req.query)
             
-            const userId = req.user?.id ||  req.query.userId; // Get the user_id from the authenticated user
-            // const userId = req.body; // for testing
+//             const userId = req.user?.id ||  req.query.userId; // Get the user_id from the authenticated user
+//             // const userId = req.body; // for testing
 
-            // Query to fetch homes by user_id
-            const query = `
-                SELECT * 
-                FROM home
-                WHERE userid = $1
-            `;
+//             // Query to fetch homes by user_id
+//             const query = `
+//                 SELECT * 
+//                 FROM home
+//                 WHERE userid = $1
+//             `;
 
-            // Execute the query
-            const result = await db.query(query, [userId]);
+//             // Execute the query
+//             const result = await db.query(query, [userId]);
 
-            // If no homes are found, return a 404
-            if (result.rows.length === 0) {
-                return res.status(404).json({ error: 'No homes found for this user' });
-            }
+//             // If no homes are found, return a 404
+//             if (result.rows.length === 0) {
+//                 return res.status(404).json({ error: 'No homes found for this user' });
+//             }
 
-            // Respond with the homes
-            res.status(200).json(result.rows);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'An error occurred while fetching homes' });
+//             // Respond with the homes
+//             res.status(200).json(result.rows);
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).json({ error: 'An error occurred while fetching homes' });
+//         }
+//     }
+// );
+homeapp.get('/app/display/homes/',  async (req, res) => {
+    try {
+        const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
+       
+        if (!userId && !email) {
+            return res.status(400).json({ error: 'User authentication required' });
         }
+
+        // Query to fetch homes accessible to the user via email or user_id
+        const query = `
+            SELECT 
+                h.id AS home_id,
+                h.name AS home_name,
+                sa.access_type AS access_type,
+                sa.status AS share_status
+            FROM sharedaccess sa
+            INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
+            WHERE 
+                (sa.shared_with_user_email = $1 OR sa.user_id = $2)
+                AND sa.status = 'accepted'
+        `;
+
+        // Execute the query with email and user_id
+        const result = await db.query(query, [email, userId]);
+
+        // If no homes are found, return a 404
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'No shared homes found for this user' });
+        }
+
+        // Respond with the list of shared homes
+        res.status(200).json({
+            message: 'Shared homes retrieved successfully',
+            sharedHomes: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching shared homes:', error.message);
+        res.status(500).json({ error: 'An error occurred while fetching shared homes' });
     }
-);
+});
 
 // Update Home
 homeapp.put('/app/update/home/:id',
@@ -238,7 +299,6 @@ homeapp.delete('/app/delete/home/:id',
 //     }
 // );
 
-
 homeapp.post('/app/add/floor/:home_id', 
     async (req, res) => {
         try {
@@ -291,8 +351,22 @@ homeapp.post('/app/add/floor/:home_id',
                 RETURNING id
             `;
             const insertResult = await db.query(insertQuery, [home_id, newFloorName, insertionIndex]);
+             // Step 5: Insert the owner's details into the sharedaccess table
+             const sharedAccessQuery = `
+             INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+             VALUES ($1, $2, $3, $4, $5, $6)
+         `;
+         const sharedAccessValues = [
+             user_id,           // Owner's ID
+             null,              // No email required for the owner
+             floorId,           // Floor ID
+             'floor',           // Entity type
+             'admin',           // Owner gets 'admin' access
+             'accepted'         // Automatically accepted for the owner
+         ];
+         await db.query(sharedAccessQuery, sharedAccessValues);
 
-            // Step 5: Respond with success and the inserted floor details
+            // Step 6: Respond with success and the inserted floor details
             res.status(201).json({
                 message: 'Floor added successfully',
                 floorId: insertResult.rows[0].id,
@@ -590,7 +664,22 @@ homeapp.post('/app/add/room/:floor_id',
         const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
 
         await db.query(userRoomOrderQuery, userRoomOrderValues);
+         // Insert query for sharedaccess table
+         const sharedAccessQuery = `
+         INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+         VALUES ($1, $2, $3, $4, $5, $6)
+     `;
 
+     const sharedAccessValues = [
+         user_id,            // Owner's ID
+         null,               // No email required for the owner
+         roomId,             // Room ID
+         'room',             // Entity type
+         'admin',            // Owner gets 'admin' access
+         'accepted'          // Automatically accepted for the owner
+     ];
+
+     await db.query(sharedAccessQuery, sharedAccessValues);
         // Commit the transaction
         await db.query('COMMIT');
 
@@ -1682,6 +1771,261 @@ homeapp.delete('/api/notifications/:notificationId', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Error deleting notification' });
+    }
+});
+
+// -------------------------
+homeapp.post('/app/share/access', async (req, res) => {
+    try {
+        const { entity_id, entity_type, shared_with_user_email, access_type } = req.body;
+        const user_id = req.user?.id||req.body.userid;
+
+        if (!entity_id || !entity_type || !shared_with_user_email || !access_type) {
+            return res.status(400).json({ error: 'All fields are required' });
+        }
+
+        const query = `
+            INSERT INTO sharedaccess (user_id, entity_id, entity_type, shared_with_user_email, access_type, status) 
+            VALUES ($1, $2, $3, $4, $5, 'pending')
+            RETURNING id
+        `;
+        const result = await db.query(query, [user_id, entity_id, entity_type, shared_with_user_email, access_type]);
+
+        const shareRequestId = result.rows[0].id;
+
+        // Send email notification to the shared user
+        await sendEmailToSharedUser(shared_with_user_email, shareRequestId);
+
+        res.status(201).json({ message: 'Access shared successfully', shareRequestId });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while sharing access' });
+    }
+});
+
+
+homeapp.get('/app/shared/access',  async (req, res) => {
+    try {
+        const { user_id, email } = req.user || req.query; // Retrieve user details from req.user or fallback to req.body
+
+        if (!user_id || !email) {
+            return res.status(400).json({ error: 'User ID and email are required.' });
+        }
+
+        // SQL query to fetch shared access data
+        const query = `
+            SELECT 
+                sa.id AS share_id, 
+                sa.entity_id, 
+                sa.entity_type, 
+                sa.access_type, 
+                sa.status,
+                CASE 
+                    WHEN sa.entity_type = 'home' THEN h.name
+                    WHEN sa.entity_type = 'floor' THEN f.name
+                    WHEN sa.entity_type = 'room' THEN r.name
+                END AS entity_name
+            FROM sharedaccess sa
+            LEFT JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
+            LEFT JOIN floor f ON sa.entity_id = f.id AND sa.entity_type = 'floor'
+            LEFT JOIN room r ON sa.entity_id = r.id AND sa.entity_type = 'room'
+            WHERE sa.shared_with_user_email = $1 OR sa.user_id = $2
+        `;
+
+        // Execute the query
+        const result = await db.query(query, [email, user_id]);
+
+        // Respond with the result
+        res.status(200).json({
+            message: 'Shared access retrieved successfully',
+            sharedAccess: result.rows
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while retrieving shared access.' });
+    }
+});
+
+const sendEmailToSharedUser = async (email, shareRequestId) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USERNAME,
+                pass: process.env.EMAIL_PASSWORD
+            }
+        });
+
+        const info = await transporter.sendMail({
+            from: '"Home App" <your-email@gmail.com>',
+            to: email,
+            subject: 'You have been shared access',
+            text: `You have been shared access to an entity in the Home App. Click the link below to accept or reject the request:\n\n` +
+                  `http://yourapp.com/accept-share/${shareRequestId}`
+        });
+
+        console.log('Email sent: ' + info.response);
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
+};
+
+const path = require('path');
+
+homeapp.get('/accept-share/:shareRequestId', async (req, res) => {
+    try {
+        const shareRequestId = req.params.shareRequestId;
+
+        // Validate the share request ID
+        const query = `
+            SELECT id, entity_id, entity_type, shared_with_user_email, status
+            FROM sharedaccess
+            WHERE id = $1
+        `;
+        const result = await db.query(query, [shareRequestId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).send('Share request not found or invalid.');
+        }
+
+        const shareRequest = result.rows[0];
+
+        if (shareRequest.status !== 'pending') {
+            return res.send('This share request has already been processed.');
+        }
+
+        // Render the HTML form with the share request details
+        res.sendFile(path.join(__dirname, 'acceptShare.html')); // Serve your HTML form file
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('An error occurred while loading the page.');
+    }
+});
+
+homeapp.post('/app/revoke/access',async (req, res) => {
+    try {
+        const { share_id } = req.body; // The ID of the shared access record to revoke
+        const user_id = req.user?.id||req.body.userid; // The ID of the user performing the action
+
+        // Validate input
+        if (!share_id) {
+            return res.status(400).json({ error: 'Share ID is required.' });
+        }
+
+        // Verify that the user has `admin` access for the shared access record
+        const verifyQuery = `
+            SELECT sa.id, sa.access_type
+            FROM sharedaccess sa
+            WHERE sa.id = $1 AND sa.user_id = $2 AND sa.access_type = 'admin'
+        `;
+
+        const verifyResult = await db.query(verifyQuery, [share_id, user_id]);
+
+        if (verifyResult.rowCount === 0) {
+            return res.status(403).json({ error: 'You do not have admin permissions to revoke this access.' });
+        }
+
+        // Update the shared access status to "revoked"
+        const revokeQuery = `
+            UPDATE sharedaccess
+            SET status = 'revoked'
+            WHERE id = $1
+        `;
+
+        await db.query(revokeQuery, [share_id]);
+
+        res.status(200).json({
+            message: 'Access revoked successfully.',
+            share_id: share_id
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while revoking access.' });
+    }
+});
+
+homeapp.delete('/app/shared/access/:shareId', validateJwt, async (req, res) => {
+    try {
+        const { id: userId} = req.user||req.body; // Get user details from the authenticated user
+        const { shareId } = req.params; // Get the shareId from the URL parameter
+
+        if (!shareId) {
+            return res.status(400).json({ error: 'Share ID is required' });
+        }
+
+        // Check if the shared access exists and if the user has admin privileges
+        const checkQuery = `
+            SELECT sa.user_id, sa.access_type
+            FROM sharedaccess sa
+            WHERE sa.id = $1
+        `;
+        const checkResult = await db.query(checkQuery, [shareId]);
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Shared access record not found' });
+        }
+
+        const accessRecord = checkResult.rows[0];
+
+        // Validate permissions: Only users with admin access can delete
+        if (accessRecord.user_id !== userId || accessRecord.access_type !== 'admin') {
+            return res.status(403).json({ error: 'You do not have permission to delete this access' });
+        }
+
+        // Delete the shared access
+        const deleteQuery = `
+            DELETE FROM sharedaccess
+            WHERE id = $1
+        `;
+        await db.query(deleteQuery, [shareId]);
+
+        res.status(200).json({ message: 'Shared access deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting shared access:', error.message);
+        res.status(500).json({ error: 'An error occurred while deleting shared access' });
+    }
+});
+
+homeapp.post('/app/update/access/status', async (req, res) => {
+    try {
+        const { share_id, new_status } = req.body; // The ID of the shared access record and the new status
+        const user_id = req.user?.id || req.body.userid; // The ID of the user performing the action
+
+        // Validate input
+        if (!share_id || !new_status) {
+            return res.status(400).json({ error: 'Share ID and new status are required.' });
+        }
+
+        // Verify that the user has `admin` access for the shared access record
+        const verifyQuery = `
+            SELECT sa.id, sa.access_type
+            FROM sharedaccess sa
+            WHERE sa.id = $1 AND sa.user_id = $2 AND sa.access_type = 'admin'
+        `;
+
+        const verifyResult = await db.query(verifyQuery, [share_id, user_id]);
+
+        if (verifyResult.rowCount === 0) {
+            return res.status(403).json({ error: 'You do not have admin permissions to update the status of this access.' });
+        }
+
+        // Update the shared access status
+        const updateQuery = `
+            UPDATE sharedaccess
+            SET status = $1
+            WHERE id = $2
+        `;
+
+        await db.query(updateQuery, [new_status, share_id]);
+
+        res.status(200).json({
+            message: 'Access status updated successfully.',
+            share_id: share_id,
+            new_status: new_status
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while updating the access status.' });
     }
 });
 

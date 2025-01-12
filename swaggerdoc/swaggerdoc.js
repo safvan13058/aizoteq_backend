@@ -4395,7 +4395,8 @@ const Swaggerdoc = {
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "example":" Access for the specified thing removed successfully"
                     }
                   }
                 }
@@ -4410,7 +4411,8 @@ const Swaggerdoc = {
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "example":"No access found for the specified thing in the room"
                     }
                   }
                 }
@@ -4425,7 +4427,8 @@ const Swaggerdoc = {
                   "type": "object",
                   "properties": {
                     "message": {
-                      "type": "string"
+                      "type": "string",
+                      "example":"Internal server error"
                     }
                   }
                 }
@@ -5828,8 +5831,132 @@ const Swaggerdoc = {
       }
     },
 
-};
-  
+    "/forgotpassword": {
+      "post": {
+        "summary": "Initiate password reset",
+        "description": "Sends a verification code to the user's email to initiate the password reset process.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "exampleuser"
+                  }
+                },
+                "required": ["username"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset initiated successfully.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Password reset initiated. Please check your email for the verification code."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Missing required field: username"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Error during password reset",
+                  "error": "Detailed error message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/confirmforgotpassword": {
+      "post": {
+        "summary": "Confirm password reset",
+        "description": "Confirms the password reset using the verification code and sets a new password.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "example": "exampleuser"
+                  },
+                  "verificationCode": {
+                    "type": "string",
+                    "example": "123456"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "example": "NewStrongPassword123!"
+                  }
+                },
+                "required": ["username", "verificationCode", "newPassword"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successfully.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Password has been successfully reset."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Missing required fields"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Error during password confirmation",
+                  "error": "Detailed error message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 
-  module.exports = Swaggerdoc;
+
+};
+
+
+module.exports = Swaggerdoc;
   
