@@ -33,7 +33,34 @@ const fs = require("fs");
  * @param {number} balance - Remaining balance.
  * @returns {Promise<string>} - The path to the generated PDF file.
  */
-async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, balance) {
+// async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, balance) {
+//   return new Promise((resolve, reject) => {
+//     try {
+//       const doc = new PDFDocument();
+//       const writeStream = fs.createWriteStream(filePath);
+
+//       doc.pipe(writeStream);
+
+//       // Add content to the PDF
+//       doc.fontSize(20).text("Billing Receipt", { align: "center" });
+//       doc.moveDown();
+//       doc.fontSize(12).text(`Receipt No: ${receiptNo}`);
+//       doc.text(`Name: ${name}`);
+//       doc.text(`Total Amount: $${totalAmount}`);
+//       doc.text(`Total Paid: $${totalPaid}`);
+//       doc.text(`Balance: $${balance}`);
+//       doc.text("\nThank you for your business!", { align: "center" });
+
+//       doc.end();
+
+//       writeStream.on("finish", () => resolve(filePath));
+//       writeStream.on("error", reject);
+//     } catch (error) {
+//       reject(error);
+//     }
+//   });
+// }
+async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, balance, billingItems) {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument();
@@ -41,15 +68,44 @@ async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, ba
 
       doc.pipe(writeStream);
 
-      // Add content to the PDF
+      // Header
       doc.fontSize(20).text("Billing Receipt", { align: "center" });
       doc.moveDown();
+
+      // Receipt and Customer Details
       doc.fontSize(12).text(`Receipt No: ${receiptNo}`);
-      doc.text(`Name: ${name}`);
-      doc.text(`Total Amount: $${totalAmount}`);
-      doc.text(`Total Paid: $${totalPaid}`);
-      doc.text(`Balance: $${balance}`);
-      doc.text("\nThank you for your business!", { align: "center" });
+      doc.text(`Customer Name: ${name}`);
+      doc.text(`Total Amount: $${totalAmount.toFixed(2)}`);
+      doc.text(`Total Paid: $${totalPaid.toFixed(2)}`);
+      doc.text(`Balance: $${balance.toFixed(2)}`);
+      doc.moveDown();
+
+      // Product Details Header
+      doc.fontSize(14).text("Product Details:", { underline: true });
+      doc.moveDown(0.5);
+
+      // Table Header
+      doc.fontSize(12)
+        .text("Item Name", { continued: true, width: 200 })
+        .text("Model", { continued: true, align: "center", width: 150 })
+        .text("Serial No", { continued: true, align: "center", width: 150 })
+        .text("Price", { align: "right", width: 100 });
+      doc.moveDown(0.5);
+
+      // Product Details Table
+      billingItems.forEach((item) => {
+        const retailPrice = parseFloat(item.retail_price) || 0; // Convert to number, fallback to 0 if invalid
+        doc.text(item.item_name || "N/A", { continued: true, width: 200 })
+          .text(item.model || "N/A", { continued: true, align: "center", width: 150 })
+          .text(item.serial_no || "N/A", { continued: true, align: "center", width: 150 })
+          .text(`$${retailPrice.toFixed(2)}`, { align: "right", width: 100 });
+        doc.moveDown(0.5);
+      });
+
+      doc.moveDown();
+
+      // Footer
+      doc.text("Thank you for your business!", { align: "center" });
 
       doc.end();
 
@@ -60,6 +116,7 @@ async function generatePDF(filePath, name, receiptNo, totalAmount, totalPaid, ba
     }
   });
 }
+
 
 const nodemailer = require("nodemailer");
 

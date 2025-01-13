@@ -4,6 +4,7 @@ CREATE TABLE Users (
     userName VARCHAR(255) NOT NULL,
     jwtsub VARCHAR(255) UNIQUE,
     userRole VARCHAR(255),
+    name VARCHAR(255),
     profilePic TEXT,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -333,7 +334,8 @@ CREATE TABLE price_table (
 
 -- Create billing_receipt
 CREATE TABLE billing_receipt (
-    id SERIAL PRIMARY KEY,                             -- Unique identifier for each record
+    id SERIAL PRIMARY KEY, 
+    session_id INT NOT NULL REFERENCES billing_session(id), 
     receipt_no VARCHAR(50) NOT NULL UNIQUE,           -- Receipt number
     name VARCHAR(255) NOT NULL,                       -- Customer or dealer name
     phone VARCHAR(15) NOT NULL,                       -- Primary phone number
@@ -343,12 +345,14 @@ CREATE TABLE billing_receipt (
     dealer_or_customer VARCHAR(100) NOT NULL, -- Indicates dealer or customer
     total_amount NUMERIC(10, 2) NOT NULL,             -- Total billed amount
     paid_amount NUMERIC(10, 2) DEFAULT 0;, 
-    balance NUMERIC(10, 2),                           -- Remaining balance to be paid
+    balance NUMERIC(10, 2),                   -- Remaining balance to be paid
+    discount NUMERIC(10, 2),  
+    payable_amount NUMERIC(10, 2),               
     billing_createdby VARCHAR(255) NOT NULL,  
     dealers_id INT,
     customers_id INT, 
     onlinecustomer_id INT,      -- Name or ID of the creator
-    type VARCHAR(50);
+    type VARCHAR(50),
     datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
     
@@ -397,4 +401,34 @@ CREATE TABLE thing_warranty (
     date DATE DEFAULT CURRENT_DATE,             -- Date when the warranty starts (default: current date)
     due_date DATE NOT NULL,                     -- Warranty expiration date
     FOREIGN KEY (receipt_id) REFERENCES billing_receipt(id) ON DELETE CASCADE
+);
+
+--  Table: billing_session
+CREATE TABLE billing_session (
+    id SERIAL PRIMARY KEY,
+    session_date DATE NOT NULL DEFAULT CURRENT_DATE,  -- Date of session
+    opened_by VARCHAR(255) NOT NULL,                 -- User who opened
+    opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- Opening timestamp
+    closed_by VARCHAR(255),                          -- User who closed
+    closed_at TIMESTAMP,                             -- Closing timestamp
+    status VARCHAR(20) NOT NULL DEFAULT 'open',      -- Session status
+    total_cash NUMERIC(10, 2) DEFAULT 0,             -- Total cash collected in session
+    total_bank NUMERIC(10, 2) DEFAULT 0,             -- Total bank payments collected
+    total_online NUMERIC(10, 2) DEFAULT 0,           -- Total online payments collected
+    total_sales NUMERIC(10, 2) DEFAULT 0             -- Total sales for the session
+);
+
+CREATE TABLE daily_report (
+    id SERIAL PRIMARY KEY,                       -- Unique identifier for the report
+    session_id INT NOT NULL,                     -- Links to the session in `billing_session`
+    total_transactions INT DEFAULT 0,           -- Total number of transactions in the session
+    total_sales NUMERIC(10, 2) DEFAULT 0,       -- Total sales amount
+    total_discount NUMERIC(10, 2) DEFAULT 0,    -- Total discount given
+    total_paid NUMERIC(10, 2) DEFAULT 0,        -- Total amount paid
+    total_cash NUMERIC(10, 2) DEFAULT 0,        -- Total cash collected
+    total_bank NUMERIC(10, 2) DEFAULT 0,        -- Total bank payments collected
+    total_online NUMERIC(10, 2) DEFAULT 0,      -- Total online payments collected
+    report_date DATE DEFAULT CURRENT_DATE,      -- Date of the report
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the report was created
+    FOREIGN KEY (session_id) REFERENCES billing_session(id) ON DELETE CASCADE -- Links to `billing_session`
 );
