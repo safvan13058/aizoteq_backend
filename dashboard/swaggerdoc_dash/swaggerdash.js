@@ -1,5 +1,5 @@
 const Swaggerdoc = {
-    "/api/users/count": {
+    "/dashboard/api/users/count": {
         "get": {
           "summary": "Count users",
           "description": "Retrieve the total number of users in the system.",
@@ -39,7 +39,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/users/graph": {
+      "/dashboard/api/users/graph": {
         "get": {
           "summary": "User graph data",
           "description": "Retrieve user data grouped by day or month.",
@@ -123,7 +123,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/display/things": {
+      "/dashboard/api/display/things": {
         "get": {
           "summary": "Display items",
           "description": "Retrieve a paginated list of items from the stock, optionally filtered by serial number.",
@@ -251,7 +251,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/things/count": {
+      "/dashboard/api/things/count": {
       "get": {
         "summary": "Get total count of things",
         "description": "Retrieve the total number of things in the system.",
@@ -291,7 +291,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/things/model-count": {
+    "/dashboard/api/things/model-count": {
       "get": {
         "summary": "Get count of things grouped by model",
         "description": "Retrieve the count of things grouped by model, sorted by count in descending order and then by model name in ascending order.",
@@ -347,7 +347,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/users/{id}/role": {
+    "/dashboard/api/users/{id}/role": {
         "put": {
           "summary": "Update user role",
           "description": "Update the role of a user by their ID.",
@@ -447,7 +447,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/users/{role}": {
+      "/dashboard/api/users/{role}": {
         "get": {
           "summary": "Get users by role",
           "description": "Retrieve all users with a specific role, with optional search.",
@@ -533,7 +533,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/recent-bills": {
+      "/dashboard/api/recent-bills": {
       "get": {
         "summary": "Get recent bills",
         "description": "Retrieve a list of recent billing details, with an option to search by customer name, phone, or receipt number.",
@@ -620,7 +620,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/warranties": {
+    "/dashboard/warranties": {
         "get": {
           "summary": "Get warranty details",
           "description": "Retrieve warranty details with optional search and sorting.",
@@ -693,7 +693,7 @@ const Swaggerdoc = {
           }
         }
       },
-      "/api/create/account/for/{Party}": {
+      "/dashboard/api/create/account/for/{Party}": {
       "post": {
         "summary": "Create a new account for a Party",
         "description": "Insert data into the specified Party's table (e.g., dealers, customers).",
@@ -773,7 +773,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/display/party/{Party}": {
+    "/dashboard/api/display/party/{Party}": {
       "get": {
         "summary": "Retrieve account details for a Party",
         "description": "Fetch account details for a Party, optionally filtered by a search query.",
@@ -845,7 +845,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/delete/account/for/{Party}/{id}": {
+    "/dashboard/api/delete/account/for/{Party}/{id}": {
       "delete": {
         "summary": "Delete an account for a Party",
         "description": "Delete a specific account from a Party's table by ID.",
@@ -929,7 +929,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/update/account/for/{Party}/{id}": {
+    "/dashboard/api/update/account/for/{Party}/{id}": {
       "put": {
         "summary": "Update account details for a Party",
         "description": "Update specific details of an account for a Party by ID.",
@@ -1030,7 +1030,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/create/price_table": {
+    "/dashboard/api/create/price_table": {
       "post": {
         "summary": "Create a new price entry",
         "description": "Insert a new entry into the price_table.",
@@ -1080,7 +1080,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/display/prices-table": {
+    "/dashboard/api/display/prices-table": {
       "get": {
         "summary": "Get all price entries",
         "description": "Retrieve all entries from the price_table.",
@@ -1114,7 +1114,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/display/single/price_table/{id}": {
+    "/dashboard/api/display/single/price_table/{id}": {
       "get": {
         "summary": "Get a single price entry",
         "description": "Retrieve a specific price entry by ID.",
@@ -1169,7 +1169,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/update/price_table/{id}": {
+    "/dashboard/api/update/price_table/{id}": {
       "put": {
         "summary": "Update a price entry",
         "description": "Update an existing price entry by ID.",
@@ -1242,7 +1242,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/api/delete/price_table/{id}": {
+    "/dashboard/api/delete/price_table/{id}": {
       "delete": {
         "summary": "Delete a price entry",
         "description": "Delete a specific price entry by ID.",
