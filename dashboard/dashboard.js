@@ -2653,7 +2653,7 @@ dashboard.post('/api/create/price_table', async (req, res) => {
 });
 
 // Read all entries from the price_table
-dashboard.get('/api/diaplay/prices-table', async (req, res) => {
+dashboard.get('/api/display/prices-table', async (req, res) => {
   try {
     const result = await db.query('SELECT * FROM price_table');
     res.status(200).json(result.rows);
