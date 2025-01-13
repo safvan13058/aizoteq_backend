@@ -1167,7 +1167,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
    
-  
+
   dashboard.post("/api/billing/return/:status", async (req, res) => {
     const { serial_numbers, returned_by } = req.body;
     const { status } = req.params;
@@ -2532,7 +2532,7 @@ dashboard.get('/api/users/:role', async (req, res) => {
   }
   }); 
 //Api to display
-  dashboard.get('/api/display/:Party', async (req, res) => {
+  dashboard.get('/api/display/party/:Party', async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
   
