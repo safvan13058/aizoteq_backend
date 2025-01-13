@@ -69,80 +69,80 @@ homeapp.post( '/app/add/home/',
 );
 
 //display home
-// homeapp.get('/app/display/homes/',
-//     // validateJwt,
-//     // authorizeRoles('customer'),
-//     async (req, res) => {          
-//         try {
-//             console.log(req.body)
-//             console.log(req.query)
+homeapp.get('/app/display/homes/',
+    // validateJwt,
+    // authorizeRoles('customer'),
+    async (req, res) => {          
+        try {
+            console.log(req.body)
+            console.log(req.query)
             
-//             const userId = req.user?.id ||  req.query.userId; // Get the user_id from the authenticated user
-//             // const userId = req.body; // for testing
+            const userId = req.user?.id ||  req.query.userId; // Get the user_id from the authenticated user
+            // const userId = req.body; // for testing
 
-//             // Query to fetch homes by user_id
-//             const query = `
-//                 SELECT * 
-//                 FROM home
-//                 WHERE userid = $1
-//             `;
+            // Query to fetch homes by user_id
+            const query = `
+                SELECT * 
+                FROM home
+                WHERE userid = $1
+            `;
 
-//             // Execute the query
-//             const result = await db.query(query, [userId]);
+            // Execute the query
+            const result = await db.query(query, [userId]);
 
-//             // If no homes are found, return a 404
-//             if (result.rows.length === 0) {
-//                 return res.status(404).json({ error: 'No homes found for this user' });
-//             }
+            // If no homes are found, return a 404
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'No homes found for this user' });
+            }
 
-//             // Respond with the homes
-//             res.status(200).json(result.rows);
-//         } catch (error) {
-//             console.error(error);
-//             res.status(500).json({ error: 'An error occurred while fetching homes' });
-//         }
-//     }
-// );
-homeapp.get('/app/display/homes/',  async (req, res) => {
-    try {
-        const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
-       
-        if (!userId && !email) {
-            return res.status(400).json({ error: 'User authentication required' });
+            // Respond with the homes
+            res.status(200).json(result.rows);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while fetching homes' });
         }
-
-        // Query to fetch homes accessible to the user via email or user_id
-        const query = `
-            SELECT 
-                h.id AS home_id,
-                h.name AS home_name,
-                sa.access_type AS access_type,
-                sa.status AS share_status
-            FROM sharedaccess sa
-            INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
-            WHERE 
-                (sa.shared_with_user_email = $1 OR sa.user_id = $2)
-                AND sa.status = 'accepted'
-        `;
-
-        // Execute the query with email and user_id
-        const result = await db.query(query, [email, userId]);
-
-        // If no homes are found, return a 404
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'No shared homes found for this user' });
-        }
-
-        // Respond with the list of shared homes
-        res.status(200).json({
-            message: 'Shared homes retrieved successfully',
-            sharedHomes: result.rows
-        });
-    } catch (error) {
-        console.error('Error fetching shared homes:', error.message);
-        res.status(500).json({ error: 'An error occurred while fetching shared homes' });
     }
-});
+);
+// homeapp.get('/app/display/homes/',  async (req, res) => {
+//     try {
+//         const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
+       
+//         if (!userId && !email) {
+//             return res.status(400).json({ error: 'User authentication required' });
+//         }
+
+//         // Query to fetch homes accessible to the user via email or user_id
+//         const query = `
+//             SELECT 
+//                 h.id AS home_id,
+//                 h.name AS home_name,
+//                 sa.access_type AS access_type,
+//                 sa.status AS share_status
+//             FROM sharedaccess sa
+//             INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
+//             WHERE 
+//                 (sa.shared_with_user_email = $1 OR sa.user_id = $2)
+//                 AND sa.status = 'accepted'
+//         `;
+
+//         // Execute the query with email and user_id
+//         const result = await db.query(query, [email, userId]);
+
+//         // If no homes are found, return a 404
+//         if (result.rows.length === 0) {
+//             return res.status(404).json({ error: 'No shared homes found for this user' });
+//         }
+
+//         // Respond with the list of shared homes
+//         res.status(200).json({
+//             message: 'Shared homes retrieved successfully',
+//             sharedHomes: result.rows
+//         });
+//     } catch (error) {
+//         console.error('Error fetching shared homes:', error.message);
+//         res.status(500).json({ error: 'An error occurred while fetching shared homes' });
+//     }
+// });
 
 // Update Home
 homeapp.put('/app/update/home/:id',
@@ -1944,7 +1944,7 @@ homeapp.post('/app/revoke/access',async (req, res) => {
     }
 });
 
-homeapp.delete('/app/shared/access/:shareId', validateJwt, async (req, res) => {
+homeapp.delete('/app/shared/access/:shareId', async (req, res) => {
     try {
         const { id: userId} = req.user||req.body; // Get user details from the authenticated user
         const { shareId } = req.params; // Get the shareId from the URL parameter
