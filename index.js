@@ -34,6 +34,8 @@ app.use(cors({
 const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
+const { swaggerU, spec } = require("../aizoteq_backend/dashboard/swaggerdoc_dash/swagger.js");
+app.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 
 
 const PORT = process.env.PORT || 3000;
