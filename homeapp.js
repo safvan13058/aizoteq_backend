@@ -1717,7 +1717,7 @@ homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
 
 homeapp.get("/api/display/user", async (req, res) => {
     const userId = req.user?.id || req.query.userid;
-    const fetchUserQuery = "SELECT  userName,userRole,profilePic FROM Users WHERE id = $1";
+    const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
   
     try {
       const result = await db.query(fetchUserQuery, [userId]);
