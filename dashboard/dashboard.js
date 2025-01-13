@@ -948,6 +948,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       alt_phone,
       email,
       items,
+      discount,
       payment_methods,
       billing_createdby,
     } = req.body;
@@ -1071,7 +1072,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
         totalPaid += parsedAmount;
       }
   
-      const calculatedBalance = parseFloat(totalAmount) - parseFloat(totalPaid);
+      const calculatedBalance = parseFloat(totalAmount)-parseFloat(discount)- parseFloat(totalPaid);
   
       const billingReceiptResult = await client.query(
         `INSERT INTO billing_receipt 
@@ -1091,6 +1092,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
           billing_createdby,
           entity.id,
           "sold",
+          discount,
         ]
       );
   
@@ -1165,6 +1167,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
    
+  
   dashboard.post("/api/billing/return/:status", async (req, res) => {
     const { serial_numbers, returned_by } = req.body;
     const { status } = req.params;
@@ -2527,7 +2530,47 @@ dashboard.get('/api/users/:role', async (req, res) => {
     console.error('Error inserting data:', error);
     res.status(500).json({ error: 'An error occurred while inserting dealer data.' });
   }
+  }); 
+//Api to display
+  dashboard.get('/api/display/:Party', async (req, res) => {
+    const { Party } = req.params; // Get the table name from route parameters
+    const { query } = req.query; // Get search query from query parameters (optional)
+  
+    // Validate the Party parameter
+    const validParties = ['onlinecustomer', 'customers', 'dealers'];
+    if (!validParties.includes(Party)) {
+      return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
+    }
+  
+    try {
+      // Construct the table name dynamically
+      const tableName = `${Party}_details`;
+  
+      // SQL query for fetching data
+      let sql = `SELECT * FROM ${tableName}`;
+      const values = [];
+  
+      // Add search functionality if a query is provided
+      if (query) {
+        sql += ` WHERE name ILIKE $1 OR address ILIKE $1 OR phone ILIKE $1`;
+        values.push(`%${query}%`); // Case-insensitive matching
+      }
+  
+      const client = await db.connect();
+      const result = await client.query(sql, values);
+      client.release();
+  
+      // Respond with the fetched data
+      res.status(200).json({
+        message: `Data retrieved successfully from ${tableName}.`,
+        data: result.rows,
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      res.status(500).json({ error: 'An error occurred while fetching data.' });
+    }
   });
+  
   //delete account 
   dashboard.delete('/api/delete/account/for/:Party/:id', async (req, res) => {
     const { Party, id } = req.params;
