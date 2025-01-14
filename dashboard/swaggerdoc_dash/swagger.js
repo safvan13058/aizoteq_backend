@@ -1,5 +1,5 @@
 const swaggerU = require("swagger-ui-express");
-const Swaggerdoc = require("./swaggerdash");
+const doc = require("./swaggerdash");
 
 const options = {
   openapi: "3.0.0",
@@ -13,7 +13,7 @@ const options = {
       url: "http://13.200.215.17:3000/",
     },
   ],
-  paths: Swaggerdoc, // Directly assign Swaggerdoc to paths
+  paths: doc, // Directly assign Swaggerdoc to paths
 };
 
 module.exports = {

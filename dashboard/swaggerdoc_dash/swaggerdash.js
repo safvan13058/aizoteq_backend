@@ -1,4 +1,4 @@
-const Swaggerdoc = {
+const doc = {
     "/dashboard/api/users/count": {
         "get": {
           "summary": "Count users",
@@ -1305,4 +1305,4 @@ const Swaggerdoc = {
  
 
 
-module.exports = Swaggerdoc;
+module.exports = doc;
