@@ -13,9 +13,7 @@ const options = {
       url: "http://13.200.215.17:3000/",
     },
   ],
-  paths: {
-    ... Swaggerdoc, // Merge external Swagger paths
-  },
+  paths: Swaggerdoc, // Directly assign Swaggerdoc to paths
 };
 
 module.exports = {
