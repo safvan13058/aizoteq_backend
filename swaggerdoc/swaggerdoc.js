@@ -4440,12 +4440,9 @@ const Swaggerdoc = {
 // },
 "/api/remove/access/{roomid}/{thingid}": {
       "delete": {
-        "tags": ["Access"],
         "summary": "Remove user access to a device in a room",
         "operationId": "removeAccess",
-        "tags": [
-          "Access Management"
-        ],
+        "tags": ["Access" ],
         "parameters": [
           {
             "name": "roomid",
