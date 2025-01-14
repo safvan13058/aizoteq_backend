@@ -23,7 +23,6 @@ app.get('/',(req,res)=>{
     res.send('working EC2 ')
 });
 
-
 const cors = require('cors');
 app.use(cors({
     origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500','http://localhost:3000'], // Allow all origins
@@ -34,8 +33,8 @@ app.use(cors({
 const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
-// const { swaggerU, spec } = require("../aizoteq_backend/dashboard/swaggerdoc_dash/swagger.js");
-// app.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
+const { swaggerU, spec } = require("../aizoteq_backend/dashboard/swaggerdoc_dash/swagger.js");
+app.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 
 
 const PORT = process.env.PORT || 3000;
