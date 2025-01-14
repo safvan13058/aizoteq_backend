@@ -23,7 +23,7 @@ dashboard.get('/api/users/count', async (req, res) => {
 });
 //api for user graph
 dashboard.get("/api/users/graph", async (req, res) => {
-  const { groupBy } = req.query; // Accept 'day' or 'month' as a query parameter
+  const { groupBy } = req.query;  // Accept 'day' or 'month' as a query parameter
 
   if (!["day", "month"].includes(groupBy)) {
     return res.status(400).json({ error: "Invalid groupBy value. Use 'day' or 'month'." });
@@ -161,7 +161,6 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 });
 
 // Unified Route: Create Entity, Process Things, and Billing Receipt
- 
   dashboard.post("/api/billing/create", async (req, res) => {
     const {
       sessionid,
@@ -189,6 +188,9 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       !billing_createdby
     ) {
       return res.status(400).json({ error: "Required fields are missing or invalid" });
+    }
+    if(!sessionid){
+
     }
   
     const entityTable = `${type}_details`;
@@ -359,8 +361,18 @@ dashboard.get('/api/things/model-count', async (req, res) => {
           fs.mkdirSync(receiptDir);
         }
         const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
-        await generatePDF(pdfPath, name, receiptno, discountedTotal, totalPaid, balance, billingItems);
-      
+        await generatePDF(pdfPath, {
+           receiptNo: receiptno,
+           date: new Date().toLocaleDateString(),
+           name,
+           phone,
+           items: billingItems,
+           totalAmount,
+           payableAmount,
+           discount: discountValue,
+           paidAmount: totalPaid,
+           balance,
+         });
         await sendEmailWithAttachment(email, name, receiptno, pdfPath);
       
         if (fs.existsSync(pdfPath)) {
@@ -388,6 +400,8 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
   });
 
+
+  
   dashboard.post("/api/billing/return/:status", async (req, res) => {
     const { serial_numbers, returned_by } = req.body;
     const { status } = req.params;

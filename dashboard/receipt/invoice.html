@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border: 1px solid #ddd;
+      margin: auto;
+      width: 700px;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table th, table td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    table th {
+      background: #f4f4f4;
+    }
+    .summary {
+      margin-top: 20px;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Invoice #{{receiptNo}}</h1>
+    <p><strong>Date:</strong> {{date}}</p>
+    <p><strong>Name:</strong> {{name}}</p>
+    <p><strong>Phone:</strong> {{phone}}</p>
+
+    <h2>Billing Items</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Item</th>
+          <th>Model</th>
+          <th>Serial No</th>
+          <th>Price</th>
+          <th>MRP</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each items}}
+        <tr>
+          <td>{{@index}}</td>
+          <td>{{item_name}}</td>
+          <td>{{model}}</td>
+          <td>{{serial_no}}</td>
+          <td>{{retail_price}}</td>
+          <td>{{mrp}}</td>
+        </tr>
+        {{/each}}
+      </tbody>
+    </table>
+
+    <div class="summary">
+      <p><strong>Total Amount:</strong> {{totalAmount}}</p>
+      <p><strong>Discount:</strong> {{discount}}</p>
+      <p><strong>Paid Amount:</strong> {{paidAmount}}</p>
+      <p><strong>Balance:</strong> {{balance}}</p>
+    </div>
+  </div>
+</body>
+</html>
