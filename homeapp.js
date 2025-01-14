@@ -104,6 +104,7 @@ homeapp.get('/app/display/homes/',
     }
 );
 
+
 // homeapp.get('/app/display/homes/',  async (req, res) => {
 //     try {
 //         const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
@@ -146,6 +147,7 @@ homeapp.get('/app/display/homes/',
 // });
 
 // Update Home
+
 
 homeapp.put('/app/update/home/:id',
     // validateJwt,
