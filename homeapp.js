@@ -1047,6 +1047,7 @@ homeapp.post('/api/access/customer/:roomid',
 //         client.release(); // Release the client back to the database pool
 //     }
 // });
+
 homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
     const client = await db.connect(); // Get a client from the database pool
     
@@ -1118,7 +1119,6 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
         client.release();
     }
 });
-
 
 //reorder devices in an room
 homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
