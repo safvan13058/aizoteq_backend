@@ -2049,6 +2049,7 @@ if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
 dashboard.delete('/api/delete/price_table/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    console.log("working delete")
     const result = await db.query('DELETE FROM price_table WHERE id = $1 RETURNING *', [id]);
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'Price entry not found' });
@@ -2183,6 +2184,7 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
   }
 });
 
+
 // 1. Open Billing Session
 dashboard.post('/open-session', async (req, res) => {
   const { opened_by } = req.body;
@@ -2208,14 +2210,27 @@ dashboard.post('/close-session', async (req, res) => {
 
   const client = await db.connect();
   try {
-     // Validate if session exists and is open
-     const sessionValidation = await isSessionOpen(session_id, client);
-     if (!sessionValidation.isValid && sessionValidation.message === "Session does not exist.") {
-         return res.status(404).json({ error: sessionValidation.message });
-     }
-     if (!sessionValidation.isValid) {
-         return res.status(400).json({ error: sessionValidation.message });
-     }
+      // Validate if session exists and is open
+      const sessionValidation = await isSessionOpen(session_id, client);
+      if (!sessionValidation.isValid && sessionValidation.message === "Session does not exist.") {
+          return res.status(404).json({ error: sessionValidation.message });
+      }
+      if (!sessionValidation.isValid) {
+          return res.status(400).json({ error: sessionValidation.message });
+      }
+
+      // Retrieve session opening time
+      const sessionDetails = await client.query(
+          `SELECT opened_at,opened_by FROM billing_session WHERE id = $1`,
+          [session_id]
+      );
+
+      if (sessionDetails.rows.length === 0) {
+          return res.status(404).json({ error: "Session not found" });
+      }
+
+      const { opened_at,opened_by } = sessionDetails.rows[0];
+
       // Calculate session summary
       const summary = await client.query(
           `SELECT COUNT(*) AS total_transactions, 
@@ -2267,7 +2282,36 @@ dashboard.post('/close-session', async (req, res) => {
           ]
       );
 
-      res.status(200).json({ message: 'Session closed successfully', report: report.rows[0] });
+      // Generate PDF report
+      const doc = new PDFDocument();
+      const pdfPath = path.resolve(__dirname, `session_${session_id}_report.pdf`);
+      const writeStream = fs.createWriteStream(pdfPath);
+
+      doc.pipe(writeStream);
+      doc.fontSize(16).text('Session Report', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Session ID: ${session_id}`);
+      doc.text(`Opened At: ${new Date(opened_at).toLocaleString()}`);
+      doc.text(`opened By: ${opened_by}`);
+      doc.text(`Closed By: ${closed_by}`);
+      doc.text(`Total Transactions: ${total_transactions}`);
+      doc.text(`Total Sales: $${total_sales}`);
+      doc.text(`Total Discount: $${total_discount}`);
+      doc.text(`Total Paid: $${total_paid}`);
+      doc.text(`Total Cash: $${total_cash}`);
+      doc.text(`Total Bank: $${total_bank}`);
+      doc.text(`Total Online: $${total_online}`);
+      doc.text(`Closed At: ${new Date().toLocaleString()}`);
+      doc.end();
+
+      writeStream.on('finish', () => {
+          res.status(200).json({
+              message: 'Session closed successfully',
+              report: report.rows[0],
+              pdfPath: `/downloads/session_${session_id}_report.pdf`,
+          });
+      });
+
   } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
@@ -2372,6 +2416,101 @@ dashboard.get('/api/sales', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch sales data' });
   }
 });
+//API to raw_materials
+// API to create a new raw material
+dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, res) => {
+  const { name, category, value, reference_no, stock_quantity, reorder_level } = req.body;
+  let fileUrl = null;
+
+  if (req.file) {
+      const file = req.file;
+      const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+      const params = {
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: fileKey,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          // ACL: 'public-read', // Uncomment if you want the file to be publicly readable
+      };
+
+      const uploadResult = await s3.upload(params).promise();
+      fileUrl = uploadResult.Location; // S3 file URL
+  }
+
+  const query = `INSERT INTO raw_materials_stock (name, category, value, reference_no, image, stock_quantity, reorder_level)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
+
+  try {
+      const result = await db.query(query, [name, category, value, reference_no, fileUrl, stock_quantity, reorder_level]);
+      res.status(201).json({ message: 'Raw material created successfully', id: result.rows[0].id });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create raw material', message: err.message });
+  }
+});
+
+// API to update a raw material by ID
+dashboard.put('/api/raw_materials/update/:id', upload.single('image'), async (req, res) => {
+  const { id } = req.params;
+  const { name, category, value, reference_no, stock_quantity, reorder_level } = req.body;
+  let fileUrl = null;
+
+  if (req.file) {
+      const file = req.file;
+      const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+      const params = {
+          Bucket: process.env.S3_BUCKET_NAME,
+          Key: fileKey,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+          // ACL: 'public-read', // Uncomment if you want the file to be publicly readable
+      };
+
+      const uploadResult = await s3.upload(params).promise();
+      fileUrl = uploadResult.Location; // S3 file URL
+  }
+
+  const query = `UPDATE raw_materials_stock
+                 SET name = $1, category = $2, value = $3, reference_no = $4, image = $5, stock_quantity = $6, reorder_level = $7
+                 WHERE id = $8`;
+
+  try {
+      await db.query(query, [name, category, value, reference_no, fileUrl, stock_quantity, reorder_level, id]);
+      res.status(200).json({ message: 'Raw material updated successfully' });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update raw material', message: err.message });
+  }
+});
+
+// API to delete a raw material by ID
+dashboard.delete('/api/raw_materials/delete/:id', async (req, res) => {
+  const { id } = req.params;
+  const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
+
+  try {
+      await pool.query(query, [id]);
+      res.status(200).json({ message: 'Raw material deleted successfully' });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete raw material', message: err.message });
+  }
+});
+
+// API to get all raw materials
+dashboard.get('/api/raw_materials', async (req, res) => {
+  const query = 'SELECT * FROM raw_materials_stock';
+
+  try {
+      const result = await pool.query(query);
+      res.status(200).json({ raw_materials: result.rows });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
+  }
+});
+
+
 
 
 module.exports=dashboard;
