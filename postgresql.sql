@@ -436,13 +436,14 @@ CREATE TABLE daily_report (
 
 -------------------------------
 CREATE TABLE raw_materials_stock (
-    id INT AUTO_INCREMENT PRIMARY KEY, -- Unique identifier, automatically increments
-    name VARCHAR(255) NOT NULL,        -- Name of the raw material
-    category VARCHAR(100),                       -- Category (e.g., capacitor, resistor)
-    value VARCHAR(100),      -- Value or cost of the raw material
-    reference_no VARCHAR(100), -- Reference number (ensures uniqueness)
-    image VARCHAR(2080),               -- Path or URL to the image of the material
-    stock_quantity INT DEFAULT 0,
+    id SERIAL PRIMARY KEY,        -- Unique identifier, automatically increments
+    name VARCHAR(255) NOT NULL,    -- Name of the raw material
+    category VARCHAR(100),         -- Category (e.g., capacitor, resistor)
+    value VARCHAR(100),            -- Value or cost of the raw material
+    reference_no VARCHAR(100),     -- Reference number (ensures uniqueness)
+    image VARCHAR(2080),           -- Path or URL to the image of the material
+    stock_quantity INT DEFAULT 0,  -- Stock quantity
+    reorder_level INT DEFAULT 0    -- Reorder level
 );
 
 
