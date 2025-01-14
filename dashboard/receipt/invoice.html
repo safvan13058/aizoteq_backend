@@ -48,29 +48,32 @@
 
     <h2>Billing Items</h2>
     <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Item</th>
-          <th>Model</th>
-          <th>Serial No</th>
-          <th>Price</th>
-          <th>MRP</th>
-        </tr>
-      </thead>
-      <tbody>
-        {{#each items}}
-        <tr>
-          <td>{{@index}}</td>
-          <td>{{item_name}}</td>
-          <td>{{model}}</td>
-          <td>{{serial_no}}</td>
-          <td>{{retail_price}}</td>
-          <td>{{mrp}}</td>
-        </tr>
-        {{/each}}
-      </tbody>
-    </table>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Model</th>
+            <th>Item Name</th>
+            <th>MRP</th>
+            <th>Retail Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {{#each items}}
+          <tr>
+            <td>{{increment @index}}</td> <!-- Display index number starting from 1 -->
+            <td>{{model}}</td>
+            <td>{{item_name}}</td>
+            <td>{{mrp}}</td>
+            <td>{{retail_price}}</td>
+            <td>{{qty}}</td>
+            <td>{{multiply retail_price qty}}</td>
+          </tr>
+          {{/each}}
+        </tbody>
+      </table>
 
     <div class="summary">
       <p><strong>Total Amount:</strong> {{totalAmount}}</p>

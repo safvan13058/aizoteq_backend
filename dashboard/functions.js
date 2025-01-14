@@ -19,7 +19,43 @@ const getThingBySerialNo = async (serialNo) => {
       [thingId,userid, addedBy, status]
     );
   };
+   
+  function groupItemsByModel(items) {
+    const grouped = {};
+    for (const item of items) {
+      const { model, item_name, retail_price, mrp } = item;
+      if (!grouped[model]) {
+        grouped[model] = {
+          model,
+          item_name,
+          retail_price,
+          mrp,
+          qty: 1, // Start with quantity 1 for the first occurrence
+        };
+      } else {
+        grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+      }
+    }
+    return Object.values(grouped); // Convert the grouped object back to an array
+  }
   
+  async function isSessionOpen(session_id, client) {
+    const result = await client.query(
+        `SELECT status FROM billing_session WHERE id = $1`,
+        [session_id]
+    );
+    if (result.rows.length === 0) {
+        return { isValid: false, message: "Session does not exist." };
+    }
+    const status = result.rows[0].status;
+    if (status !== 'open') {
+        return { isValid: false, message: "Session is closed." };
+    }
+    return { isValid: true };
+}
+
+
+
 const PDFDocument = require("pdfkit");
 const fs = require("fs");
 
@@ -119,10 +155,18 @@ const fs = require("fs");
 
 const puppeteer = require("puppeteer");
 const Handlebars = require("handlebars");
+// Register the `multiply` helper
+Handlebars.registerHelper("multiply", function (a, b) {
+  return a * b;
+});
 
+// Register the `increment` helper
+Handlebars.registerHelper("increment", function (value) {
+  return parseInt(value) + 1; // Increment the value by 1
+});
 async function generatePDF(filePath, data) {
   // Load HTML template
-  const templateHtml = fs.readFileSync("./receipt/invoice.html", "utf8");
+  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice.html", "utf8");
   const template = Handlebars.compile(templateHtml);
 
   // Replace placeholders with data
@@ -187,4 +231,4 @@ async function sendEmailWithAttachment(toEmail, name, receiptNo, pdfPath) {
   }
 }
 
-  module.exports={getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment}
+  module.exports={getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel}
