@@ -11,6 +11,9 @@ const {getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailW
 dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
   })
+  const { swaggerU, spec } = require("./swaggerdoc_dash/swagger.js");
+  dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
+
 // API endpoint to count users
 dashboard.get('/api/users/count', async (req, res) => {
     try {
