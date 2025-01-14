@@ -2423,6 +2423,7 @@ dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, 
   let fileUrl = null;
 
   if (req.file) {
+    console.log(req.file)
       const file = req.file;
       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
       const params = {
@@ -2483,13 +2484,32 @@ dashboard.put('/api/raw_materials/update/:id', upload.single('image'), async (re
   }
 });
 
+dashboard.put('/api/raw/stock/update/:id', async (req, res) => {
+  const { id } = req.params;
+  const { stock_quantity } = req.body;  // Only extract stock_quantity
+
+  const query = `
+    UPDATE raw_materials_stock
+    SET stock_quantity = $1
+    WHERE id = $2
+  `;
+
+  try {
+      await db.query(query, [stock_quantity, id]); // Update only stock_quantity
+      res.status(200).json({ message: 'Stock quantity updated successfully' });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update stock quantity', message: err.message });
+  }
+});
+
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id', async (req, res) => {
   const { id } = req.params;
   const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
 
   try {
-      await pool.query(query, [id]);
+      await db.query(query, [id]);
       res.status(200).json({ message: 'Raw material deleted successfully' });
   } catch (err) {
       console.error(err);
@@ -2502,7 +2522,7 @@ dashboard.get('/api/raw_materials', async (req, res) => {
   const query = 'SELECT * FROM raw_materials_stock';
 
   try {
-      const result = await pool.query(query);
+      const result = await db.query(query);
       res.status(200).json({ raw_materials: result.rows });
   } catch (err) {
       console.error(err);
