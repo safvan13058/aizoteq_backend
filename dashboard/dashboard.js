@@ -7,7 +7,7 @@ const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
 const path = require('path');
 const fs = require('fs');
-const {getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment}=require("./functions.js");
+const {getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel}=require("./functions.js");
 dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
   })
@@ -203,6 +203,13 @@ dashboard.get('/api/things/model-count', async (req, res) => {
   
     const client = await db.connect();
     try {
+
+       // Validate if session is open
+       const sessionValidation = await isSessionOpen(sessionid, client);
+       if (!sessionValidation.isValid) {
+           return res.status(400).json({ error: sessionValidation.message });
+       }
+
       let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
       if (entity.rows.length === 0) {
         const result = await client.query(
@@ -337,13 +344,15 @@ dashboard.get('/api/things/model-count', async (req, res) => {
           [receiptno, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp, "sold"]
         );
       }
+
+      if(type==="customers"||type==="onlinecustomer"){
   
       for (const warranty of warrantyEntries) {
         await client.query(
           `INSERT INTO thing_warranty (serial_no, receipt_id, date, due_date) VALUES ($1, $2, CURRENT_DATE, $3)`,
           [warranty.serial_no, receiptId, warranty.due_date]
         );
-      }
+       } };
   
       await client.query(
         `UPDATE ${entityTable} 
@@ -360,13 +369,14 @@ dashboard.get('/api/things/model-count', async (req, res) => {
         if (!fs.existsSync(receiptDir)) {
           fs.mkdirSync(receiptDir);
         }
+        const groupedBillingItems = groupItemsByModel(billingItems);
         const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
         await generatePDF(pdfPath, {
            receiptNo: receiptno,
            date: new Date().toLocaleDateString(),
            name,
            phone,
-           items: billingItems,
+           items: groupedBillingItems,
            totalAmount,
            payableAmount,
            discount: discountValue,
@@ -399,9 +409,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       client.release();
     }
   });
-
-
-  
+ 
   dashboard.post("/api/billing/return/:status", async (req, res) => {
     const { serial_numbers, returned_by } = req.body;
     const { status } = req.params;
@@ -1765,6 +1773,7 @@ dashboard.get('/api/users/:role', async (req, res) => {
     res.status(500).json({ error: 'An error occurred while inserting dealer data.' });
   }
   }); 
+
 //Api to display
   dashboard.get('/api/display/party/:Party', async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
@@ -1916,7 +1925,35 @@ dashboard.get('/api/users/:role', async (req, res) => {
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table', async (req, res) => {
   const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
+   
+    // Function to validate warranty_period
+    function isValidWarrantyPeriod(warrantyPeriod) {
+      const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
+      return regex.test(warrantyPeriod);
+    }
+ 
+       // Validate input data
+  if (!model || !mrp || !retail_price || !tax) {
+    return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
+  }
+
+  if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+    return res.status(400).json({
+      error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+    });
+  }
   try {
+    const checkModelQuery = 'SELECT * FROM price_table WHERE model ILIKE $1';
+    const existingModel = await db.query(checkModelQuery, [model]);
+
+    if (existingModel.rows.length > 0) {
+      return res.status(400).json({ error: 'Model already exists in the price table.' });
+    }
+
+    if (existingModel.rows.length > 0) {
+      return res.status(400).json({ error: 'Model already exists in the price table.' });
+    }
+    
     const result = await db.query(
       `INSERT INTO price_table (model, mrp, retail_price, tax, discount, warranty_period)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
@@ -1931,14 +1968,28 @@ dashboard.post('/api/create/price_table', async (req, res) => {
 
 // Read all entries from the price_table
 dashboard.get('/api/display/prices-table', async (req, res) => {
+  const { search } = req.query; // Get the search query from the request
+
   try {
-    const result = await db.query('SELECT * FROM price_table');
+    // Base query
+    let query = 'SELECT * FROM price_table';
+    const params = [];
+
+    // Add search condition if a search query is provided
+    if (search) {
+      query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
+      params.push(`%${search}%`); // Add wildcards for partial matching
+    }
+
+    // Execute the query
+    const result = await db.query(query, params);
     res.status(200).json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to retrieve prices' });
   }
 });
+
 
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
@@ -1960,6 +2011,22 @@ dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
 dashboard.put('/api/update/price_table/:id', async (req, res) => {
   const { id } = req.params;
   const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
+  // Function to validate warranty_period
+  function isValidWarrantyPeriod(warrantyPeriod) {
+    const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
+    return regex.test(warrantyPeriod);
+  }
+
+     // Validate input data
+if (!model || !mrp || !retail_price || !tax) {
+  return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
+}
+
+if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+  return res.status(400).json({
+    error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+  });
+}
   try {
     const result = await db.query(
       `UPDATE price_table
@@ -2131,20 +2198,35 @@ dashboard.post('/open-session', async (req, res) => {
   }
 });
 
-// 3. Close Billing Session
+// 2. Close Billing Session
 dashboard.post('/close-session', async (req, res) => {
   const { session_id, closed_by } = req.body;
+
+  if (!session_id || !closed_by) {
+      return res.status(400).json({ error: "Session ID and closed_by are required" });
+  }
+
+  const client = await db.connect();
   try {
+     // Validate if session exists and is open
+     const sessionValidation = await isSessionOpen(session_id, client);
+     if (!sessionValidation.isValid && sessionValidation.message === "Session does not exist.") {
+         return res.status(404).json({ error: sessionValidation.message });
+     }
+     if (!sessionValidation.isValid) {
+         return res.status(400).json({ error: sessionValidation.message });
+     }
       // Calculate session summary
-      const summary = await db.query(
+      const summary = await client.query(
           `SELECT COUNT(*) AS total_transactions, 
                   SUM(total_amount) AS total_sales, 
                   SUM(discount) AS total_discount, 
                   SUM(paid_amount) AS total_paid, 
-                  SUM(cash_payment) AS total_cash, 
-                  SUM(bank_payment) AS total_bank, 
-                  SUM(online_payment) AS total_online 
-           FROM billing_transaction 
+                  SUM(CASE WHEN payment_method = 'cash' THEN amount ELSE 0 END) AS total_cash, 
+                  SUM(CASE WHEN payment_method = 'bank' THEN amount ELSE 0 END) AS total_bank, 
+                  SUM(CASE WHEN payment_method = 'online' THEN amount ELSE 0 END) AS total_online
+           FROM billing_receipt 
+           LEFT JOIN payment_details ON billing_receipt.id = payment_details.receipt_id
            WHERE session_id = $1`,
           [session_id]
       );
@@ -2160,7 +2242,7 @@ dashboard.post('/close-session', async (req, res) => {
       } = summary.rows[0];
 
       // Close session
-      await db.query(
+      await client.query(
           `UPDATE billing_session 
            SET closed_by = $1, closed_at = CURRENT_TIMESTAMP, status = 'closed', 
                total_cash = $2, total_bank = $3, total_online = $4, total_sales = $5 
@@ -2169,7 +2251,7 @@ dashboard.post('/close-session', async (req, res) => {
       );
 
       // Save daily report
-      const report = await db.query(
+      const report = await client.query(
           `INSERT INTO daily_report 
            (session_id, total_transactions, total_sales, total_discount, total_paid, total_cash, total_bank, total_online) 
            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
@@ -2185,9 +2267,109 @@ dashboard.post('/close-session', async (req, res) => {
           ]
       );
 
-      res.status(200).json({ message: 'Session closed', report: report.rows[0] });
+      res.status(200).json({ message: 'Session closed successfully', report: report.rows[0] });
   } catch (err) {
-      res.status(500).json({ error: err.message });
+      console.error(err);
+      res.status(500).json({ error: "Internal server error" });
+  } finally {
+      client.release();
+  }
+});
+
+//display daily report
+dashboard.get("/api/reports/daily", async (req, res) => {
+  const { date } = req.query; // Optional query parameter to filter by date
+
+  try {
+      let query = `
+          SELECT 
+              dr.id AS report_id,
+              dr.session_id,
+              dr.total_transactions,
+              dr.total_sales,
+              dr.total_discount,
+              dr.total_paid,
+              dr.total_cash,
+              dr.total_bank,
+              dr.total_online,
+              dr.report_date,
+              dr.created_at,
+              bs.opened_by,
+              bs.opened_at,
+              bs.closed_by,
+              bs.closed_at
+          FROM 
+              daily_report dr
+          JOIN 
+              billing_session bs ON dr.session_id = bs.id
+      `;
+
+      const params = [];
+      if (date) {
+          query += " WHERE dr.report_date = $1";
+          params.push(date);
+      }
+
+      query += " ORDER BY dr.report_date DESC";
+
+      const result = await db.query(query, params);
+
+      res.status(200).json({
+          success: true,
+          data: result.rows,
+      });
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({
+          success: false,
+          message: "Failed to retrieve daily reports.",
+          error: err.message,
+      });
+  }
+});
+
+// All-in-one sales graph
+dashboard.get('/api/sales', async (req, res) => {
+  const { period } = req.query; // Accept a query parameter: daily, weekly, monthly, yearly
+
+  // Determine the date truncation level based on the period
+  let dateTrunc;
+  switch (period) {
+    case 'daily':
+      dateTrunc = 'day';
+      break;
+    case 'weekly':
+      dateTrunc = 'week';
+      break;
+    case 'monthly':
+      dateTrunc = 'month';
+      break;
+    case 'yearly':
+      dateTrunc = 'year';
+      break;
+    default:
+      return res.status(400).json({ error: 'Invalid period. Use daily, weekly, monthly, or yearly.' });
+  }
+
+  // Query to fetch aggregated sales data
+  const query = `
+    SELECT DATE_TRUNC($1, report_date) AS period_start, 
+           SUM(total_sales) AS total_sales,
+           SUM(total_cash) AS total_cash,
+           SUM(total_bank) AS total_bank,
+           SUM(total_online) AS total_online
+    FROM daily_report
+    GROUP BY period_start
+    ORDER BY period_start ASC;
+  `;
+
+  try {
+    // Execute the query with a parameter
+    const result = await db.query(query, [dateTrunc]);
+    res.json(result.rows); // Extract rows from the query result
+  } catch (err) {
+    console.error('Error fetching sales data:', err.message);
+    res.status(500).json({ error: 'Failed to fetch sales data' });
   }
 });
 
