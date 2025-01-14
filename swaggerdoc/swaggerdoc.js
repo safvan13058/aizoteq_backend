@@ -4361,34 +4361,133 @@ const Swaggerdoc = {
     }
   }
 },
+// "/api/remove/access/{roomid}/{thingid}": {
+//       "delete": {
+//         "tags": ["Access"],
+//         "summary": "Remove access for a specific thing in a room",
+//         "description": "Removes access to devices associated with a specific thing in a room for a customer.",
+//         "parameters": [
+//           {
+//             "name": "roomid",
+//             "in": "path",
+//             "required": true,
+//             "description": "The ID of the room.",
+//             "schema": {
+//               "type": "string"
+//             }
+//           },
+//           {
+//             "name": "thingid",
+//             "in": "path",
+//             "required": true,
+//             "description": "The ID of the thing to remove.",
+//             "schema": {
+//               "type": "string"
+//             }
+//           }
+//         ],
+//         "responses": {
+//           "200": {
+//             "description": "Access for the specified thing removed successfully.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": {
+//                       "type": "string",
+//                       "example":" Access for the specified thing removed successfully"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "404": {
+//             "description": "No access found for the specified thing in the room.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": {
+//                       "type": "string",
+//                       "example":"No access found for the specified thing in the room"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "500": {
+//             "description": "Internal server error.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": {
+//                       "type": "string",
+//                       "example":"Internal server error"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+// },
 "/api/remove/access/{roomid}/{thingid}": {
       "delete": {
         "tags": ["Access"],
-        "summary": "Remove access for a specific thing in a room",
-        "description": "Removes access to devices associated with a specific thing in a room for a customer.",
+        "summary": "Remove user access to a device in a room",
+        "operationId": "removeAccess",
+        "tags": [
+          "Access Management"
+        ],
         "parameters": [
           {
             "name": "roomid",
             "in": "path",
             "required": true,
-            "description": "The ID of the room.",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The ID of the room"
             }
           },
           {
             "name": "thingid",
             "in": "path",
             "required": true,
-            "description": "The ID of the thing to remove.",
             "schema": {
-              "type": "string"
+              "type": "string",
+              "description": "The ID of the thing/device"
             }
           }
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userid": {
+                    "type": "string",
+                    "description": "The user ID, if not passed in the authentication context"
+                  }
+                },
+                "example": {
+                  "userid": "123456"
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Access for the specified thing removed successfully.",
+            "description": "Access removed successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -4396,7 +4495,23 @@ const Swaggerdoc = {
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example":" Access for the specified thing removed successfully"
+                      "example": "Access for the specified thing removed successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required parameters"
                     }
                   }
                 }
@@ -4404,7 +4519,7 @@ const Swaggerdoc = {
             }
           },
           "404": {
-            "description": "No access found for the specified thing in the room.",
+            "description": "No access found for the specified thing in the room",
             "content": {
               "application/json": {
                 "schema": {
@@ -4412,7 +4527,7 @@ const Swaggerdoc = {
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example":"No access found for the specified thing in the room"
+                      "example": "No access found for the specified thing in the room"
                     }
                   }
                 }
@@ -4420,7 +4535,7 @@ const Swaggerdoc = {
             }
           },
           "500": {
-            "description": "Internal server error.",
+            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {
@@ -4428,7 +4543,7 @@ const Swaggerdoc = {
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example":"Internal server error"
+                      "example": "Internal server error"
                     }
                   }
                 }
@@ -4437,8 +4552,7 @@ const Swaggerdoc = {
           }
         }
       }
-},
-
+    },
 "/api/room/{room_id}/change-floor/{floor_id}": {
       "put": {
         "summary": "Change the floor of a room",
