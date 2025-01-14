@@ -330,6 +330,8 @@ CREATE TABLE price_table (
     discount NUMERIC(10, 2), 
     warranty_period INTERVAL DEFAULT INTERVAL '3 years',                -- Discount applied (optional)
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+    
+
 );
 
 -- Create billing_receipt
@@ -354,8 +356,7 @@ CREATE TABLE billing_receipt (
     onlinecustomer_id INT,      -- Name or ID of the creator
     type VARCHAR(50),
     datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
-    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
-    
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification  
 );   
 
 -- Add a trigger to automatically update `lastmodified` for billing_receipt
@@ -431,4 +432,38 @@ CREATE TABLE daily_report (
     report_date DATE DEFAULT CURRENT_DATE,      -- Date of the report
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp when the report was created
     FOREIGN KEY (session_id) REFERENCES billing_session(id) ON DELETE CASCADE -- Links to `billing_session`
+);
+
+-------------------------------
+CREATE TABLE raw_materials_stock (
+    id INT AUTO_INCREMENT PRIMARY KEY, -- Unique identifier, automatically increments
+    name VARCHAR(255) NOT NULL,        -- Name of the raw material
+    category VARCHAR(100),                       -- Category (e.g., capacitor, resistor)
+    value VARCHAR(100),      -- Value or cost of the raw material
+    reference_no VARCHAR(100), -- Reference number (ensures uniqueness)
+    image VARCHAR(2080),               -- Path or URL to the image of the material
+    stock_quantity INT DEFAULT 0,
+);
+
+
+CREATE TABLE thing_raw_materials (
+    id INT AUTO_INCREMENT PRIMARY KEY,          -- Unique identifier for each record
+    -- thing_id INT NOT NULL,                      -- Identifier for the "thing" (e.g., product ID)
+    raw_material_id INT NOT NULL,               -- Foreign key to raw_materials_stock.id
+    required_qty INT NOT NULL,                  -- Quantity of the raw material required
+    model_name VARCHAR(255),                    -- Name of the model (optional for descriptive purposes)
+    model_id INT,                               -- Identifier for the model (foreign key to price_table.id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Record creation timestamp
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Last update timestamp
+
+    -- Foreign key constraints
+    CONSTRAINT fk_raw_material FOREIGN KEY (raw_material_id)
+    REFERENCES raw_materials_stock(id)
+    ON DELETE CASCADE -- Delete records in this table if the raw material is deleted
+    ON UPDATE CASCADE, -- Update records in this table if the raw material ID changes
+
+    CONSTRAINT fk_price_table FOREIGN KEY (model_id)
+    REFERENCES price_table(id)
+    ON DELETE SET NULL -- If the price table entry is deleted, set model_id to NULL
+    ON UPDATE CASCADE -- Update records in this table if the price table ID changes
 );
