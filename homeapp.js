@@ -977,25 +977,100 @@ homeapp.post('/api/access/customer/:roomid',
     }
 );
 //remove access
+// homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
+//     const client = await db.connect(); // Get a client from the database pool
+//     try {
+//         const roomid = parseInt(req.params.roomid, 10);
+//         const thingid = parseInt(req.params.thingid, 10);
+//         const user_id = req.user?.id || req.body.userid; // Fetch the user ID dynamically from authentication context
+
+//         // Validate parameters
+//         if (isNaN(roomid) || isNaN(thingid) || !user_id) {
+//             return res.status(400).json({ message: "Missing or invalid required parameters" });
+//         }
+
+//         await client.query('BEGIN'); // Start a transaction
+
+//         // Verify the user has access to the specified thing and room
+//         const accessCheckQuery = `
+//             SELECT ca.id
+//             FROM customer_access ca
+//             INNER JOIN devices d ON ca.thing_id = d.thingid
+//             INNER JOIN room_device rd ON rd.device_id = d.id
+//             WHERE ca.user_id = $1 AND ca.thing_id = $2 AND rd.room_id = $3
+//             LIMIT 1;
+//         `;
+//         const accessCheckResult = await client.query(accessCheckQuery, [user_id, thingid, roomid]);
+
+//         if (accessCheckResult.rows.length === 0) {
+//             await client.query('ROLLBACK');
+//             return res.status(404).json({ message: "No access found for the specified thing in the room" });
+//         }
+
+//         // Remove devices associated with the specified thing from `room_device`
+//         const deleteRoomDeviceQuery = `
+//             DELETE FROM room_device
+//             WHERE room_id = $1 AND device_id IN (
+//                 SELECT id FROM devices WHERE thingid = $2
+//             );
+//         `;
+//         await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
+
+//         // Remove devices associated with the specified thing from `UserDevicesorder`
+//         const deleteUserDevicesOrderQuery = `
+//             DELETE FROM UserDevicesorder
+//             WHERE roomid = $1 AND device_id IN (
+//                 SELECT id FROM devices WHERE thingid = $2
+//             );
+//         `;
+//         await client.query(deleteUserDevicesOrderQuery, [roomid, thingid]);
+
+//         // Optionally, remove customer access if no devices of the thing are linked to any rooms
+//         const deleteCustomerAccessQuery = `
+//             DELETE FROM customer_access
+//             WHERE user_id = $1 AND thing_id = $2
+//             AND NOT EXISTS (
+//                 SELECT 1 FROM devices d
+//                 INNER JOIN room_device rd ON rd.device_id = d.id
+//                 WHERE d.thingid = $2
+//             );
+//         `;
+//         await client.query(deleteCustomerAccessQuery, [user_id, thingid]);
+
+//         await client.query('COMMIT'); // Commit the transaction
+//         res.status(200).json({ message: "Access for the specified thing removed successfully" });
+//     } catch (error) {
+//         await client.query('ROLLBACK'); // Rollback the transaction on error
+//         console.error("Error removing access for thing:", error);
+//         res.status(500).json({ message: "Internal server error" });
+//     } finally {
+//         client.release(); // Release the client back to the database pool
+//     }
+// });
 homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
     const client = await db.connect(); // Get a client from the database pool
+    
+    
     try {
-        const roomid = req.params.roomid;
-        const thingid = req.params.thingid;
-        const user_id = req.user?.id||req.body.userid; // Fetch the user ID dynamically from authentication context
+        const roomid = parseInt(req.params.roomid, 10);
+        const thingid = parseInt(req.params.thingid, 10);
+        const user_id = parseInt(req.user?.id || req.body.userid); // Fetch the user ID dynamically from authentication context
+        
+        console.log("roomid:", roomid);
+        console.log("thingid:", thingid);
+        console.log("user_id:", user_id);
 
-        if (!roomid || !thingid || !user_id) {
-            return res.status(400).json({ message: "Missing required parameters" });
+        if (isNaN(roomid) || isNaN(thingid) || !user_id) {
+            return res.status(400).json({ message: "Missing or invalid required parameters" });
         }
 
         await client.query('BEGIN'); // Start a transaction
 
-        // Verify the user has access to the specified thing and room
         const accessCheckQuery = `
             SELECT ca.id
             FROM customer_access ca
             INNER JOIN devices d ON ca.thing_id = d.thingid
-            INNER JOIN room_device rd ON rd.device_id = d.id
+            INNER JOIN room_device rd ON rd.device_id = d.deviceId
             WHERE ca.user_id = $1 AND ca.thing_id = $2 AND rd.room_id = $3
             LIMIT 1;
         `;
@@ -1005,17 +1080,15 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(404).json({ message: "No access found for the specified thing in the room" });
         }
-
-        // Remove devices associated with the specified thing from `room_device`
+         console.log(roomid, thingid)
         const deleteRoomDeviceQuery = `
             DELETE FROM room_device
             WHERE room_id = $1 AND device_id IN (
-                SELECT id FROM devices WHERE thingid = $2
+                SELECT deviceId FROM devices WHERE thingid = $2
             );
         `;
         await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
-
-        // Remove devices associated with the specified thing from `UserDevicesorder`
+      
         const deleteUserDevicesOrderQuery = `
             DELETE FROM UserDevicesorder
             WHERE roomid = $1 AND device_id IN (
@@ -1023,29 +1096,29 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
             );
         `;
         await client.query(deleteUserDevicesOrderQuery, [roomid, thingid]);
-
-        // Optionally, remove customer access if no devices of the thing are linked to any rooms
+        console.log(user_id, thingid)
         const deleteCustomerAccessQuery = `
             DELETE FROM customer_access
             WHERE user_id = $1 AND thing_id = $2
             AND NOT EXISTS (
                 SELECT 1 FROM devices d
-                INNER JOIN room_device rd ON rd.device_id = d.id
+                INNER JOIN room_device rd ON rd.device_id = d.deviceId
                 WHERE d.thingid = $2
             );
         `;
         await client.query(deleteCustomerAccessQuery, [user_id, thingid]);
 
-        await client.query('COMMIT'); // Commit the transaction
+        await client.query('COMMIT');
         res.status(200).json({ message: "Access for the specified thing removed successfully" });
     } catch (error) {
-        await client.query('ROLLBACK'); // Rollback the transaction on error
+        await client.query('ROLLBACK');
         console.error("Error removing access for thing:", error);
         res.status(500).json({ message: "Internal server error" });
     } finally {
-        client.release(); // Release the client back to the database pool
+        client.release();
     }
 });
+
 
 //reorder devices in an room
 homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
