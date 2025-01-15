@@ -1119,7 +1119,7 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
         client.release();
     }
 });
-
+ 
 //reorder devices in an room
 homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
     const client = await db.connect();

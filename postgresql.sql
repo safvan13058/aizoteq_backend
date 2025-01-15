@@ -215,6 +215,7 @@ CREATE TABLE NotificationMessages (
     message TEXT NOT NULL,                    -- Message content of the notification
     FOREIGN KEY (notificationId) REFERENCES Notifications(id) ON DELETE CASCADE -- Cascade delete if notification is deleted
 );
+
 -- Create sharedusers table
 -- CREATE TABLE sharedusers (
 --     id SERIAL PRIMARY KEY,                              -- Unique identifier for each record
@@ -237,6 +238,24 @@ CREATE TABLE sharedusers (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IntegrationSettings (
+    id SERIAL PRIMARY KEY,
+    userId INT NOT NULL, -- Foreign key referencing Users(id)
+    integrationType VARCHAR(255) NOT NULL,
+    settings JSON NOT NULL, -- Settings stored as JSON
+    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE DeviceMapping (
+    id SERIAL PRIMARY KEY,
+    deviceId INT NOT NULL, -- Foreign key referencing Devices(id)
+    integrationType VARCHAR(255) NOT NULL,
+    integrationId INT NOT NULL, -- Foreign key referencing IntegrationSettings(id)
+    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (deviceId) REFERENCES Devices(id) ON DELETE CASCADE,
+    FOREIGN KEY (integrationId) REFERENCES IntegrationSettings(id) ON DELETE CASCADE
+);
 
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
@@ -434,6 +453,7 @@ CREATE TABLE daily_report (
     FOREIGN KEY (session_id) REFERENCES billing_session(id) ON DELETE CASCADE -- Links to `billing_session`
 );
 
+
 -------------------------------
 CREATE TABLE raw_materials_stock (
     id SERIAL PRIMARY KEY,        -- Unique identifier, automatically increments
@@ -444,27 +464,30 @@ CREATE TABLE raw_materials_stock (
     image VARCHAR(2080),           -- Path or URL to the image of the material
     stock_quantity INT DEFAULT 0,  -- Stock quantity
     reorder_level INT DEFAULT 0    -- Reorder level
+    
+
 );
 
 
 CREATE TABLE thing_raw_materials (
-    id INT AUTO_INCREMENT PRIMARY KEY,          -- Unique identifier for each record
-    -- thing_id INT NOT NULL,                      -- Identifier for the "thing" (e.g., product ID)
+    id SERIAL PRIMARY KEY,                       -- Unique identifier for each record
     raw_material_id INT NOT NULL,               -- Foreign key to raw_materials_stock.id
     required_qty INT NOT NULL,                  -- Quantity of the raw material required
     model_name VARCHAR(255),                    -- Name of the model (optional for descriptive purposes)
     model_id INT,                               -- Identifier for the model (foreign key to price_table.id)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Record creation timestamp
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, -- Last update timestamp
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last update timestamp
 
     -- Foreign key constraints
     CONSTRAINT fk_raw_material FOREIGN KEY (raw_material_id)
-    REFERENCES raw_materials_stock(id)
-    ON DELETE CASCADE -- Delete records in this table if the raw material is deleted
-    ON UPDATE CASCADE, -- Update records in this table if the raw material ID changes
+        REFERENCES raw_materials_stock(id)
+        ON DELETE CASCADE                       -- Delete records in this table if the raw material is deleted
+        ON UPDATE CASCADE,                      -- Update records in this table if the raw material ID changes
 
     CONSTRAINT fk_price_table FOREIGN KEY (model_id)
-    REFERENCES price_table(id)
-    ON DELETE SET NULL -- If the price table entry is deleted, set model_id to NULL
-    ON UPDATE CASCADE -- Update records in this table if the price table ID changes
+        REFERENCES price_table(id)
+        ON DELETE SET NULL                      -- If the price table entry is deleted, set model_id to NULL
+        ON UPDATE CASCADE                       -- Update records in this table if the price table ID changes
 );
+
+

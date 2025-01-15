@@ -1743,7 +1743,6 @@ dashboard.get('/api/users/:role', async (req, res) => {
     }
   });
   
-
 // API to insert data into the dealers_details table
   dashboard.post('/api/create/account/for/:Party', async (req, res) => {
   const {table}=req.params.Party;
@@ -1854,6 +1853,7 @@ dashboard.get('/api/users/:role', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while deleting the record.' });
     }
   });
+
   //update account datas
   dashboard.put('/api/update/account/for/:Party/:id', async (req, res) => {
   const { Party, id } = req.params;
@@ -1924,7 +1924,6 @@ dashboard.get('/api/users/:role', async (req, res) => {
   }
 });
 
-
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table', async (req, res) => {
   const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
@@ -1992,57 +1991,6 @@ dashboard.get('/api/display/prices-table', async (req, res) => {
     res.status(500).json({ error: 'Failed to retrieve prices' });
   }
 });
-
-// dashboard.get('/api/display/prices-table', async (req, res) => {
-//   const { search, limit = 10, offset = 0 } = req.query; // Pagination and search query
-
-//   try {
-//     // Base query and parameters
-//     let query = `
-//       SELECT id, model, mrp, retail_price, tax, discount, warranty_period, lastmodified 
-//       FROM price_table
-//     `;
-//     const params = [];
-
-//     // Add search condition
-//     if (search) {
-//       query += `
-//         WHERE model ILIKE $1 OR CAST(mrp AS TEXT) ILIKE $1 OR CAST(retail_price AS TEXT) ILIKE $1
-//       `;
-//       params.push(`%${search}%`);
-//     }
-
-//     // Add sorting and pagination
-//     query += ' LIMIT $2 OFFSET $3';
-//     params.push(limit, offset);
-
-//     // Execute the query
-//     const result = await db.query(query, params);
-
-//     // Format the warranty_period for readability
-//     const formattedData = result.rows.map((row) => ({
-//       ...row,
-//       warranty_period: formatWarrantyPeriod(row.warranty_period), // Format warranty period
-//     }));
-
-//     res.status(200).json(formattedData);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ error: 'Failed to retrieve prices' });
-//   }
-// });
-
-// Helper function to format warranty_period
-// function formatWarrantyPeriod(interval) {
-//   const parts = [];
-
-//   if (interval.years) parts.push(`${interval.years} year${interval.years > 1 ? 's' : ''}`);
-//   if (interval.months) parts.push(`${interval.months} month${interval.months > 1 ? 's' : ''}`);
-//   if (interval.days) parts.push(`${interval.days} day${interval.days > 1 ? 's' : ''}`);
-
-//   return parts.length > 0 ? parts.join(' ') : 'N/A';
-// }
-
 
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
@@ -2239,7 +2187,6 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 // 1. Open Billing Session
 dashboard.post('/open-session', async (req, res) => {
@@ -2472,7 +2419,9 @@ dashboard.get('/api/sales', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch sales data' });
   }
 });
+  
 //API to raw_materials
+// -----------------------------------
 // API to create a new raw material
 dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, res) => {
   const { name, category, value, reference_no, stock_quantity, reorder_level } = req.body;
@@ -2586,6 +2535,98 @@ dashboard.get('/api/raw_materials', async (req, res) => {
   }
 });
 
+// API to add raw material to a model
+dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
+  const { modelId } = req.params;
+  const { raw_material_id, required_qty } = req.body;
+
+  // Validate input
+  if (!raw_material_id || !required_qty) {
+      return res.status(400).json({ error: 'raw_material_id and required_qty are required' });
+  }
+
+  try {
+      // Check if the model exists
+      const modelCheckQuery = `
+          SELECT id, model FROM price_table WHERE id = $1;
+      `;
+      const modelCheckResult = await db.query(modelCheckQuery, [modelId]);
+
+      if (modelCheckResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Model not found' });
+      }
+
+      const modelName = modelCheckResult.rows[0].model;
+
+      // Check if the raw material exists
+      const rawMaterialCheckQuery = `
+          SELECT id FROM raw_materials_stock WHERE id = $1;
+      `;
+      const rawMaterialCheckResult = await db.query(rawMaterialCheckQuery, [raw_material_id]);
+
+      if (rawMaterialCheckResult.rows.length === 0) {
+          return res.status(404).json({ error: 'Raw material not found' });
+      }
+
+      // Insert new record into thing_raw_materials
+      const insertQuery = `
+          INSERT INTO thing_raw_materials (raw_material_id, model_name, required_qty, model_id)
+          VALUES ($1, $2, $3, $4) RETURNING id;
+      `;
+      const insertResult = await db.query(insertQuery, [raw_material_id, modelName, required_qty, modelId]);
+
+      res.status(201).json({
+          message: 'Raw material added to the model successfully',
+          thing_raw_material_id: insertResult.rows[0].id,
+      });
+  } catch (err) {
+      console.error('Error adding raw material to model:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// API to get a price_table model with its raw materials and required quantities
+dashboard.get('/api/model/:modelId', async (req, res) => {
+    const { modelId } = req.params;
+
+    try {
+        // Query to get model details from price_table
+        const modelQuery = `
+            SELECT id, model, mrp, retail_price, tax, discount, warranty_period, lastmodified
+            FROM price_table
+            WHERE id = $1;
+        `;
+        const modelResult = await db.query(modelQuery, [modelId]);
+
+        if (modelResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Model not found' });
+        }
+
+        const model = modelResult.rows[0];
+
+        // Query to get raw materials and their required quantities
+        const rawMaterialsQuery = `
+            SELECT rm.id AS raw_material_id, rm.name, rm.category, rm.value, 
+                   rm.reference_no, rm.image, rm.stock_quantity, rm.reorder_level, 
+                   trm.required_qty
+            FROM thing_raw_materials trm
+            INNER JOIN raw_materials_stock rm ON trm.raw_material_id = rm.id
+            WHERE trm.model_id = $1;
+        `;
+        const rawMaterialsResult = await db.query(rawMaterialsQuery, [modelId]);
+
+        // Combine model details with raw materials
+        const response = {
+            model,
+            raw_materials: rawMaterialsResult.rows,
+        };
+
+        res.status(200).json(response);
+    } catch (err) {
+        console.error('Error fetching data:', err);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
 
 
 

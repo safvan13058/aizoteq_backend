@@ -101,8 +101,46 @@ testapp.post( "/app/addThing",
                 }
             }
             
-            // Handle AdminStock and Failed Devices if status is 'rework'
-    
+            
+         // Find associated raw materials for the model
+           const rawMaterialsQuery = `
+                      SELECT 
+                        trm.raw_material_id, 
+                        trm.required_qty, 
+                        rm.stock_quantity, 
+                        pt.model
+                        FROM thing_raw_materials trm
+                        INNER JOIN raw_materials_stock rm 
+                        ON trm.raw_material_id = rm.id
+                        INNER JOIN price_table pt 
+                        ON trm.model_id = pt.id
+                        WHERE pt.model = $1;
+                        `;
+
+                const rawMaterialsResult = await client.query(rawMaterialsQuery, [thing.model]);
+
+                const insufficientStock = rawMaterialsResult.rows.filter(
+                 (item) => item.stock_quantity < item.required_qty
+                  );
+
+            if (insufficientStock.length > 0) {
+                throw new Error(
+                  `Insufficient stock for raw materials: ${insufficientStock
+                  .map((item) => item.raw_material_id)
+                  .join(', ')}`
+                 );
+                }
+          // Update stock quantities
+           for (const material of rawMaterialsResult.rows) {
+              const updateStockQuery = `
+                 UPDATE raw_materials_stock
+                  SET stock_quantity = stock_quantity - $1
+                  WHERE id = $2;
+                  `;
+         await client.query(updateStockQuery, [material.required_qty, material.raw_material_id]);
+     }
+
+    // Handle AdminStock and Failed Devices if status is 'rework'
     if (status === 'rework') {
 
          // Validate failureReason
@@ -208,6 +246,7 @@ testapp.post( "/app/addThing",
         }
     }
 );
+
 // display things with id
 testapp.get('/api/display/things/:id',
     // validateJwt,
@@ -233,6 +272,7 @@ testapp.get('/api/display/things/:id',
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+  
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count', async (req, res) => {
     try {
@@ -359,6 +399,7 @@ testapp.get('/app/searchThings/:status',
 testapp.get('/api/searchThings/working/:status', async (req, res) => {
     const { serialno } = req.query;
     const { status } = req.params;
+
 
     try {
         // Default to showing all records with 'rework' status if no serialno is provided
