@@ -2014,11 +2014,13 @@ dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
 dashboard.put('/api/update/price_table/:id', async (req, res) => {
   const { id } = req.params;
   const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
+  console.log(req.body)
   // Function to validate warranty_period
   function isValidWarrantyPeriod(warrantyPeriod) {
     const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
     return regex.test(warrantyPeriod);
   }
+
 
      // Validate input data
 if (!model || !mrp || !retail_price || !tax) {
@@ -2031,6 +2033,7 @@ if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
   });
 }
   try {
+    console.log(warranty_period)
     const result = await db.query(
       `UPDATE price_table
        SET model = $1, mrp = $2, retail_price = $3, tax = $4, discount = $5, warranty_period = $6
