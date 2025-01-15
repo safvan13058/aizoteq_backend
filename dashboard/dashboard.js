@@ -1959,7 +1959,7 @@ dashboard.post('/api/create/price_table', async (req, res) => {
     
     const result = await db.query(
       `INSERT INTO price_table (model, mrp, retail_price, tax, discount, warranty_period)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6::INTERVAL) RETURNING *`,
       [model, mrp, retail_price, tax, discount, warranty_period]
     );
     res.status(201).json(result.rows[0]);
@@ -1970,28 +1970,77 @@ dashboard.post('/api/create/price_table', async (req, res) => {
 });
 
 // Read all entries from the price_table
+// dashboard.get('/api/display/prices-table', async (req, res) => {
+//   const { search } = req.query; // Get the search query from the request
+
+//   try {
+//     // Base query
+//     let query = 'SELECT * FROM price_table';
+//     const params = [];
+
+//     // Add search condition if a search query is provided
+//     if (search) {
+//       query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
+//       params.push(`%${search}%`); // Add wildcards for partial matching
+//     }
+
+//     // Execute the query
+//     const result = await db.query(query, params);
+//     res.status(200).json(result.rows);
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ error: 'Failed to retrieve prices' });
+//   }
+// });
 dashboard.get('/api/display/prices-table', async (req, res) => {
-  const { search } = req.query; // Get the search query from the request
+  const { search, limit = 10, offset = 0 } = req.query; // Pagination and search query
 
   try {
-    // Base query
-    let query = 'SELECT * FROM price_table';
+    // Base query and parameters
+    let query = `
+      SELECT id, model, mrp, retail_price, tax, discount, warranty_period, lastmodified 
+      FROM price_table
+    `;
     const params = [];
 
-    // Add search condition if a search query is provided
+    // Add search condition
     if (search) {
-      query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
-      params.push(`%${search}%`); // Add wildcards for partial matching
+      query += `
+        WHERE model ILIKE $1 OR CAST(mrp AS TEXT) ILIKE $1 OR CAST(retail_price AS TEXT) ILIKE $1
+      `;
+      params.push(`%${search}%`);
     }
+
+    // Add sorting and pagination
+    query += ' LIMIT $2 OFFSET $3';
+    params.push(limit, offset);
 
     // Execute the query
     const result = await db.query(query, params);
-    res.status(200).json(result.rows);
+
+    // Format the warranty_period for readability
+    const formattedData = result.rows.map((row) => ({
+      ...row,
+      warranty_period: formatWarrantyPeriod(row.warranty_period), // Format warranty period
+    }));
+
+    res.status(200).json(formattedData);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to retrieve prices' });
   }
 });
+
+// Helper function to format warranty_period
+function formatWarrantyPeriod(interval) {
+  const parts = [];
+
+  if (interval.years) parts.push(`${interval.years} year${interval.years > 1 ? 's' : ''}`);
+  if (interval.months) parts.push(`${interval.months} month${interval.months > 1 ? 's' : ''}`);
+  if (interval.days) parts.push(`${interval.days} day${interval.days > 1 ? 's' : ''}`);
+
+  return parts.length > 0 ? parts.join(' ') : 'N/A';
+}
 
 
 // Read a single entry by ID
@@ -2036,7 +2085,7 @@ if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
     console.log(warranty_period)
     const result = await db.query(
       `UPDATE price_table
-       SET model = $1, mrp = $2, retail_price = $3, tax = $4, discount = $5, warranty_period = $6
+       SET model = $1, mrp = $2, retail_price = $3, tax = $4, discount = $5, warranty_period = $6::INTERVAL
        WHERE id = $7 RETURNING *`,
       [model, mrp, retail_price, tax, discount, warranty_period, id]
     );
