@@ -1278,7 +1278,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.get('/api/display/users/:role', async (req, res) => {
   const { search } = req.query;
   const role = req.params.role.toLowerCase(); // Normalize case for role comparison
-  const allowedRoles = ['admin', 'staff', 'customer']; // Valid roles
+  const allowedRoles = ['admin', 'staff', 'customer','dealers']; // Valid roles
 
   try {
       // Validate role
@@ -1286,14 +1286,14 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
           return res.status(400).json({ error: 'Invalid userRole' });
       }
 
-      let query = `SELECT id, userName, userRole, profilePic, lastModified, email, phone FROM Users WHERE LOWER(userRole) = $1`;
+      let query = `SELECT id, userName, userRole, profilePic, lastModified FROM Users WHERE LOWER(userRole) = $1`;
       const values = [role];
 
       // Add search condition if search query is provided
       if (search) {
-          query += ` AND (LOWER(userName) LIKE $2 
-                      OR LOWER(email) LIKE $2 
-                      OR phone LIKE $2)`;
+          query += ` AND userName ILIKE %$2% 
+                       
+                     `;
           values.push(`%${search.toLowerCase()}%`);
       }
 
