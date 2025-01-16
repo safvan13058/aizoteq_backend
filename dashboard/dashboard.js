@@ -132,7 +132,7 @@ dashboard.get('/api/things/count', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
- 
+
 // API endpoint for sorted count by model
 dashboard.get('/api/things/model-count', async (req, res) => {
     try {
@@ -164,9 +164,258 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 });
 
 // Unified Route: Create Entity, Process Things, and Billing Receipt
+  // dashboard.post("/api/billing/create", async (req, res) => {
+  //   const {
+  //     sessionid,
+  //     type,
+  //     name,
+  //     address,
+  //     shipping_address,
+  //     phone,
+  //     alt_phone,
+  //     email,
+  //     items,
+  //     discount,
+  //     payment_methods,
+  //     billing_createdby,
+  //   } = req.body;
+  //   if (
+  //     !type ||
+  //     !name ||
+  //     !phone ||
+  //     !items ||
+  //     items.length === 0 ||
+  //     !payment_methods ||
+  //     payment_methods.length === 0 ||
+  //     !billing_createdby
+  //   ) {
+  //     return res.status(400).json({ error: "Required fields are missing or invalid" });
+  //   }
+  //   if(!sessionid){
+
+  //   }
+  
+  //   const entityTable = `${type}_details`;
+  //   const stockTable = `${type}Stock`;
+  //   const discountValue = parseFloat(discount) || 0;
+  
+  //   if (discountValue < 0) {
+  //     return res.status(400).json({ error: "Invalid discount value" });
+  //   }
+  
+  //   const client = await db.connect();
+  //   try {
+
+  //      // Validate if session is open
+  //      const sessionValidation = await isSessionOpen(sessionid, client);
+  //      if (!sessionValidation.isValid) {
+  //          return res.status(400).json({ error: sessionValidation.message });
+  //      }
+
+  //     let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
+  //     if (entity.rows.length === 0) {
+  //       const result = await client.query(
+  //         `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone, total_amount, paid_amount, balance)
+  //          VALUES ($1, $2, $3, $4, $5, 0, 0, 0) RETURNING id, email`,
+  //         [name, address, phone, email, alt_phone]
+  //       );
+  //       entity = result.rows[0];
+  //     } else {
+  //       entity = entity.rows[0];
+  //     }
+  
+  //     await client.query("BEGIN");
+  //     let totalAmount = 0;
+  //     const billingItems = [];
+  //     const warrantyEntries = [];
+  //     const errors = [];
+  
+  //     for (const item of items) {
+  //       const { serial_no, model } = item;
+  //       const priceQuery = await client.query(
+  //         `SELECT mrp, retail_price, warranty_period FROM price_table WHERE model = $1`,
+  //         [model]
+  //       );
+  
+  //       if (priceQuery.rows.length === 0) {
+  //         errors.push(`Model ${model} not found in price_table`);
+  //         continue;
+  //       }
+  
+  //       const { retail_price, warranty_period,mrp } = priceQuery.rows[0];
+  //       const thing = await getThingBySerialNo(serial_no);
+  //       if (!thing) {
+  //         errors.push(`Thing with serial_no ${serial_no} not found`);
+  //         continue;
+  //       }
+  
+  //       const adminStockCheck = await client.query(
+  //         `SELECT * FROM AdminStock WHERE thingId = $1 AND status = 'new'`,
+  //         [thing.id]
+  //       );
+  //       if (adminStockCheck.rows.length === 0) {
+  //         errors.push(`Item with serial_no ${serial_no} is not available`);
+  //         continue;
+  //       }
+  
+  //       await removeFromAdminStock(thing.id);
+  //       await addToStock(stockTable, thing.id, entity.id, billing_createdby);
+  
+  //       billingItems.push({
+  //         item_name: thing.thingName,
+  //         serial_no,
+  //         model,
+  //         mrp:mrp,
+  //         retail_price: retail_price || 0,
+  //       });
+  
+  //       const dueDateQuery = await client.query(
+  //         `SELECT CURRENT_DATE + $1::INTERVAL AS due_date`,
+  //         [warranty_period || "3 years"]
+  //       );
+  //       warrantyEntries.push({ serial_no, due_date: dueDateQuery.rows[0].due_date });
+  //       totalAmount += parseFloat(retail_price) || 0;
+  //     }
+  
+  //     if (billingItems.length === 0) {
+  //       await client.query("ROLLBACK");
+  //       return res.status(400).json({ error: "No valid items for billing.", details: errors });
+  //     }
+  
+  //     const receiptQuery = await client.query(
+  //       `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
+  //     );
+  //     const receiptno = receiptQuery.rows.length > 0 ? parseInt(receiptQuery.rows[0].receipt_no) + 1 : 1000;
+  
+  //     let totalPaid = 0;
+  //     for (const payment of payment_methods) {
+  //       const parsedAmount = parseFloat(payment.amount);
+  //       if (!payment.payment_method || isNaN(parsedAmount) || parsedAmount <= 0) {
+  //         await client.query("ROLLBACK");
+  //         return res.status(400).json({ error: "Invalid payment method or amount" });
+  //       }
+  //       totalPaid += parsedAmount;
+  //     }
+  
+      
+  //     const discountedTotal = totalAmount - discountValue;
+  //     const payableAmount = Math.max(discountedTotal, 0); // Ensure it's non-negative
+  //     if (discountedTotal < 0) {
+  //       await client.query("ROLLBACK"); 
+  //       return res.status(400).json({ error: "Discount exceeds the total amount" });
+  //     }
+  
+  //     const balance = discountedTotal - totalPaid;
+      
+  //     const billingReceiptResult = await client.query(
+  //       `INSERT INTO billing_receipt 
+  //          (session_id,receipt_no, name, phone, email, billing_address, shipping_address, dealer_or_customer, total_amount, discount, paid_amount, balance, payable_amount, billing_createdby, ${type}_id, type, lastmodified, datetime)
+  //        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
+  //       [ 
+  //         sessionid,
+  //         receiptno, 
+  //         name, 
+  //         phone, 
+  //         email, 
+  //         address, 
+  //         shipping_address, 
+  //         type, 
+  //         totalAmount, 
+  //         discountValue, 
+  //         totalPaid, 
+  //         balance, 
+  //         payableAmount, 
+  //         billing_createdby, 
+  //         entity.id, 
+  //         "sold"
+  //       ]
+  //     );
+  
+  //     const { id: receiptId } = billingReceiptResult.rows[0];
+  
+  //     for (const payment of payment_methods) {
+  //       await client.query(
+  //         `INSERT INTO payment_details (receipt_id, payment_method, amount) VALUES ($1, $2, $3)`,
+  //         [receiptId, payment.payment_method, parseFloat(payment.amount)]
+  //       );
+  //     }
+  
+  //     for (const item of billingItems) {
+  //       await client.query(
+  //         `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, retail_price,mrp, type) VALUES ($1, $2, $3, $4, $5, $6,$7)`,
+  //         [receiptno, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp, "sold"]
+  //       );
+  //     }
+
+  //     if(type==="customers"||type==="onlinecustomer"){
+  
+  //     for (const warranty of warrantyEntries) {
+  //       await client.query(
+  //         `INSERT INTO thing_warranty (serial_no, receipt_id, date, due_date) VALUES ($1, $2, CURRENT_DATE, $3)`,
+  //         [warranty.serial_no, receiptId, warranty.due_date]
+  //       );
+  //      } };
+  
+  //     await client.query(
+  //       `UPDATE ${entityTable} 
+  //          SET total_amount = total_amount + $1, 
+  //              paid_amount = paid_amount + $2, 
+  //              balance = total_amount - paid_amount,
+  //              lastmodified = CURRENT_TIMESTAMP
+  //          WHERE id = $3`,
+  //       [discountedTotal, totalPaid, entity.id]
+  //     );
+  
+  //     if (email) {
+  //       const receiptDir = path.join(__dirname, "receipt");
+  //       if (!fs.existsSync(receiptDir)) {
+  //         fs.mkdirSync(receiptDir);
+  //       }
+  //       const groupedBillingItems = groupItemsByModel(billingItems);
+  //       const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
+  //       await generatePDF(pdfPath, {
+  //          receiptNo: receiptno,
+  //          date: new Date().toLocaleDateString(),
+  //          name,
+  //          phone,
+  //          items: groupedBillingItems,
+  //          totalAmount,
+  //          payableAmount,
+  //          discount: discountValue,
+  //          paidAmount: totalPaid,
+  //          balance,
+  //        });
+  //       await sendEmailWithAttachment(email, name, receiptno, pdfPath);
+      
+  //       if (fs.existsSync(pdfPath)) {
+  //         fs.unlinkSync(pdfPath);
+  //       }
+  //     }
+  
+  //     await client.query("COMMIT");
+  //     res.status(200).json({
+  //       message: "Billing receipt created successfully",
+  //       entity_id: entity.id,
+  //       receipt_id: receiptId,
+  //       total_amount: totalAmount,
+  //       discount: discountValue,
+  //       paid_amount: totalPaid,
+  //       balance,
+  //       errors: errors.length > 0 ? errors : null,
+  //     });
+  //   } catch (err) {
+  //     await client.query("ROLLBACK");
+  //     console.error(err);
+  //     res.status(500).json({ error: "Internal server error" });
+  //   } finally {
+  //     client.release();
+  //   }
+  // });
+
   dashboard.post("/api/billing/create", async (req, res) => {
     const {
       sessionid,
+      user_id,
       type,
       name,
       address,
@@ -179,7 +428,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
       payment_methods,
       billing_createdby,
     } = req.body;
-  
+
     if (
       !type ||
       !name ||
@@ -192,225 +441,456 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     ) {
       return res.status(400).json({ error: "Required fields are missing or invalid" });
     }
-    if(!sessionid){
+    const userrole=await db.query(`select userRole from users whare id=${user_id}`)
+    if(userrole.rows[0]==="admin"){
+      if(!sessionid){
 
-    }
-  
-    const entityTable = `${type}_details`;
-    const stockTable = `${type}Stock`;
-    const discountValue = parseFloat(discount) || 0;
-  
-    if (discountValue < 0) {
-      return res.status(400).json({ error: "Invalid discount value" });
-    }
-  
-    const client = await db.connect();
-    try {
-
-       // Validate if session is open
-       const sessionValidation = await isSessionOpen(sessionid, client);
-       if (!sessionValidation.isValid) {
-           return res.status(400).json({ error: sessionValidation.message });
-       }
-
-      let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
-      if (entity.rows.length === 0) {
-        const result = await client.query(
-          `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone, total_amount, paid_amount, balance)
-           VALUES ($1, $2, $3, $4, $5, 0, 0, 0) RETURNING id, email`,
-          [name, address, phone, email, alt_phone]
-        );
-        entity = result.rows[0];
-      } else {
-        entity = entity.rows[0];
       }
-  
-      await client.query("BEGIN");
-      let totalAmount = 0;
-      const billingItems = [];
-      const warrantyEntries = [];
-      const errors = [];
-  
-      for (const item of items) {
-        const { serial_no, model } = item;
-        const priceQuery = await client.query(
-          `SELECT mrp, retail_price, warranty_period FROM price_table WHERE model = $1`,
-          [model]
-        );
-  
-        if (priceQuery.rows.length === 0) {
-          errors.push(`Model ${model} not found in price_table`);
-          continue;
-        }
-  
-        const { retail_price, warranty_period,mrp } = priceQuery.rows[0];
-        const thing = await getThingBySerialNo(serial_no);
-        if (!thing) {
-          errors.push(`Thing with serial_no ${serial_no} not found`);
-          continue;
-        }
-  
-        const adminStockCheck = await client.query(
-          `SELECT * FROM AdminStock WHERE thingId = $1 AND status = 'new'`,
-          [thing.id]
-        );
-        if (adminStockCheck.rows.length === 0) {
-          errors.push(`Item with serial_no ${serial_no} is not available`);
-          continue;
-        }
-  
-        await removeFromAdminStock(thing.id);
-        await addToStock(stockTable, thing.id, entity.id, billing_createdby);
-  
-        billingItems.push({
-          item_name: thing.thingName,
-          serial_no,
-          model,
-          mrp:mrp,
-          retail_price: retail_price || 0,
-        });
-  
-        const dueDateQuery = await client.query(
-          `SELECT CURRENT_DATE + $1::INTERVAL AS due_date`,
-          [warranty_period || "3 years"]
-        );
-        warrantyEntries.push({ serial_no, due_date: dueDateQuery.rows[0].due_date });
-        totalAmount += parseFloat(retail_price) || 0;
+    
+      const entityTable = `${type}_details`;
+      const stockTable = `${type}Stock`;
+      const discountValue = parseFloat(discount) || 0;
+    
+      if (discountValue < 0) {
+        return res.status(400).json({ error: "Invalid discount value" });
       }
+    
+      const client = await db.connect();
+      try {
   
-      if (billingItems.length === 0) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ error: "No valid items for billing.", details: errors });
-      }
+         // Validate if session is open
+         const sessionValidation = await isSessionOpen(sessionid, client);
+         if (!sessionValidation.isValid) {
+             return res.status(400).json({ error: sessionValidation.message });
+         }
   
-      const receiptQuery = await client.query(
-        `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
-      );
-      const receiptno = receiptQuery.rows.length > 0 ? parseInt(receiptQuery.rows[0].receipt_no) + 1 : 1000;
-  
-      let totalPaid = 0;
-      for (const payment of payment_methods) {
-        const parsedAmount = parseFloat(payment.amount);
-        if (!payment.payment_method || isNaN(parsedAmount) || parsedAmount <= 0) {
+        let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
+        if (entity.rows.length === 0) {
+          const result = await client.query(
+            `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone, total_amount, paid_amount, balance)
+             VALUES ($1, $2, $3, $4, $5, 0, 0, 0) RETURNING id, email`,
+            [name, address, phone, email, alt_phone]
+          );
+          entity = result.rows[0];
+        } else {
+          entity = entity.rows[0];
+        }
+    
+        await client.query("BEGIN");
+        let totalAmount = 0;
+        const billingItems = [];
+        const warrantyEntries = [];
+        const errors = [];
+    
+        for (const item of items) {
+          const { serial_no, model } = item;
+          const priceQuery = await client.query(
+            `SELECT mrp, retail_price, warranty_period FROM price_table WHERE model = $1`,
+            [model]
+          );
+    
+          if (priceQuery.rows.length === 0) {
+            errors.push(`Model ${model} not found in price_table`);
+            continue;
+          }
+    
+          const { retail_price, warranty_period,mrp } = priceQuery.rows[0];
+          const thing = await getThingBySerialNo(serial_no);
+          if (!thing) {
+            errors.push(`Thing with serial_no ${serial_no} not found`);
+            continue;
+          }
+    
+          const adminStockCheck = await client.query(
+            `SELECT * FROM AdminStock WHERE thingId = $1 AND status = 'new'`,
+            [thing.id]
+          );
+          if (adminStockCheck.rows.length === 0) {
+            errors.push(`Item with serial_no ${serial_no} is not available`);
+            continue;
+          }
+    
+          await removeFromAdminStock(thing.id);
+          await addToStock(stockTable, thing.id, entity.id, billing_createdby);
+    
+          billingItems.push({
+            item_name: thing.thingName,
+            serial_no,
+            model,
+            mrp:mrp,
+            retail_price: retail_price || 0,
+          });
+    
+          const dueDateQuery = await client.query(
+            `SELECT CURRENT_DATE + $1::INTERVAL AS due_date`,
+            [warranty_period || "3 years"]
+          );
+          warrantyEntries.push({ serial_no, due_date: dueDateQuery.rows[0].due_date });
+          totalAmount += parseFloat(retail_price) || 0;
+        }
+    
+        if (billingItems.length === 0) {
           await client.query("ROLLBACK");
-          return res.status(400).json({ error: "Invalid payment method or amount" });
+          return res.status(400).json({ error: "No valid items for billing.", details: errors });
         }
-        totalPaid += parsedAmount;
-      }
+    
+        const receiptQuery = await client.query(
+          `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
+        );
+        const receiptno = receiptQuery.rows.length > 0 ? parseInt(receiptQuery.rows[0].receipt_no) + 1 : 1000;
+    
+        let totalPaid = 0;
+        for (const payment of payment_methods) {
+          const parsedAmount = parseFloat(payment.amount);
+          if (!payment.payment_method || isNaN(parsedAmount) || parsedAmount <= 0) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ error: "Invalid payment method or amount" });
+          }
+          totalPaid += parsedAmount;
+        }
+    
+        
+        const discountedTotal = totalAmount - discountValue;
+        const payableAmount = Math.max(discountedTotal, 0); // Ensure it's non-negative
+        if (discountedTotal < 0) {
+          await client.query("ROLLBACK"); 
+          return res.status(400).json({ error: "Discount exceeds the total amount" });
+        }
+    
+        const balance = discountedTotal - totalPaid;
+        
+        const billingReceiptResult = await client.query(
+          `INSERT INTO billing_receipt 
+             (session_id,receipt_no, name, phone, email, billing_address, shipping_address, dealer_or_customer, total_amount, discount, paid_amount, balance, payable_amount, billing_createdby, ${type}_id, type, lastmodified, datetime)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
+          [ 
+            sessionid,
+            receiptno, 
+            name, 
+            phone, 
+            email, 
+            address, 
+            shipping_address, 
+            type, 
+            totalAmount, 
+            discountValue, 
+            totalPaid, 
+            balance, 
+            payableAmount, 
+            billing_createdby, 
+            entity.id, 
+            "sold"
+          ]
+        );
+    
+        const { id: receiptId } = billingReceiptResult.rows[0];
+    
+        for (const payment of payment_methods) {
+          await client.query(
+            `INSERT INTO payment_details (receipt_id, payment_method, amount) VALUES ($1, $2, $3)`,
+            [receiptId, payment.payment_method, parseFloat(payment.amount)]
+          );
+        }
+    
+        for (const item of billingItems) {
+          await client.query(
+            `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, retail_price,mrp, type) VALUES ($1, $2, $3, $4, $5, $6,$7)`,
+            [receiptno, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp, "sold"]
+          );
+        }
   
-      
-      const discountedTotal = totalAmount - discountValue;
-      const payableAmount = Math.max(discountedTotal, 0); // Ensure it's non-negative
-      if (discountedTotal < 0) {
+        if(type==="customers"||type==="onlinecustomer"){
+    
+        for (const warranty of warrantyEntries) {
+          await client.query(
+            `INSERT INTO thing_warranty (serial_no, receipt_id, date, due_date) VALUES ($1, $2, CURRENT_DATE, $3)`,
+            [warranty.serial_no, receiptId, warranty.due_date]
+          );
+         } };
+    
+        await client.query(
+          `UPDATE ${entityTable} 
+             SET total_amount = total_amount + $1, 
+                 paid_amount = paid_amount + $2, 
+                 balance = total_amount - paid_amount,
+                 lastmodified = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+          [discountedTotal, totalPaid, entity.id]
+        );
+    
+        if (email) {
+          const receiptDir = path.join(__dirname, "receipt");
+          if (!fs.existsSync(receiptDir)) {
+            fs.mkdirSync(receiptDir);
+          }
+          const groupedBillingItems = groupItemsByModel(billingItems);
+          const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
+          await generatePDF(pdfPath, {
+             receiptNo: receiptno,
+             date: new Date().toLocaleDateString(),
+             name,
+             phone,
+             items: groupedBillingItems,
+             totalAmount,
+             payableAmount,
+             discount: discountValue,
+             paidAmount: totalPaid,
+             balance,
+           });
+          await sendEmailWithAttachment(email, name, receiptno, pdfPath);
+        
+          if (fs.existsSync(pdfPath)) {
+            fs.unlinkSync(pdfPath);
+          }
+        }
+    
+        await client.query("COMMIT");
+        res.status(200).json({
+          message: "Billing receipt created successfully",
+          entity_id: entity.id,
+          receipt_id: receiptId,
+          total_amount: totalAmount,
+          discount: discountValue,
+          paid_amount: totalPaid,
+          balance,
+          errors: errors.length > 0 ? errors : null,
+        });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        client.release();
+      }
+    }
+    if(userrole.row[0]==="dealer"){
+      if(!sessionid){
+
+      }
+      if(!type==="customers"){
         await client.query("ROLLBACK"); 
-        return res.status(400).json({ error: "Discount exceeds the total amount" });
-      }
-  
-      const balance = discountedTotal - totalPaid;
-      
-      const billingReceiptResult = await client.query(
-        `INSERT INTO billing_receipt 
-           (session_id,receipt_no, name, phone, email, billing_address, shipping_address, dealer_or_customer, total_amount, discount, paid_amount, balance, payable_amount, billing_createdby, ${type}_id, type, lastmodified, datetime)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
-        [ 
-          sessionid,
-          receiptno, 
-          name, 
-          phone, 
-          email, 
-          address, 
-          shipping_address, 
-          type, 
-          totalAmount, 
-          discountValue, 
-          totalPaid, 
-          balance, 
-          payableAmount, 
-          billing_createdby, 
-          entity.id, 
-          "sold"
-        ]
-      );
-  
-      const { id: receiptId } = billingReceiptResult.rows[0];
-  
-      for (const payment of payment_methods) {
-        await client.query(
-          `INSERT INTO payment_details (receipt_id, payment_method, amount) VALUES ($1, $2, $3)`,
-          [receiptId, payment.payment_method, parseFloat(payment.amount)]
-        );
-      }
-  
-      for (const item of billingItems) {
-        await client.query(
-          `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, retail_price,mrp, type) VALUES ($1, $2, $3, $4, $5, $6,$7)`,
-          [receiptno, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp, "sold"]
-        );
+        return res.status(400).json({ error: `your not able to sale to ${type}` });
+
       }
 
-      if(type==="customers"||type==="onlinecustomer"){
-  
-      for (const warranty of warrantyEntries) {
-        await client.query(
-          `INSERT INTO thing_warranty (serial_no, receipt_id, date, due_date) VALUES ($1, $2, CURRENT_DATE, $3)`,
-          [warranty.serial_no, receiptId, warranty.due_date]
-        );
-       } };
-  
-      await client.query(
-        `UPDATE ${entityTable} 
-           SET total_amount = total_amount + $1, 
-               paid_amount = paid_amount + $2, 
-               balance = total_amount - paid_amount,
-               lastmodified = CURRENT_TIMESTAMP
-           WHERE id = $3`,
-        [discountedTotal, totalPaid, entity.id]
-      );
-  
-      if (email) {
-        const receiptDir = path.join(__dirname, "receipt");
-        if (!fs.existsSync(receiptDir)) {
-          fs.mkdirSync(receiptDir);
-        }
-        const groupedBillingItems = groupItemsByModel(billingItems);
-        const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
-        await generatePDF(pdfPath, {
-           receiptNo: receiptno,
-           date: new Date().toLocaleDateString(),
-           name,
-           phone,
-           items: groupedBillingItems,
-           totalAmount,
-           payableAmount,
-           discount: discountValue,
-           paidAmount: totalPaid,
-           balance,
-         });
-        await sendEmailWithAttachment(email, name, receiptno, pdfPath);
-      
-        if (fs.existsSync(pdfPath)) {
-          fs.unlinkSync(pdfPath);
-        }
+    
+      const entityTable = `${type}_details`;
+      const stockTable = `${type}Stock`;
+      const discountValue = parseFloat(discount) || 0;
+    
+      if (discountValue < 0) {
+        return res.status(400).json({ error: "Invalid discount value" });
       }
+    
+      const client = await db.connect();
+      try {
   
-      await client.query("COMMIT");
-      res.status(200).json({
-        message: "Billing receipt created successfully",
-        entity_id: entity.id,
-        receipt_id: receiptId,
-        total_amount: totalAmount,
-        discount: discountValue,
-        paid_amount: totalPaid,
-        balance,
-        errors: errors.length > 0 ? errors : null,
-      });
-    } catch (err) {
-      await client.query("ROLLBACK");
-      console.error(err);
-      res.status(500).json({ error: "Internal server error" });
-    } finally {
-      client.release();
+         // Validate if session is open
+         const sessionValidation = await isSessionOpen(sessionid, client);
+         if (!sessionValidation.isValid) {
+             return res.status(400).json({ error: sessionValidation.message });
+         }
+  
+        let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1`, [phone]);
+        if (entity.rows.length === 0) {
+          const result = await client.query(
+            `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone, total_amount, paid_amount, balance)
+             VALUES ($1, $2, $3, $4, $5, 0, 0, 0) RETURNING id, email`,
+            [name, address, phone, email, alt_phone]
+          );
+          entity = result.rows[0];
+        } else {
+          entity = entity.rows[0];
+        }
+    
+        await client.query("BEGIN");
+        let totalAmount = 0;
+        const billingItems = [];
+        const warrantyEntries = [];
+        const errors = [];
+    
+        for (const item of items) {
+          const { serial_no, model } = item;
+          const priceQuery = await client.query(
+            `SELECT mrp, retail_price, warranty_period FROM price_table WHERE model = $1`,
+            [model]
+          );
+    
+          if (priceQuery.rows.length === 0) {
+            errors.push(`Model ${model} not found in price_table`);
+            continue;
+          }
+    
+          const { retail_price, warranty_period,mrp } = priceQuery.rows[0];
+          const thing = await getThingBySerialNo(serial_no);
+          if (!thing) {
+            errors.push(`Thing with serial_no ${serial_no} not found`);
+            continue;
+          }
+    
+          const adminStockCheck = await client.query(
+            `SELECT * FROM AdminStock WHERE thingId = $1 AND status = 'new'`,
+            [thing.id]
+          );
+          if (adminStockCheck.rows.length === 0) {
+            errors.push(`Item with serial_no ${serial_no} is not available`);
+            continue;
+          }
+    
+          await removeFromAdminStock(thing.id);
+          await addToStock(stockTable, thing.id, entity.id, billing_createdby);
+    
+          billingItems.push({
+            item_name: thing.thingName,
+            serial_no,
+            model,
+            mrp:mrp,
+            retail_price: retail_price || 0,
+          });
+    
+          const dueDateQuery = await client.query(
+            `SELECT CURRENT_DATE + $1::INTERVAL AS due_date`,
+            [warranty_period || "3 years"]
+          );
+          warrantyEntries.push({ serial_no, due_date: dueDateQuery.rows[0].due_date });
+          totalAmount += parseFloat(retail_price) || 0;
+        }
+    
+        if (billingItems.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ error: "No valid items for billing.", details: errors });
+        }
+    
+        const receiptQuery = await client.query(
+          `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
+        );
+        const receiptno = receiptQuery.rows.length > 0 ? parseInt(receiptQuery.rows[0].receipt_no) + 1 : 1000;
+    
+        let totalPaid = 0;
+        for (const payment of payment_methods) {
+          const parsedAmount = parseFloat(payment.amount);
+          if (!payment.payment_method || isNaN(parsedAmount) || parsedAmount <= 0) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ error: "Invalid payment method or amount" });
+          }
+          totalPaid += parsedAmount;
+        }
+    
+        
+        const discountedTotal = totalAmount - discountValue;
+        const payableAmount = Math.max(discountedTotal, 0); // Ensure it's non-negative
+        if (discountedTotal < 0) {
+          await client.query("ROLLBACK"); 
+          return res.status(400).json({ error: "Discount exceeds the total amount" });
+        }
+    
+        const balance = discountedTotal - totalPaid;
+        
+        const billingReceiptResult = await client.query(
+          `INSERT INTO billing_receipt 
+             (session_id,receipt_no, name, phone, email, billing_address, shipping_address, dealer_or_customer, total_amount, discount, paid_amount, balance, payable_amount, billing_createdby, ${type}_id, type, lastmodified, datetime)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,$16, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id, receipt_no`,
+          [ 
+            sessionid,
+            receiptno, 
+            name, 
+            phone, 
+            email, 
+            address, 
+            shipping_address, 
+            type, 
+            totalAmount, 
+            discountValue, 
+            totalPaid, 
+            balance, 
+            payableAmount, 
+            billing_createdby, 
+            entity.id, 
+            "sold"
+          ]
+        );
+    
+        const { id: receiptId } = billingReceiptResult.rows[0];
+    
+        for (const payment of payment_methods) {
+          await client.query(
+            `INSERT INTO payment_details (receipt_id, payment_method, amount) VALUES ($1, $2, $3)`,
+            [receiptId, payment.payment_method, parseFloat(payment.amount)]
+          );
+        }
+    
+        for (const item of billingItems) {
+          await client.query(
+            `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, retail_price,mrp, type) VALUES ($1, $2, $3, $4, $5, $6,$7)`,
+            [receiptno, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp, "sold"]
+          );
+        }
+  
+        if(type==="customers"||type==="onlinecustomer"){
+    
+        for (const warranty of warrantyEntries) {
+          await client.query(
+            `INSERT INTO thing_warranty (serial_no, receipt_id, date, due_date) VALUES ($1, $2, CURRENT_DATE, $3)`,
+            [warranty.serial_no, receiptId, warranty.due_date]
+          );
+         } };
+    
+        await client.query(
+          `UPDATE ${entityTable} 
+             SET total_amount = total_amount + $1, 
+                 paid_amount = paid_amount + $2, 
+                 balance = total_amount - paid_amount,
+                 lastmodified = CURRENT_TIMESTAMP
+             WHERE id = $3`,
+          [discountedTotal, totalPaid, entity.id]
+        );
+    
+        if (email) {
+          const receiptDir = path.join(__dirname, "receipt");
+          if (!fs.existsSync(receiptDir)) {
+            fs.mkdirSync(receiptDir);
+          }
+          const groupedBillingItems = groupItemsByModel(billingItems);
+          const pdfPath = path.join(receiptDir, `receipt_${receiptno}.pdf`);
+          await generatePDF(pdfPath, {
+             receiptNo: receiptno,
+             date: new Date().toLocaleDateString(),
+             name,
+             phone,
+             items: groupedBillingItems,
+             totalAmount,
+             payableAmount,
+             discount: discountValue,
+             paidAmount: totalPaid,
+             balance,
+           });
+          await sendEmailWithAttachment(email, name, receiptno, pdfPath);
+        
+          if (fs.existsSync(pdfPath)) {
+            fs.unlinkSync(pdfPath);
+          }
+        }
+    
+        await client.query("COMMIT");
+        res.status(200).json({
+          message: "Billing receipt created successfully",
+          entity_id: entity.id,
+          receipt_id: receiptId,
+          total_amount: totalAmount,
+          discount: discountValue,
+          paid_amount: totalPaid,
+          balance,
+          errors: errors.length > 0 ? errors : null,
+        });
+      } catch (err) {
+        await client.query("ROLLBACK");
+        console.error(err);
+        res.status(500).json({ error: "Internal server error" });
+      } finally {
+        client.release();
+      }
     }
+    
   });
  
   dashboard.post("/api/billing/return/:status", async (req, res) => {
@@ -795,7 +1275,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 });
 
 // API to get all users in role with optional search
-dashboard.get('/api/users/:role', async (req, res) => {
+dashboard.get('/api/display/users/:role', async (req, res) => {
   const { search } = req.query;
   const role = req.params.role.toLowerCase(); // Normalize case for role comparison
   const allowedRoles = ['admin', 'staff', 'customer']; // Valid roles
@@ -2626,7 +3106,9 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
         console.error('Error fetching data:', err);
         res.status(500).json({ error: 'Internal Server Error' });
     }
+
 });
+
 
 
 
