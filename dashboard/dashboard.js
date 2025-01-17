@@ -562,7 +562,7 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
           return res.status(400).json({ error: 'Invalid userRole' });
       }
 
-      let query = `SELECT id, userName, userRole, profilePic, lastModified FROM Users WHERE LOWER(userRole) = $1`;
+      let query = `SELECT id, userName, userRole, profilePic,name, lastModified FROM Users WHERE LOWER(userRole) = $1`;
       const values = [role];
 
       // Add search condition if search query is provided
@@ -1914,7 +1914,7 @@ dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, 
   let fileUrl = null;
   console.log(req.body)
   if (req.file) {
-    console.log(req.file)
+    // console.log(req.file)
       const file = req.file;
       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
       const params = {
