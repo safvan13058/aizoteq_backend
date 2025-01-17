@@ -2496,7 +2496,7 @@ dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id', async (req, res) => {
   const { id } = req.params;
-  const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
+  const { model, mrp, retail_price, sgst,cgst,igst, discount, warranty_period } = req.body;
   console.log(req.body)
   // Function to validate warranty_period
   function isValidWarrantyPeriod(warrantyPeriod) {
@@ -2506,7 +2506,7 @@ dashboard.put('/api/update/price_table/:id', async (req, res) => {
 
 
      // Validate input data
-if (!model || !mrp || !retail_price || !tax) {
+if (!model || !mrp || !retail_price) {
   return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
 }
 
@@ -2521,7 +2521,7 @@ if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
       `UPDATE price_table
        SET model = $1, mrp = $2, retail_price = $3, tax = $4, discount = $5, warranty_period = $6::INTERVAL
        WHERE id = $7 RETURNING *`,
-      [model, mrp, retail_price, tax, discount, warranty_period, id]
+      [model, mrp, retail_price,sgst,cgst,igst, discount, warranty_period, id]
     );
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'Price entry not found' });
