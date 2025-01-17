@@ -2496,33 +2496,79 @@ dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id', async (req, res) => {
   const { id } = req.params;
-  const { model, mrp, retail_price, sgst,cgst,igst, discount, warranty_period } = req.body;
-  console.log(req.body)
+  const {
+    model, mrp, retail_price, sgst, cgst, igst, discount, warranty_period
+  } = req.body;
+
   // Function to validate warranty_period
   function isValidWarrantyPeriod(warrantyPeriod) {
     const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
     return regex.test(warrantyPeriod);
   }
 
+  // Validate warranty_period if provided
+  if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+    return res.status(400).json({
+      error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+    });
+  }
 
-     // Validate input data
-if (!model || !mrp || !retail_price) {
-  return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
-}
-
-if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
-  return res.status(400).json({
-    error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
-  });
-}
   try {
-    console.log(warranty_period)
-    const result = await db.query(
-      `UPDATE price_table
-       SET model = $1, mrp = $2, retail_price = $3, tax = $4, discount = $5, warranty_period = $6::INTERVAL
-       WHERE id = $7 RETURNING *`,
-      [model, mrp, retail_price,sgst,cgst,igst, discount, warranty_period, id]
-    );
+    const updates = [];
+    const values = [];
+    let queryIndex = 1;
+
+    // Build query dynamically
+    if (model !== undefined) {
+      updates.push(`model = $${queryIndex++}`);
+      values.push(model);
+    }
+    if (mrp !== undefined) {
+      updates.push(`mrp = $${queryIndex++}`);
+      values.push(mrp);
+    }
+    if (retail_price !== undefined) {
+      updates.push(`retail_price = $${queryIndex++}`);
+      values.push(retail_price);
+    }
+    if (sgst !== undefined) {
+      updates.push(`sgst = $${queryIndex++}`);
+      values.push(sgst);
+    }
+    if (cgst !== undefined) {
+      updates.push(`cgst = $${queryIndex++}`);
+      values.push(cgst);
+    }
+    if (igst !== undefined) {
+      updates.push(`igst = $${queryIndex++}`);
+      values.push(igst);
+    }
+    if (discount !== undefined) {
+      updates.push(`discount = $${queryIndex++}`);
+      values.push(discount);
+    }
+    if (warranty_period !== undefined) {
+      updates.push(`warranty_period = $${queryIndex++}::INTERVAL`);
+      values.push(warranty_period);
+    }
+
+    // If no fields to update
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided for update' });
+    }
+
+    // Add id as the last parameter
+    values.push(id);
+
+    const query = `
+      UPDATE price_table
+      SET ${updates.join(', ')}
+      WHERE id = $${queryIndex}
+      RETURNING *;
+    `;
+
+    const result = await db.query(query, values);
+
     if (result.rows.length === 0) {
       res.status(404).json({ error: 'Price entry not found' });
     } else {
@@ -2533,6 +2579,7 @@ if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
     res.status(500).json({ error: 'Failed to update price entry' });
   }
 });
+
 
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id', async (req, res) => {
