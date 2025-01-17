@@ -2990,6 +2990,7 @@ dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, 
 // API to update a raw material by ID
 dashboard.put('/api/raw_materials/update/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
+  console.log( req.body)
   const {
     Component, category, package: pkg, value, reference_no, 
     unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level
