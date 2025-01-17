@@ -465,7 +465,140 @@ const Swaggerdoc = {
         }
       }
     },
-
+    "/api/update/devices/{deviceid}": {
+      "put": {
+        "summary": "Update Device Details",
+        "description": "Updates the name, icon, or room mapping for a given device.",
+        "tags":['device'],
+        "parameters": [
+          {
+            "name": "deviceid",
+            "in": "path",
+            "required": true,
+            "description": "Unique identifier of the device to be updated",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "New name for the device"
+                  },
+                  "icon": {
+                    "type": "string",
+                    "description": "New icon for the device"
+                  },
+                  "newroomid": {
+                    "type": "string",
+                    "description": "New room ID to map the device"
+                  }
+                },
+                "example": {
+                  "name": "Updated Device Name",
+                  "icon": "updated-icon.png",
+                  "newroomid": "5"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Device updated successfully"
+                    },
+                    "device_id": {
+                      "type": "string",
+                      "example": "12345"
+                    },
+                    "updated_fields": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "example": "Updated Device Name"
+                        },
+                        "icon": {
+                          "type": "string",
+                          "example": "icon"
+                        },
+                        "newroomid": {
+                          "type": "string",
+                          "example": "5"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - No fields provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "At least one of name, icon, or newroomid must be provided"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device, Room, or Mapping not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Device not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while updating the device."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 "/api/searchThings/working/{status}": {
       "get": {
         "tags": ["Test APP APIs"],

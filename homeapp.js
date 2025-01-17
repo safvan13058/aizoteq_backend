@@ -1162,7 +1162,7 @@ homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
     }
 
     try {
-        const client = await pool.connect();
+        const client = await db.connect();
 
         try {
             // Check if the device exists
@@ -1759,6 +1759,148 @@ homeapp.get('/api/display/device/rooms/:roomid',
         }
     }
 );
+
+// homeapp.put('/api/update/devices/:id', async (req, res) => {
+//     const { id } = req.params; // Get device ID from the URL
+//     const { name, icon,newroomid } = req.body; // Get the updated name and icon from the request body
+  
+//     // Ensure at least one field is provided
+//     if (!name && !icon) {
+//       return res.status(400).json({ error: 'At least one of name or icon must be provided' });
+//     }
+  
+//     try {
+//       // Dynamically build the query based on available fields
+//       const fields = [];
+//       const values = [];
+//       let query = 'UPDATE Devices SET ';
+//       let paramIndex = 1;
+  
+//       if (name) {
+//         fields.push(`name = $${paramIndex++}`);
+//         values.push(name);
+//       }
+//       if (icon) {
+//         fields.push(`icon = $${paramIndex++}`);
+//         values.push(icon);
+//       }
+  
+//       // Add lastModified field and WHERE condition
+//       fields.push(`lastModified = CURRENT_TIMESTAMP`);
+//       query += fields.join(', ') + ` WHERE id = $${paramIndex} RETURNING *`;
+//       values.push(id);
+  
+//       // Execute the update query
+//       const result = await db.query(query, values);
+  
+//       // Check if a device was updated
+//       if (result.rowCount === 0) {
+//         return res.status(404).json({ error: 'Device not found' });
+//       }
+  
+//       res.status(200).json({ message: 'Device updated successfully', device: result.rows[0] });
+//     } catch (error) {
+//       console.error('Error updating device:', error);
+//       res.status(500).json({ error: 'Internal Server Error' });
+//     }
+//   });
+  
+homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
+    const device_id = req.params.deviceid; // Get device ID from the URL
+    const { name, icon, newroomid } = req.body; // Get the fields to update from the request body
+
+    // Ensure at least one field is provided
+    if (!name && !icon && !newroomid) {
+        return res.status(400).json({ error: 'At least one of name, icon, or newroomid must be provided' });
+    }
+
+    try {
+        const client = await db.connect();
+
+        try {
+            // Check if the device exists
+            const deviceResult = await client.query(
+                'SELECT * FROM devices WHERE deviceid = $1',
+                [device_id]
+            );
+
+            if (deviceResult.rowCount === 0) {
+                return res.status(404).json({ error: 'Device not found' });
+            }
+
+            // Extract the device ID from the result for room_device mapping
+            const deviceid = deviceResult.rows[0].deviceid;
+
+            // If newroomid is provided, validate the room and update the mapping
+            if (newroomid) {
+                // Check if the room exists
+                const roomResult = await client.query(
+                    'SELECT * FROM room WHERE id = $1',
+                    [newroomid]
+                );
+                if (roomResult.rowCount === 0) {
+                    return res.status(404).json({ error: 'Room not found' });
+                }
+
+                // Check if a device-to-room mapping exists
+                const mappingResult = await client.query(
+                    'SELECT * FROM room_device WHERE device_id = $1',
+                    [deviceid]
+                );
+                if (mappingResult.rowCount === 0) {
+                    return res.status(404).json({ error: 'Device mapping not found' });
+                }
+
+                // Update the room for the device
+                await client.query(
+                    'UPDATE room_device SET room_id = $1 WHERE device_id = $2',
+                    [newroomid, deviceid]
+                );
+            }
+
+            // Dynamically build the query for name and icon updates
+            const fields = [];
+            const values = [];
+            let query = 'UPDATE devices SET ';
+            let paramIndex = 1;
+
+            if (name) {
+                fields.push(`name = $${paramIndex++}`);
+                values.push(name);
+            }
+            if (icon) {
+                fields.push(`icon = $${paramIndex++}`);
+                values.push(icon);
+            }
+
+            // If name or icon is provided, update the device
+            if (fields.length > 0) {
+                // Add lastModified field and WHERE condition
+                fields.push(`lastModified = CURRENT_TIMESTAMP`);
+                query += fields.join(', ') + ` WHERE deviceid = $${paramIndex}`;
+                values.push(device_id);
+
+                await client.query(query, values);
+            }
+
+            res.status(200).json({
+                message: 'Device updated successfully',
+                device_id,
+                updated_fields: { name, icon, newroomid },
+            });
+        } catch (error) {
+            console.error('Error executing query:', error);
+            res.status(500).json({ error: 'An error occurred while updating the device.' });
+        } finally {
+            client.release(); // Release the client back to the pool
+        }
+    } catch (error) {
+        console.error('Error connecting to the database:', error);
+        res.status(500).json({ error: 'Database connection error' });
+    }
+});
+
+
 // update the enable/disable
 homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
     const deviceId = req.params.deviceId;
