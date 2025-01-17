@@ -2411,7 +2411,7 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
 
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table', async (req, res) => {
-  const { model, mrp, retail_price, tax, discount, warranty_period } = req.body;
+  const { model, mrp, retail_price,discount, warranty_period } = req.body;
    
     // Function to validate warranty_period
     function isValidWarrantyPeriod(warrantyPeriod) {
@@ -2420,7 +2420,7 @@ dashboard.post('/api/create/price_table', async (req, res) => {
     }
  
        // Validate input data
-  if (!model || !mrp || !retail_price || !tax) {
+  if (!model || !mrp || !retail_price ) {
     return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
   }
 
@@ -2442,9 +2442,9 @@ dashboard.post('/api/create/price_table', async (req, res) => {
     }
     
     const result = await db.query(
-      `INSERT INTO price_table (model, mrp, retail_price, tax, discount, warranty_period)
+      `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period)
        VALUES ($1, $2, $3, $4, $5, $6::INTERVAL) RETURNING *`,
-      [model, mrp, retail_price, tax, discount, warranty_period]
+      [model, mrp, retail_price,discount, warranty_period]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
