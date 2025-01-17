@@ -2443,7 +2443,7 @@ dashboard.post('/api/create/price_table', async (req, res) => {
     
     const result = await db.query(
       `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period)
-       VALUES ($1, $2, $3, $4, $5, $6::INTERVAL) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5::INTERVAL) RETURNING *`,
       [model, mrp, retail_price,discount, warranty_period]
     );
     res.status(201).json(result.rows[0]);
