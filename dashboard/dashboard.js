@@ -2956,7 +2956,7 @@ dashboard.get('/api/sales', async (req, res) => {
 // -----------------------------------
 // API to create a new raw material
 dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, res) => {
-  const { name, category, value, reference_no, stock_quantity, reorder_level } = req.body;
+  const { Component,package, category, value,unit_price_in_rupees,unit_price_in_dollars, reference_no, stock_quantity, reorder_level } = req.body;
   let fileUrl = null;
 
   if (req.file) {
@@ -2975,11 +2975,11 @@ dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, 
       fileUrl = uploadResult.Location; // S3 file URL
   }
 
-  const query = `INSERT INTO raw_materials_stock (name, category, value, reference_no, image, stock_quantity, reorder_level)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`;
+  const query = `INSERT INTO raw_materials_stock (Component, category,package, value, reference_no, image,unit_price_in_rupees,unit_price_in_dollars,stock_quantity, reorder_level)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9,$10) RETURNING id`;
 
   try {
-      const result = await db.query(query, [name, category, value, reference_no, fileUrl, stock_quantity, reorder_level]);
+      const result = await db.query(query, [Component, category,package, value, reference_no, fileUrl,unit_price_in_rupees,unit_price_in_dollars,stock_quantity, reorder_level]);
       res.status(201).json({ message: 'Raw material created successfully', id: result.rows[0].id });
   } catch (err) {
       console.error(err);
@@ -2990,34 +2990,105 @@ dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, 
 // API to update a raw material by ID
 dashboard.put('/api/raw_materials/update/:id', upload.single('image'), async (req, res) => {
   const { id } = req.params;
-  const { name, category, value, reference_no, stock_quantity, reorder_level } = req.body;
+  const {
+    Component, category, package: pkg, value, reference_no, 
+    unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level
+  } = req.body;
+  
   let fileUrl = null;
 
+  // If an image file is uploaded, process it for S3
   if (req.file) {
-      const file = req.file;
-      const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
-      const params = {
-          Bucket: process.env.S3_BUCKET_NAME,
-          Key: fileKey,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          // ACL: 'public-read', // Uncomment if you want the file to be publicly readable
-      };
+    const file = req.file;
+    const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+    const params = {
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: fileKey,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+    };
 
+    try {
       const uploadResult = await s3.upload(params).promise();
       fileUrl = uploadResult.Location; // S3 file URL
+    } catch (uploadErr) {
+      console.error('Error uploading file:', uploadErr);
+      return res.status(500).json({ error: 'Failed to upload image', message: uploadErr.message });
+    }
   }
 
-  const query = `UPDATE raw_materials_stock
-                 SET name = $1, category = $2, value = $3, reference_no = $4, image = $5, stock_quantity = $6, reorder_level = $7
-                 WHERE id = $8`;
-
   try {
-      await db.query(query, [name, category, value, reference_no, fileUrl, stock_quantity, reorder_level, id]);
-      res.status(200).json({ message: 'Raw material updated successfully' });
+    // Dynamically construct query
+    const updates = [];
+    const values = [];
+    let queryIndex = 1;
+
+    if (Component) {
+      updates.push(`Component = $${queryIndex++}`);
+      values.push(Component);
+    }
+    if (category) {
+      updates.push(`category = $${queryIndex++}`);
+      values.push(category);
+    }
+    if (pkg) {
+      updates.push(`package = $${queryIndex++}`);
+      values.push(pkg);
+    }
+    if (value) {
+      updates.push(`value = $${queryIndex++}`);
+      values.push(value);
+    }
+    if (reference_no) {
+      updates.push(`reference_no = $${queryIndex++}`);
+      values.push(reference_no);
+    }
+    if (unit_price_in_rupees) {
+      updates.push(`unit_price_in_rupees = $${queryIndex++}`);
+      values.push(unit_price_in_rupees);
+    }
+    if (unit_price_in_dollars) {
+      updates.push(`unit_price_in_dollars = $${queryIndex++}`);
+      values.push(unit_price_in_dollars);
+    }
+    if (fileUrl) {
+      updates.push(`image = $${queryIndex++}`);
+      values.push(fileUrl);
+    }
+    if (stock_quantity) {
+      updates.push(`stock_quantity = $${queryIndex++}`);
+      values.push(stock_quantity);
+    }
+    if (reorder_level) {
+      updates.push(`reorder_level = $${queryIndex++}`);
+      values.push(reorder_level);
+    }
+
+    // If no fields to update, return an error
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No valid fields provided for update' });
+    }
+
+    // Add the id as the last parameter
+    values.push(id);
+
+    const query = `
+      UPDATE raw_materials_stock
+      SET ${updates.join(', ')}
+      WHERE id = $${queryIndex}
+      RETURNING *;
+    `;
+
+    const result = await db.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Raw material not found' });
+    } else {
+      res.status(200).json({ message: 'Raw material updated successfully', data: result.rows[0] });
+    }
   } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to update raw material', message: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update raw material', message: err.message });
   }
 });
 
@@ -3056,16 +3127,37 @@ dashboard.delete('/api/raw_materials/delete/:id', async (req, res) => {
 
 // API to get all raw materials
 dashboard.get('/api/raw_materials', async (req, res) => {
-  const query = 'SELECT * FROM raw_materials_stock';
+  const { search, category } = req.query;
+  let query = 'SELECT * FROM raw_materials_stock WHERE 1=1';
+  const params = [];
+  let paramIndex = 1; // Keeps track of parameter indices for SQL injection protection
+
+  if (search) {
+    query += ` AND (
+      Component ILIKE $${paramIndex} OR
+      category ILIKE $${paramIndex} OR
+      package ILIKE $${paramIndex} OR
+      value ILIKE $${paramIndex} OR
+      reference_no ILIKE $${paramIndex}
+    )`;
+    params.push(`%${search}%`);
+    paramIndex++; // Increment index after adding a parameter
+  }
+
+  if (category) {
+    query += ` AND category = $${paramIndex}`;
+    params.push(category);
+  }
 
   try {
-      const result = await db.query(query);
-      res.status(200).json({ raw_materials: result.rows });
+    const result = await db.query(query, params);
+    res.status(200).json({ raw_materials: result.rows });
   } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
   }
 });
+
 
 // API to add raw material to a model
 dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
