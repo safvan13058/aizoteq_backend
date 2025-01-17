@@ -11,33 +11,140 @@ const getThingBySerialNo = async (serialNo) => {
     const result = await db.query(`DELETE FROM AdminStock WHERE thingId = $1 RETURNING *`, [thingId]);
     return result.rows[0] || null;
   };
+  const removeFromdealersStock = async (thingId) => {
+    const result = await db.query(`DELETE FROM dealersStock WHERE thingId = $1 RETURNING *`, [thingId]);
+    return result.rows[0] || null;
+  };
+  const removeFromStock = async (stockTable,thingId) => {
+    const result = await db.query(`DELETE FROM ${stockTable} WHERE thingId = $1 RETURNING *`, [thingId]);
+    return result.rows[0] || null;
+  };
   
   // Helper function: Add thing to dealer's or customer's stock
   const addToStock = async (stockTable, thingId,userid, addedBy, status = "new") => {
     await db.query(
-      `INSERT INTO ${stockTable} (thing_id,user_id,added_by, status) VALUES ($1, $2, $3,$4)`,
+      `INSERT INTO ${stockTable} (thingid,user_id,added_by, status) VALUES ($1, $2, $3,$4)`,
       [thingId,userid, addedBy, status]
     );
   };
    
+  // function groupItemsByModel(items) {
+  //   const grouped = {};
+  //   for (const item of items) {
+  //     const { model, item_name, retail_price, mrp } = item;
+  //     if (!grouped[model]) {
+  //       grouped[model] = {
+  //         model,
+  //         item_name,
+  //         retail_price,
+  //         mrp,
+  //         qty: 1, // Start with quantity 1 for the first occurrence
+  //       };
+  //     } else {
+  //       grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+  //     }
+  //   }
+  //   return Object.values(grouped); // Convert the grouped object back to an array
+  // }
+
+  // function groupItemsByModel(items) {
+  //   const grouped = {};
+    
+  //   for (const item of items) {
+  //     const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst, final_price } = item;
+      
+  //     if (!grouped[model]) {
+  //       grouped[model] = {
+  //         model,
+  //         item_name,
+  //         retail_price,
+  //         mrp,
+  //         qty: 1, // Start with quantity 1 for the first occurrence
+  //         item_discount,
+  //         discounted_price,
+  //         sgst,
+  //         cgst,
+  //         igst,
+  //         final_price,
+  //       };
+  //     } else {
+  //       grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+  
+  //       // Accumulate the item properties for each model
+  //       grouped[model].item_discount += item_discount;
+  //       grouped[model].discounted_price += discounted_price;
+  //       grouped[model].sgst += sgst;
+  //       grouped[model].cgst += cgst;
+  //       grouped[model].igst += igst;
+  //       grouped[model].final_price += final_price;
+  //     }
+  //   }
+  
+  //   return Object.values(grouped); // Convert the grouped object back to an array
+  // }
   function groupItemsByModel(items) {
     const grouped = {};
+    let totalSGST = 0; // To accumulate total SGST
+    let totalCGST = 0; // To accumulate total CGST
+    let totalIGST = 0; // To accumulate total IGST
+    let totalDiscountedPrice = 0; // To accumulate total discounted price
+    let totalAll = 0;
     for (const item of items) {
-      const { model, item_name, retail_price, mrp } = item;
-      if (!grouped[model]) {
-        grouped[model] = {
-          model,
-          item_name,
-          retail_price,
-          mrp,
-          qty: 1, // Start with quantity 1 for the first occurrence
-        };
-      } else {
-        grouped[model].qty += 1; // Increment quantity for subsequent occurrences
-      }
+        const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst, final_price } = item;
+        
+        // Accumulate tax totals
+        totalSGST += sgst;
+        totalCGST += cgst;
+        totalIGST += igst;
+        
+        // Accumulate the total discounted price
+        totalDiscountedPrice += discounted_price;
+        totalAll += sgst + cgst + igst + discounted_price;
+        // Group items by model
+        if (!grouped[model]) {
+            grouped[model] = {
+                model,
+                item_name,
+                retail_price,
+                mrp,
+                qty: 1, // Start with quantity 1 for the first occurrence
+                item_discount,
+                discounted_price,
+                sgst,
+                cgst,
+                igst,
+                final_price,
+            };
+        } else {
+            grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+            
+            // Accumulate the item properties for each model
+            grouped[model].item_discount += item_discount;
+            grouped[model].discounted_price += discounted_price;
+            grouped[model].sgst += sgst;
+            grouped[model].cgst += cgst;
+            grouped[model].igst += igst;
+            grouped[model].final_price += final_price;
+        }
     }
-    return Object.values(grouped); // Convert the grouped object back to an array
-  }
+    console.log(Object.values(grouped), // Convert the grouped object back to an array
+    totalSGST,
+    totalCGST,
+    totalIGST,
+    totalDiscountedPrice, // Return the total discounted price
+    totalAll)
+    return {
+        
+        groupedItems: Object.values(grouped), // Convert the grouped object back to an array
+        totalSGST,
+        totalCGST,
+        totalIGST,
+        totalDiscountedPrice, // Return the total discounted price
+        totalAll
+
+      };
+}
+
   
   async function isSessionOpen(session_id, client) {
     const result = await client.query(
@@ -166,7 +273,7 @@ Handlebars.registerHelper("increment", function (value) {
 });
 async function generatePDF(filePath, data) {
   // Load HTML template
-  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice.html", "utf8");
+  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice2.html", "utf8");
   const template = Handlebars.compile(templateHtml);
 
   // Replace placeholders with data
@@ -231,4 +338,4 @@ async function sendEmailWithAttachment(toEmail, name, receiptNo, pdfPath) {
   }
 }
 
-  module.exports={getThingBySerialNo,removeFromAdminStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel}
+  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock}

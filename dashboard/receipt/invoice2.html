@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- <link rel="stylesheet" href="invoice1.css"> -->
+    <title>Tax Invoice</title>
+</head>
+<body>
+    <style>
+        /* General Styling */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+
+.invoice-container {
+    max-width: 800px;
+    margin: auto;
+    background: #fff;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+/* Header and Footer */
+.header, .footer {
+    text-align: start;
+}
+
+.tophead {
+    display: flex;
+    justify-content: space-between;
+}
+
+.img {
+    width: 50%;
+    text-align: end;
+}
+
+.img img {
+    width: 50%;
+}
+
+/* Details and Items Section */
+.details, .terms {
+    margin-top: 20px;
+}
+
+.details table, .items table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    table-layout: fixed; /* Ensures fixed column widths */
+}
+.details td{
+     padding: 8px;
+      border: 1px solid #ddd; /*Adds borders to all cells  */
+}
+.items td {
+   
+    vertical-align: top;
+    border-left: 1px solid #ddd; /* Left border for columns */
+    border-right: 1px solid #ddd; /* Right border for columns */
+}
+ .items td, .items th {
+    font-size:10px;
+    padding: 4px;
+    
+    text-align: center;
+    overflow: hidden; 
+   
+}
+
+.items th {
+    font-size: 10px;
+    background: #f4f4f4;
+    text-align: left;
+    border: 1px solid #ddd; /* Header row borders */
+}
+
+/* Column Widths */
+.items th:nth-child(1) {
+    width: 5%; /* Sr. No */
+}
+
+.items th:nth-child(2) {
+    width: 25%; /* Description of Goods */
+}
+
+.items th:nth-child(3), .items th:nth-child(4), 
+.items th:nth-child(5), .items th:nth-child(6), 
+.items th:nth-child(7), .items th:nth-child(8), 
+.items th:nth-child(9), .items th:nth-child(10) {
+    width: 10%; /* Equal widths for remaining columns */
+}
+
+/* Styling for Table Rows */
+.items tbody {
+    background-color: white; /* Blank background */
+}
+
+.items tr {
+    width: 100%;
+    table-layout: fixed; /* Enforces column widths */
+}
+
+/* Placeholder Rows for Blank Space */
+.placeholder-row td {
+    border-left: 1px solid #ddd;
+    border-right: 1px solid #ddd;
+    background-color: transparent; /* Transparent background for blank rows */
+    height: 27px; /* Fixed row height */
+    padding: 0;
+}
+
+/* First Row and Footer Borders */
+.items tbody tr:first-child td {
+    border-top: 1px solid #ddd; /* Add top border for the first row */
+}
+
+.items tfoot td {
+    border-top: 1px solid #ddd; /* Footer separation */
+    border-bottom: 1px solid #ddd; /* Footer separation */
+}
+
+/* Terms and Conditions Section */
+.terms h3 {
+    margin: 0;
+}
+
+.terms p {
+    font-size: 0.7em;
+    line-height: 1.4;
+    margin: 0;
+}
+
+/* Totals Section */
+.total {
+    font-weight: bold;
+}
+
+.amount {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+    padding-right: 50px;
+}
+
+.amount table {
+    margin-left: auto;
+    border-collapse: collapse;
+}
+
+.amount .label {
+    font-weight: bold;
+}
+
+.amount .value {
+    text-align: right;
+}
+
+/* Footer Styling */
+.footer p {
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+    </style>
+
+    <div class="invoice-container">
+        <div class="tophead">
+            <div class="header">
+                <div>
+                    <h2>AIZO TEQ SOLUTIONS PVT LTD</h2>
+                    <p>Kadampuzha, Melmuri, Kerala -76553<br>
+                        GSTIN: 32AABCT2849Q2ZW</p>
+                </div>
+            </div>
+            <div class="img">
+                <img src="https://aizoteq.s3.ap-south-1.amazonaws.com/user_4_1737072534069.jpg" alt="aizoteq">
+            </div>
+        </div>
+
+        <div class="details">
+            <table>
+                <tr>
+                    <td><strong>Bill To:</strong><br>{{name}}<br>{{address}}<br>Contact: {{phone}}</td>
+                    <td><strong>Ship To:</strong><br>{{shipping_address}}<br>Contact: {{phone}}</td>
+                </tr>
+                <tr>
+                    <td><strong>Invoice No:</strong> {{receiptNo}}</td>
+                    <td><strong>Date:</strong> {{date}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="items">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="no">Sr. No</th>
+                        <th>Description of Goods</th>
+                        <th>Qty/Unit</th>
+                        <th>Rate (Per Item)</th>
+                        <!-- <th>Total</th> -->
+                        <th>Discount</th>
+                        <th>Taxable Value</th>
+                        <th>CGST <br><span>(tax 9%)</span> </th>
+                        <th>SGST<br><span>(tax 9%)</span> </th>
+                        <th>IGST<br><span>(tax 9%)</span> </th>
+                        <th>TotalAmount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Loop through items -->
+                    {{#each items}}
+                    <tr>
+                        <td>{{increment @index}}</td>
+                        <td>{{model}}</td>
+                        <td>{{qty}} NOS</td>
+                        <td>{{retail_price}}</td>
+                        <!-- <td>{{final_price}}</td> -->
+                        <td>{{item_discount}}</td>
+                        <td>{{discounted_price}}</td>
+                        <td>{{sgst}}</td>
+                        <td>{{cgst}}</td>
+                        <td>{{igst}}</td>
+                        <td>{{final_price}}</td>
+                    </tr>
+                    {{/each}}
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="5" style="text-align: right;"><strong>Total:</strong></td>
+                        <td>{{totalDiscountedPrice}}</td>
+                        <td>{{totalCGST}}</td>
+                        <td>{{totalSGST}}</td>
+                        <td>{{totalIGST}}</td>
+                        <td>{{totalAll}}</td>
+                    </tr>
+                    <tr>
+                        <td colspan="9" style="text-align: left;">
+                            <strong>Total Invoice Value (In Figures):</strong> {{totalInFigures}}
+                        </td>
+                        <td><strong>{{totalAmount}}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        <div class="amount">
+            <table>
+                <tr>
+                    <td class="label">TotalAmount:</td>
+                    <td class="value">{{totalAmount}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Discount:</td>
+                    <td class="value">{{discount}}</td>
+                </tr>
+                <tr>
+                    <td class="label">PayableAmount:</td>
+                    <td class="value">{{discountedTotal}}</td>
+                </tr>
+                <tr>
+                    <td class="label">PaidAmount:</td>
+                    <td class="value">{{paidAmount}}</td>
+                </tr>
+                <tr>
+                    <td class="label">Balance:</td>
+                    <td class="value">{{balance}}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="terms">
+            <h3>Terms & Conditions</h3>
+            <p>1. Our responsibility ceases once the goods leave the premises.</p>
+            <p>2. If you have any questions about this invoice, please contact our showroom or email us.</p>
+            <p>3. Buyer shall be responsible for the safe off-loading of its vehicles for the delivery of the product.</p>
+            <p>4. Any defects in products are to be reported in writing within 24 hours of taking delivery, otherwise, we can't accept claims.</p>
+        </div>
+
+        <div class="footer">
+            <p>Prepared By: {{preparedBy}}<br>
+                Salesman: {{salesman}}<br>
+                Authorized Signatory</p>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+    console.log("working");
+    const tbody = document.querySelector(".items tbody");
+    const rowHeight = 27; // Approximate height of each row
+    const tableHeight = 300; // Fixed height for tbody
+    const maxRows = Math.floor(tableHeight / rowHeight); // Maximum rows based on height
+    console.log(maxRows);
+    const currentRows = tbody.querySelectorAll("tr").length; // Number of existing rows
+    console.log(currentRows);
+    // Add blank rows dynamically to fill the tbody height
+    for (let i = currentRows; i <= maxRows; i++) {
+        const blankRow = document.createElement("tr");
+        blankRow.classList.add("placeholder-row");
+        blankRow.innerHTML = `
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>
+            <td>&nbsp;</td>`;
+        tbody.appendChild(blankRow);
+    }
+});
+
+    </script>
+
+</body>
+</html>

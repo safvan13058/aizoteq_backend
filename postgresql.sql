@@ -6,6 +6,7 @@ CREATE TABLE Users (
     userRole VARCHAR(255),
     name VARCHAR(255),
     profilePic TEXT,
+    -- Address TEXT,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -260,37 +261,37 @@ CREATE TABLE DeviceMapping (
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
     id SERIAL PRIMARY KEY, 
-    thing_id INT NOT NULL,            -- Unique identifier for each record
+    thingid INT NOT NULL,            -- Unique identifier for each record
     user_id INT NOT NULL,  
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));            -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);
     CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES dealers_details(id) -- Foreign key constraint
 );
 
 CREATE TABLE customersStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
-    thing_id INT NOT NULL,     
+    thingid INT NOT NULL,     
     user_id INT NOT NULL,             -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);    
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);    
     CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) -- Foreign key constraint
 );
 
 CREATE TABLE onlinecustomerStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
     user_id INT NOT NULL,  
-    thing_id INT NOT NULL,            -- Reference to the user ID
+    thingid INT NOT NULL,            -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username),-- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thing_id) REFERENCES things(id);    
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);    
     CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES onlinecustomer_details(id) -- Foreign key constraint
 
 );
@@ -345,7 +346,9 @@ CREATE TABLE price_table (
     model VARCHAR(255) NOT NULL,                -- Model name or identifier
     mrp NUMERIC(10, 2) NOT NULL,                -- Maximum retail price
     retail_price NUMERIC(10, 2) NOT NULL,       -- Actual retail price
-    tax NUMERIC(10, 2) NOT NULL,                -- Applicable tax amount
+    sgst NUMERIC(5, 2) DEFAULT 0.00, -- State GST as a percentage
+    cgst NUMERIC(5, 2) DEFAULT 0.00;
+    igst NUMERIC(5, 2) DEFAULT 0.00;
     discount NUMERIC(10, 2), 
     warranty_period INTERVAL DEFAULT INTERVAL '3 years',                -- Discount applied (optional)
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
@@ -356,6 +359,7 @@ CREATE TABLE price_table (
 -- Create billing_receipt
 CREATE TABLE billing_receipt (
     id SERIAL PRIMARY KEY, 
+    created_by INT NOT NULL REFERENCES Users(id),
     session_id INT NOT NULL REFERENCES billing_session(id), 
     receipt_no VARCHAR(50) NOT NULL UNIQUE,           -- Receipt number
     name VARCHAR(255) NOT NULL,                       -- Customer or dealer name
@@ -410,6 +414,11 @@ CREATE TABLE billing_items (
     mrp NUMERIC(10, 2) NOT NULL,                      -- Maximum Retail Price (MRP)
     serial_no VARCHAR(255) NOT NULL,                  -- Serial number of the item
     retail_price NUMERIC(10, 2) NOT NULL,             -- Retail price of the item
+    item_discount NUMERIC(10, 2) DEFAULT 0 ,
+    sgst NUMERIC(10, 2) DEFAULT 0 ,
+    cgst NUMERIC(10, 2) DEFAULT 0,
+    igst NUMERIC(10, 2) DEFAULT 0,
+    final_price NUMERIC(10, 2),
     type VARCHAR(50);
     FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
 );

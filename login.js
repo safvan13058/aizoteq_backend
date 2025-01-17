@@ -32,6 +32,7 @@ function calculateSecretHash(username) {
 const cognito = new AWS.CognitoIdentityServiceProvider({
     region: process.env.COGNITO_REGION, // Adjust to your region
 });
+ 
 AWS.config.update({ region: process.env.COGNITO_REGION });
 
 // Login API
@@ -106,6 +107,7 @@ login.post('/logout', async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: 'Error during logout', error: err.message });
     }
+
 });
 
 // Endpoint to initiate the forgot password process
