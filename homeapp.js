@@ -1296,7 +1296,9 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 d.type AS device_type,
                 d.lastModified AS device_last_modified,
                 f.name AS floor_name,
-                r.name AS room_name
+                r.name AS room_name,
+                r.id AS roomid,
+                f.id AS floorid
             FROM 
                 users u
             JOIN 
