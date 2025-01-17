@@ -503,7 +503,7 @@ const Swaggerdoc = {
                 },
                 "example": {
                   "name": "Updated Device Name",
-                  "icon": "updated-icon.png",
+                  "icon": "updated-icon",
                   "newroomid": "5"
                 }
               }
