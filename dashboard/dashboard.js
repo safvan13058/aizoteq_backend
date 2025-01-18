@@ -174,11 +174,10 @@ dashboard.get('/api/things/model-count', async (req, res) => {
     }
 });
 
-
-
 dashboard.post("/api/billing/create",billing);
  
-  dashboard.post("/api/billing/return/:status", async (req, res) => {
+
+dashboard.post("/api/billing/return/:status", async (req, res) => {
     const { serial_numbers, returned_by } = req.body;
     const { status } = req.params;
   
@@ -2265,7 +2264,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
     try {
         // Query to get model details from price_table
         const modelQuery = `
-            SELECT id, model, mrp, retail_price, tax, discount, warranty_period, lastmodified
+            SELECT id, model, mrp, retail_price,discount, warranty_period, lastmodified
             FROM price_table
             WHERE id = $1;
         `;
