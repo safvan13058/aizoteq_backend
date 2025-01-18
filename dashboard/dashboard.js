@@ -25,6 +25,7 @@ dashboard.get('/api/users/count', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+
 //api for user graph
 dashboard.get("/api/users/graph", async (req, res) => {
   const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
@@ -69,7 +70,6 @@ dashboard.get("/api/users/graph", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
 
 //api to display things
 dashboard.get('/api/display/things', async (req, res) => {
@@ -187,7 +187,7 @@ dashboard.post("/api/billing/return/:status", async (req, res) => {
     }
   
     const client = await db.connect();
-  
+    
     try {
       await client.query("BEGIN");
   
@@ -242,8 +242,9 @@ dashboard.post("/api/billing/return/:status", async (req, res) => {
         sourceType = source ? source.replace("Stock", "") : null;
         // Remove item from its source stock table
         await client.query(`DELETE FROM ${source} WHERE id = $1`, [stockId]);
-  
+
         // Add item to AdminStock with status "returned"
+
         await client.query(
           `
           INSERT INTO AdminStock (thingId, addedBy, status)
@@ -407,7 +408,7 @@ dashboard.post("/api/billing/return/:status", async (req, res) => {
       client.release();
     }
   });
-  
+                       
   dashboard.post('/api/pay-balance', async (req, res) => {
     try {
         const { 
@@ -2206,7 +2207,6 @@ dashboard.get('/api/raw_materials', async (req, res) => {
   }
 });
 
-
 // API to add raw material to a model
 dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
   const { modelId } = req.params;
@@ -2302,6 +2302,34 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 });
 
 
+
+dashboard.put('/api/update/:modelId/:rawMaterialId', async (req, res) => {
+  const { modelId, rawMaterialId } = req.params;
+  const { requiredQty } = req.body;
+
+  if (!modelId || !rawMaterialId || !requiredQty) {
+      return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+      const result = await db.query(
+          `UPDATE thing_raw_materials 
+           SET required_qty = $1, updated_at = NOW() 
+           WHERE model_id = $2 AND raw_material_id = $3 
+           RETURNING *`,
+          [requiredQty, modelId, rawMaterialId]
+      );
+
+      if (result.rowCount === 0) {
+          return res.status(404).json({ error: 'Record not found' });
+      }
+
+      res.status(200).json({ message: 'Required quantity updated successfully', data: result.rows[0] });
+  } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 module.exports=dashboard;
