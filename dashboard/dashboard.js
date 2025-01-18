@@ -27,21 +27,28 @@ dashboard.get('/api/users/count', async (req, res) => {
 });
 //api for user graph
 dashboard.get("/api/users/graph", async (req, res) => {
-  const { groupBy } = req.query;  // Accept 'day' or 'month' as a query parameter
+  const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
 
-  if (!["day", "month"].includes(groupBy)) {
-    return res.status(400).json({ error: "Invalid groupBy value. Use 'day' or 'month'." });
+  if (!["day", "week", "month", "year"].includes(groupBy)) {
+    return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
   }
 
-  // Query to group users by day or month
+  // Map groupBy to the appropriate SQL expressions
+  const groupByExpression = {
+    day: "DATE(lastModified)",
+    week: "TO_CHAR(lastModified, 'IYYY-IW')", // ISO year and week number
+    month: "TO_CHAR(lastModified, 'YYYY-MM')",
+    year: "EXTRACT(YEAR FROM lastModified)::INT",
+  };
+
   const query = `
     SELECT 
-      ${groupBy === "day" ? "DATE(lastModified)" : "TO_CHAR(lastModified, 'YYYY-MM')"} AS period,
+      ${groupByExpression[groupBy]} AS period,
       COUNT(*) AS user_count
     FROM 
       Users
     GROUP BY 
-      ${groupBy === "day" ? "DATE(lastModified)" : "TO_CHAR(lastModified, 'YYYY-MM')"}
+      ${groupByExpression[groupBy]}
     ORDER BY 
       period;
   `;
@@ -61,6 +68,7 @@ dashboard.get("/api/users/graph", async (req, res) => {
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 //api to display things
 dashboard.get('/api/display/things', async (req, res) => {
@@ -521,11 +529,7 @@ dashboard.post("/api/billing/create",billing);
     if (!userRole) {
         return res.status(400).json({ error: 'userRole is required' });
     }
-    if (!allowedRoles.includes(userRole.toLowerCase())) {
-        return res.status(400).json({
-            error: `Invalid userRole. Allowed roles are: ${allowedRoles.join(', ')}`,
-        });
-    }
+         
 
     try {
         const result = await db.query(
@@ -1085,6 +1089,95 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
       res.status(500).json({ error: "Internal server error" });
     }
   });
+
+  // API Endpoint: Find Receipt Bill
+  dashboard.get("/api/billing/receipt/:type/:id", async (req, res) => {
+  const { type, id } = req.params;
+  const { search } = req.query; // Search parameter
+
+  // Validate input
+  if (!["dealer", "customer", "onlinecustomer"].includes(type)) {
+    return res.status(400).json({ error: "Invalid type. Allowed values: dealer, customer, onlinecustomer." });
+  }
+
+  if (!id) {
+    return res.status(400).json({ error: "ID parameter is required." });
+  }
+
+  let query = `
+    SELECT 
+        br.id AS receipt_id,
+        br.receipt_no,
+        br.name AS receipt_name,
+        br.phone AS receipt_phone,
+        br.billing_address,
+        br.total_amount,
+        br.paid_amount,
+        br.balance,
+        br.type AS transaction_type,
+        br.datetime AS receipt_date,
+        CASE 
+            WHEN br.dealers_id IS NOT NULL THEN 'Dealer'
+            WHEN br.customers_id IS NOT NULL THEN 'Customer'
+            WHEN br.onlinecustomer_id IS NOT NULL THEN 'Online Customer'
+            ELSE 'Unknown'
+        END AS user_type,
+        COALESCE(dd.name, cd.name, od.name) AS user_name,
+        COALESCE(dd.phone, cd.phone, od.phone) AS user_phone,
+        COALESCE(dd.address, cd.address, od.address) AS user_address
+    FROM 
+        billing_receipt br
+    LEFT JOIN 
+        dealers_details dd ON br.dealers_id = dd.id
+    LEFT JOIN 
+        customers_details cd ON br.customers_id = cd.id
+    LEFT JOIN 
+        onlinecustomer_details od ON br.onlinecustomer_id = od.id
+    WHERE 
+  `;
+
+  // Add WHERE condition based on `type`
+  let condition = "";
+  const queryParams = [id];
+
+  if (type === "dealer") {
+    condition = "br.dealers_id = $1";
+  } else if (type === "customer") {
+    condition = "br.customers_id = $1";
+  } else if (type === "onlinecustomer") {
+    condition = "br.onlinecustomer_id = $1";
+  }
+
+  query += condition;
+
+  // Add search condition if `search` parameter is provided
+  if (search) {
+    query += `
+      AND (
+        br.receipt_no ILIKE $2 OR
+        br.name ILIKE $2 OR
+        br.phone ILIKE $2 OR
+        COALESCE(dd.name, cd.name, od.name) ILIKE $2
+      )
+    `;
+    queryParams.push(`%${search}%`);
+  }
+
+  try {
+    const client = await db.connect();
+    const result = await client.query(query, queryParams);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: `No receipts found for ${type} with ID ${id}.` });
+    }
+
+    res.status(200).json({ receipts: result.rows });
+    client.release();
+  } catch (error) {
+    console.error("Error fetching receipt:", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
+});
 
   //warranty
   dashboard.get("/api/warranty/:serial_no", async (req, res) => {
