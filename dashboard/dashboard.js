@@ -17,6 +17,7 @@ dashboard.get('/',(req,res)=>{
 
 // API endpoint to count users
 dashboard.get('/api/users/count', async (req, res) => {
+  console.log("working count")
     try {
         const result = await db.query('SELECT COUNT(*) AS user_count FROM Users');
         res.json({ user_count: result.rows[0].user_count });
@@ -2301,8 +2302,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 
 });
 
-
-
+//update of models rawmaterial_req_qty
 dashboard.put('/api/update/:modelId/:rawMaterialId', async (req, res) => {
   const { modelId, rawMaterialId } = req.params;
   const { requiredQty } = req.body;
