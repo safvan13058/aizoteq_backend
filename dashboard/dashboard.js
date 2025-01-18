@@ -51,7 +51,7 @@ dashboard.get("/api/users/graph", async (req, res) => {
     GROUP BY 
       ${groupByExpression[groupBy]}
     ORDER BY 
-      period ASC;
+      period DESC;
   `;
 
   try {
