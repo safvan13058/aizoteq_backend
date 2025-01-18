@@ -35,11 +35,12 @@ dashboard.get("/api/users/graph", async (req, res) => {
 
   // Map groupBy to the appropriate SQL expressions
   const groupByExpression = {
-    day: "DATE(lastModified,YYYY-MM-DD)",
-    week: "TO_CHAR(lastModified, 'IYYY-IW')", // ISO year and week number
-    month: "TO_CHAR(lastModified, 'YYYY-MM')",
-    year: "EXTRACT(YEAR FROM lastModified)::INT",
+    day: "TO_CHAR(lastModified, 'YYYY-MM-DD')", // Extract only the date without time and time zone
+    week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
+    month: "TO_CHAR(lastModified, 'YYYY-MM')", // Year and month in YYYY-MM format
+    year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
   };
+  
 
   const query = `
     SELECT 
