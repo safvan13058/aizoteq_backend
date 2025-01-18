@@ -2278,7 +2278,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 
         // Query to get raw materials and their required quantities
         const rawMaterialsQuery = `
-            SELECT rm.id AS raw_material_id, rm.name, rm.category, rm.value, 
+            SELECT rm.id AS raw_material_id, rm.Component,em.package, rm.category, rm.value, 
                    rm.reference_no, rm.image, rm.stock_quantity, rm.reorder_level, 
                    trm.required_qty
             FROM thing_raw_materials trm
