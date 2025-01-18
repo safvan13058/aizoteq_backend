@@ -37,7 +37,7 @@ const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 
-const PORT = process.env.PORT || 443;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT,
     '0.0.0.0',
      () => {
