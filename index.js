@@ -35,11 +35,17 @@ app.use(cors({
 
 const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
-
-
+const https = require('https');
+const options = {
+    key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
+};
 const PORT = process.env.PORT || 3000;
-app.listen(PORT,
-    '0.0.0.0',
-     () => {
-    console.log(`Server running on port ${PORT}`);
+https.createServer(options, app).listen(3000, () => {
+    console.log('Server is running on https://13.200.215.17:3000');
 });
+// app.listen(PORT,
+//     '0.0.0.0',
+//      () => {
+//     console.log(`Server running on port ${PORT}`);
+// });
