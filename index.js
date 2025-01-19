@@ -49,33 +49,31 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 const fs = require('fs');
 const http = require('http');
 const https = require('https');
-const PORT = 3000;
-
-let isHttpsAvailable = false;
+const PORT_HTTPS = 3000; // HTTPS port
+const PORT_HTTP = 3001; // HTTP port
 
 try {
-    // Try to load the SSL certificates
     const options = {
         key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
         cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
     };
 
-    // If SSL files are present, start the HTTPS server
-    https.createServer(options, app).listen(PORT, () => {
-        isHttpsAvailable = true;
-        console.log(`HTTPS Server is running on https://13.200.215.17:${PORT}`);
+    // Start HTTPS server
+    https.createServer(options, app).listen(PORT_HTTPS, () => {
+        console.log(`HTTPS Server is running on https://13.200.215.17:${PORT_HTTPS}`);
     });
 } catch (error) {
-    console.error('HTTPS setup failed:', error.message);
-    console.log('Falling back to HTTP...');
+    console.error('Error starting HTTPS server:', error);
 }
 
-// If HTTPS is not available, fallback to HTTP on the same port
-if (!isHttpsAvailable) {
-    http.createServer(app).listen(PORT, () => {
-        console.log(`HTTP Server is running on http://13.200.215.17:${PORT}`);
-    });
-}
+// Start HTTP server to redirect traffic to HTTPS
+http.createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+    res.end();
+}).listen(PORT_HTTP, () => {
+    console.log(`HTTP Server is redirecting traffic to HTTPS on http://13.200.215.17:${PORT_HTTP}`);
+});
+
 
 
 // app.listen(PORT,
