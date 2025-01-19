@@ -28,7 +28,7 @@ app.get('/dash',(req,res)=>{
 });
 const cors = require('cors');
 app.use(cors({
-    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500','http://localhost:3000','https://demo.ollinwon.com'], // Allow all origins
+    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500','http://localhost:3000','https://demo.ollinwon.com','https://auslandenglish.com','https://auslandenglish.com:3000'], // Allow all origins
     credentials: true, // Allow cookies to be sent
 }));
 
