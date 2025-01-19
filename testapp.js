@@ -15,7 +15,16 @@ const { s3, upload } = require('./middlewares/s3');
     return randomKey;
 }
 
-
+testapp.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com'); // Allow only the specified origin
+    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end(); // Handle preflight requests
+    }
+    next();
+});
 testapp.get('/testapp',(req,res)=>{
     res.send("testapp working")
 })
@@ -275,10 +284,6 @@ testapp.get('/api/display/things/:id',
   
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count', async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     try {
         console.log("working");
         const { status } = req.params;
