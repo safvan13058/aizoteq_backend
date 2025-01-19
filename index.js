@@ -37,31 +37,43 @@ const cors = require('cors');
 
 
 const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000'];
+
 const corsOptions = {
     origin: (origin, callback) => {
-        if (allowedOrigins.includes(origin) || !origin) {
+        if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true,
+    credentials: true, // Allow cookies and credentials
 };
-app.use(cors(corsOptions));
-app.use((req, res, next) => {
-    const origin = req.headers.origin; // Get the origin of the incoming request
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
-    }
-    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end(); // Handle preflight requests
-    }
-    next();
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Optional: Manually handle OPTIONS preflight requests
+app.options('*', cors(corsOptions)); // Allow preflight for all routes
+
+// Example route
+app.get('/api/test', (req, res) => {
+    res.json({ message: 'CORS is working!' });
 });
+
+// app.use((req, res, next) => {
+//     const origin = req.headers.origin; // Get the origin of the incoming request
+//     if (allowedOrigins.includes(origin)) {
+//         res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
+//     }
+//     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
+//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
+//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+
+//     if (req.method === 'OPTIONS') {
+//         return res.status(200).end(); // Handle preflight requests
+//     }
+//     next();
+// });
 
 // app.use((req, res, next) => {
 //     res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com'); // Allow only the specified origin
