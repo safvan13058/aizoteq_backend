@@ -35,6 +35,8 @@ app.use(cors({
 
 const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+
+const fs = require('fs');
 const https = require('https');
 const options = {
     key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
