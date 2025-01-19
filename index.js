@@ -27,20 +27,35 @@ app.get('/dash',(req,res)=>{
     res.send('dash EC2 ')
 });
 const cors = require('cors');
-app.use(cors({
-    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500','http://localhost:3000','https://demo.ollinwon.com','https://auslandenglish.com','https://auslandenglish.com:3000'], // Allow all origins
-    credentials: true, // Allow cookies to be sent
-}));
-const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000'];
+// app.use(cors({
+//     origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500','http://localhost:3000','https://demo.ollinwon.com','https://auslandenglish.com','https://auslandenglish.com:3000'], // Allow all origins
+//     credentials: true, // Allow cookies to be sent
+// }));
 
+
+
+app.use(cors(corsOptions));
+
+const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000'];
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (allowedOrigins.includes(origin) || !origin) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+};
 app.use((req, res, next) => {
-    const origin = req.headers.origin; // Get the origin from the request
+    const origin = req.headers.origin; // Get the origin of the incoming request
     if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin); // Set the origin dynamically
+        res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
     }
     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+
     if (req.method === 'OPTIONS') {
         return res.status(200).end(); // Handle preflight requests
     }
