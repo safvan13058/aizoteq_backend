@@ -275,6 +275,10 @@ testapp.get('/api/display/things/:id',
   
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count', async (req, res) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     try {
         console.log("working");
         const { status } = req.params;
