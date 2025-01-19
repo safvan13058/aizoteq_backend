@@ -47,15 +47,44 @@ const { swaggerUi, specs } = require("./swaggerdoc/swagger.js");
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
 
 const fs = require('fs');
+const http = require('http');
 const https = require('https');
-const options = {
-    key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
-};
-const PORT = process.env.PORT || 3000;
-https.createServer(options, app).listen(3000, () => {
-    console.log('Server is running on https://13.200.215.17:3000');
+const PORT = 3000;
+
+let isHttpsEnabled = false;
+
+try {
+    // Attempt to load SSL certificates
+    const options = {
+        key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
+        cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
+    };
+
+    // Start HTTPS server
+    https.createServer(options, app).listen(PORT, () => {
+        isHttpsEnabled = true;
+        console.log(`HTTPS Server is running on https://13.200.215.17:${PORT}`);
+    });
+} catch (error) {
+    console.error('HTTPS setup failed. Falling back to HTTP:', error.message);
+}
+
+// Start HTTP server
+http.createServer((req, res) => {
+    if (isHttpsEnabled) {
+        // Redirect to HTTPS if HTTPS is working
+        res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
+        res.end();
+    } else {
+        // Serve the app over HTTP if HTTPS is not available
+        app(req, res);
+    }
+}).listen(PORT, () => {
+    if (!isHttpsEnabled) {
+        console.log(`HTTP Server is running on http://13.200.215.17:${PORT}`);
+    }
 });
+
 // app.listen(PORT,
 //     '0.0.0.0',
 //      () => {
