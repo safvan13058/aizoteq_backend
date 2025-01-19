@@ -51,39 +51,32 @@ const http = require('http');
 const https = require('https');
 const PORT = 3000;
 
-let isHttpsEnabled = false;
+let isHttpsAvailable = false;
 
 try {
-    // Attempt to load SSL certificates
+    // Try to load the SSL certificates
     const options = {
         key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
         cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
     };
 
-    // Start HTTPS server
+    // If SSL files are present, start the HTTPS server
     https.createServer(options, app).listen(PORT, () => {
-        isHttpsEnabled = true;
+        isHttpsAvailable = true;
         console.log(`HTTPS Server is running on https://13.200.215.17:${PORT}`);
     });
 } catch (error) {
-    console.error('HTTPS setup failed. Falling back to HTTP:', error.message);
+    console.error('HTTPS setup failed:', error.message);
+    console.log('Falling back to HTTP...');
 }
 
-// Start HTTP server
-http.createServer((req, res) => {
-    if (isHttpsEnabled) {
-        // Redirect to HTTPS if HTTPS is working
-        res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` });
-        res.end();
-    } else {
-        // Serve the app over HTTP if HTTPS is not available
-        app(req, res);
-    }
-}).listen(PORT, () => {
-    if (!isHttpsEnabled) {
+// If HTTPS is not available, fallback to HTTP on the same port
+if (!isHttpsAvailable) {
+    http.createServer(app).listen(PORT, () => {
         console.log(`HTTP Server is running on http://13.200.215.17:${PORT}`);
-    }
-});
+    });
+}
+
 
 // app.listen(PORT,
 //     '0.0.0.0',
