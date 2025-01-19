@@ -34,7 +34,7 @@ const cors = require('cors');
 
 
 
-app.use(cors(corsOptions));
+
 
 const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000'];
 const corsOptions = {
@@ -47,6 +47,7 @@ const corsOptions = {
     },
     credentials: true,
 };
+app.use(cors(corsOptions));
 app.use((req, res, next) => {
     const origin = req.headers.origin; // Get the origin of the incoming request
     if (allowedOrigins.includes(origin)) {
