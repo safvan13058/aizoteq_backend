@@ -20,9 +20,11 @@ CREATE TABLE Things (
     longitude NUMERIC(11, 8),
     model VARCHAR(255),
     serialno VARCHAR(255),
+    macaddress varchar(255)
     type VARCHAR(255),
     securityKey VARCHAR(255) UNIQUE,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
 );
 
 -- Table to store attributes of things
@@ -265,6 +267,7 @@ CREATE TABLE dealersStock (
     user_id INT NOT NULL,  
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));            -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_id INT
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
     CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);
@@ -276,6 +279,7 @@ CREATE TABLE customersStock (
     thingid INT NOT NULL,     
     user_id INT NOT NULL,             -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_id INT
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
@@ -288,6 +292,7 @@ CREATE TABLE onlinecustomerStock (
     user_id INT NOT NULL,  
     thingid INT NOT NULL,            -- Reference to the user ID
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_id INT
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
     status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
     -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username),-- Foreign key constraint
@@ -300,6 +305,7 @@ CREATE TABLE onlinecustomerStock (
 CREATE TABLE onlinecustomer_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
+    addedby INT,
     address TEXT NOT NULL,                      -- Address of the customer
     email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
@@ -309,11 +315,14 @@ CREATE TABLE onlinecustomer_details (
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
     refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+    CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
+    
 );
 -- Create customer_details table
 CREATE TABLE customers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
+    addedby INT,
     address TEXT NOT NULL,                      -- Address of the customer
     email VARCHAR(255) NULL,
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
@@ -323,11 +332,14 @@ CREATE TABLE customers_details (
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
     refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+    CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
+    
 );
 
 -- Create dealers_details table
 CREATE TABLE dealers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
+    addedby INT,
     name VARCHAR(255) NOT NULL,                 -- Name of the dealer
     address TEXT NOT NULL,                      -- Address of the dealer
     email VARCHAR(255) NULL,
@@ -338,6 +350,8 @@ CREATE TABLE dealers_details (
     balance NUMERIC(10, 2),                     -- Balance amount for the dealer
     refund_amount NUMERIC(10, 2) DEFAULT 0,
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
+     
+    CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
 );
 
 -- Create price_table
@@ -436,6 +450,7 @@ CREATE TABLE thing_warranty (
 CREATE TABLE billing_session (
     id SERIAL PRIMARY KEY,
     session_date DATE NOT NULL DEFAULT CURRENT_DATE,  -- Date of session
+    user_id INT,
     opened_by VARCHAR(255) NOT NULL,                 -- User who opened
     opened_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- Opening timestamp
     closed_by VARCHAR(255),                          -- User who closed
@@ -445,6 +460,7 @@ CREATE TABLE billing_session (
     total_bank NUMERIC(10, 2) DEFAULT 0,             -- Total bank payments collected
     total_online NUMERIC(10, 2) DEFAULT 0,           -- Total online payments collected
     total_sales NUMERIC(10, 2) DEFAULT 0             -- Total sales for the session
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 CREATE TABLE daily_report (
@@ -466,15 +482,16 @@ CREATE TABLE daily_report (
 -------------------------------
 CREATE TABLE raw_materials_stock (
     id SERIAL PRIMARY KEY,        -- Unique identifier, automatically increments
-    name VARCHAR(255) NOT NULL,    -- Name of the raw material
-    category VARCHAR(100),         -- Category (e.g., capacitor, resistor)
+    Component VARCHAR(255) NOT NULL,    -- Name of the raw material
+    category VARCHAR(100),   -- Category (e.g., capacitor, resistor)
+    package VARCHAR(100),        
     value VARCHAR(100),            -- Value or cost of the raw material
     reference_no VARCHAR(100),     -- Reference number (ensures uniqueness)
+    unit_price_in_rupees DECIMAL(10, 2) DEFAULT 0.00,
+    unit_price_in_dollars DECIMAL(10, 2) DEFAULT 0.00,
     image VARCHAR(2080),           -- Path or URL to the image of the material
     stock_quantity INT DEFAULT 0,  -- Stock quantity
     reorder_level INT DEFAULT 0    -- Reorder level
-    
-
 );
 
 
