@@ -71,7 +71,7 @@ dashboard.get("/api/users/graph", async (req, res) => {
 
   // Map groupBy to the appropriate SQL expressions
   const groupByExpression = {
-    day: "TO_CHAR(lastModified, 'MM-DD')", // Extract only the date without time and time zone
+    day: "TO_CHAR(lastModified, 'YYYY-MM-DD')", // Extract only the date without time and time zone
     week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
     month: "TO_CHAR(lastModified, 'YYYY-MM')", // Year and month in YYYY-MM format
     year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
@@ -87,7 +87,7 @@ dashboard.get("/api/users/graph", async (req, res) => {
     GROUP BY 
       ${groupByExpression[groupBy]}
     ORDER BY 
-      period DESC;
+      period ASC;
   `;
 
   try {
@@ -2294,6 +2294,7 @@ dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 // API to get a price_table model with its raw materials and required quantities
 dashboard.get('/api/model/:modelId', async (req, res) => {
     const { modelId } = req.params;
@@ -2317,7 +2318,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
         const rawMaterialsQuery = `
             SELECT rm.id AS raw_material_id, rm.Component,rm.package, rm.category, rm.value, 
                    rm.reference_no, rm.image, rm.stock_quantity, rm.reorder_level, 
-                   trm.required_qty
+                   trm.required_qty trm.id
             FROM thing_raw_materials trm
             INNER JOIN raw_materials_stock rm ON trm.raw_material_id = rm.id
             WHERE trm.model_id = $1;
