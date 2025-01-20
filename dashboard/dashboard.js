@@ -26,6 +26,40 @@ dashboard.get('/api/users/count', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' });
     }
 });
+//api for sale graph
+dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
+  const { user_id } = req.params;
+  const { group_by = 'day' } = req.query; // Default to grouping by day
+
+  const validGroups = ['day', 'week', 'month', 'year'];
+  if (!validGroups.includes(group_by)) {
+      return res.status(400).json({ error: 'Invalid group_by parameter. Use day, week, month, or year.' });
+  }
+
+  try {
+      const query = `
+          SELECT 
+              DATE_TRUNC($1, session_date) AS period,
+              SUM(total_sales) AS total_sales
+          FROM billing_session
+          WHERE user_id = $2
+          GROUP BY DATE_TRUNC($1, session_date)
+          ORDER BY DATE_TRUNC($1, session_date);
+      `;
+
+      const result = await db.query(query, [group_by, user_id]);
+
+      res.json({
+          user_id,
+          group_by,
+          sales: result.rows,
+      });
+  } catch (error) {
+      console.error('Error fetching sales data:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+ 
 
 //api for user graph
 dashboard.get("/api/users/graph", async (req, res) => {
@@ -1772,11 +1806,12 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
 // 1. Open Billing Session
 dashboard.post('/open-session', async (req, res) => {
   const { opened_by } = req.body;
+  const userid=req.user?.id||req.body.userid;
   try {
       const result = await db.query(
-          `INSERT INTO billing_session (session_date, opened_by) 
-           VALUES (CURRENT_DATE, $1) RETURNING *`, 
-           [opened_by]
+          `INSERT INTO billing_session (session_date, opened_by,user_id) 
+           VALUES (CURRENT_DATE, $1,$2) RETURNING *`, 
+           [opened_by,userid]
       );
       res.status(201).json({ message: 'Session opened', session: result.rows[0] });
   } catch (err) {
@@ -2214,7 +2249,7 @@ dashboard.get('/api/raw_materials', async (req, res) => {
 dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
   const { modelId } = req.params;
   const { raw_material_id, required_qty } = req.body;
-
+  console.log(req.body)
   // Validate input
   if (!raw_material_id || !required_qty) {
       return res.status(400).json({ error: 'raw_material_id and required_qty are required' });
@@ -2373,9 +2408,11 @@ dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
 
 // API to get stock things details by email and optional status
 // API to get stock things details by email, status, and serialno
+// Route: Fetch dealersStock with thing details
 dashboard.get('/api/dealersstock/:status', async (req, res) => {
-  const { email,serialno } = req.query;
-  const { status}=req.params;
+  const {  serialno } = req.query;
+  const {status}=req.params;
+  const {email}=req.body;
 
   if (!email) {
     return res.status(400).json({
@@ -2394,19 +2431,22 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
         ds.added_by,
         dd.name AS dealer_name,
         dd.phone AS dealer_phone,
-        u.email AS user_email,
-        u.name AS user_name,
-        t.serialno AS thing_serialno
+        dd.email AS dealer_email,
+        t.thingName AS thing_name,
+        t.serialno AS thing_serialno,
+        t.model AS thing_model,
+        t.latitude AS thing_latitude,
+        t.longitude AS thing_longitude,
+        t.type AS thing_type,
+        t.macaddress AS thing_macaddress
       FROM 
         dealersStock ds
       INNER JOIN 
         dealers_details dd ON ds.user_id = dd.id
       INNER JOIN 
-        Users u ON u.email = dd.email
-      INNER JOIN 
-        things t ON ds.thingid = t.id
+        Things t ON ds.thingid = t.id
       WHERE 
-        u.email = $1
+        dd.email = $1
     `;
 
     const params = [email];
@@ -2422,13 +2462,13 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
       query += ` AND t.serialno ILIKE $${params.length + 1}`;
       params.push(`%${serialno}%`);
     }
-
-    const { rows } = await pool.query(query, params);
+ 
+    const { rows } = await db.query(query, params);
 
     if (rows.length === 0) {
       return res.status(404).json({
         success: false,
-        message: 'No stock details found for the provided filters.',
+        message: 'No matching records found.',
       });
     }
 
@@ -2437,10 +2477,10 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
       data: rows,
     });
   } catch (error) {
-    console.error('Error fetching stock details:', error);
+    console.error('Error fetching data:', error);
     res.status(500).json({
       success: false,
-      message: 'An error occurred while fetching stock details.',
+      message: 'An error occurred while fetching data.',
     });
   }
 });
@@ -2480,7 +2520,7 @@ dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
 
       const values = [status, email];
 
-      const result = await pool.query(query, values);
+      const result = await db.query(query, values);
 
       if (result.rows.length === 0) {
           return res.status(404).json({ message: 'No matching records found.' });
@@ -2491,5 +2531,7 @@ dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
       console.error('Error fetching dealers stock:', error);
       res.status(500).json({ error: 'Internal Server Error' });
   }
-});
+}); 
+
+
 module.exports=dashboard;
