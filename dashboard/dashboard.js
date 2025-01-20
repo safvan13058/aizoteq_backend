@@ -7,7 +7,7 @@ const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
 const path = require('path');
 const fs = require('fs');
-const{billing}=require('./billing.js')
+const{billing,returned}=require('./billing.js')
 const {getThingBySerialNo,removeFromAdminStock,removeFromdealersStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel}=require("./functions.js");
 dashboard.get('/',(req,res)=>{
     res.send('dashboard working ')
@@ -177,238 +177,238 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 
 dashboard.post("/api/billing/create",billing);
  
-
-dashboard.post("/api/billing/return/:status", async (req, res) => {
-    const { serial_numbers, returned_by } = req.body;
-    const { status } = req.params;
+dashboard.post("/api/billing/return/:status",returned)
+// dashboard.post("/api/billing/return/:status", async (req, res) => {
+//     const { serial_numbers, returned_by } = req.body;
+//     const { status } = req.params;
   
-    // Ensure serial_numbers is present and has at least one item
-    if (!serial_numbers || serial_numbers.length === 0) {
-      return res.status(400).json({ error: "At least one serial number is required" });
-    }
+//     // Ensure serial_numbers is present and has at least one item
+//     if (!serial_numbers || serial_numbers.length === 0) {
+//       return res.status(400).json({ error: "At least one serial number is required" });
+//     }
   
-    const client = await db.connect();
+//     const client = await db.connect();
     
-    try {
-      await client.query("BEGIN");
+//     try {
+//       await client.query("BEGIN");
   
-      let totalReturnAmount = 0;
-      const receiptItems = []; // To store item details for the billing receipt
-      let data;
-      let source;
-      let sourceType;
-      let itemResult;
-      // Process each serial number
-      for (let serial_no of serial_numbers) {
-        // Locate the item in the relevant stock tables using serial_no
-        const itemQuery = await client.query(
-          `
-          SELECT 'dealersStock' AS source, id, user_id, thing_id
-          FROM dealersStock
-          WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+//       let totalReturnAmount = 0;
+//       const receiptItems = []; // To store item details for the billing receipt
+//       let data;
+//       let source;
+//       let sourceType;
+//       let itemResult;
+//       // Process each serial number
+//       for (let serial_no of serial_numbers) {
+//         // Locate the item in the relevant stock tables using serial_no
+//         const itemQuery = await client.query(
+//           `
+//           SELECT 'dealersStock' AS source, id, user_id, thing_id
+//           FROM dealersStock
+//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
   
-          UNION ALL
+//           UNION ALL
   
-          SELECT 'customersStock' AS source, id, user_id, thing_id
-          FROM customersStock
-          WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+//           SELECT 'customersStock' AS source, id, user_id, thing_id
+//           FROM customersStock
+//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
   
-          UNION ALL
+//           UNION ALL
   
-          SELECT 'onlinecustomerStock' AS source, id, user_id, thing_id
-          FROM onlinecustomerStock
-          WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-          `,
-          [serial_no]
-        );
+//           SELECT 'onlinecustomerStock' AS source, id, user_id, thing_id
+//           FROM onlinecustomerStock
+//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
+//           `,
+//           [serial_no]
+//         );
         
-        // Check if the item is found
-        if (itemQuery.rows.length === 0) {
-          throw new Error(`Item with serial number ${serial_no} not found or already returned`);
-        }
-         itemResult = await client.query(
-          `SELECT * FROM billing_items WHERE serial_no = $1 LIMIT 1`,
-          [serial_no]
-        );
+//         // Check if the item is found
+//         if (itemQuery.rows.length === 0) {
+//           throw new Error(`Item with serial number ${serial_no} not found or already returned`);
+//         }
+//          itemResult = await client.query(
+//           `SELECT * FROM billing_items WHERE serial_no = $1 LIMIT 1`,
+//           [serial_no]
+//         );
 
         
-        if (itemResult.rows.length > 0) {
-          const retailPrice = itemResult.rows[0].retail_price;
-          console.log('Retail Price:',itemResult.rows[0] );
-        } else {
-          console.log('No item found with the provided serial number');
-        }
-        const retail_price = itemResult.rows[0].retail_price;
-        const { source, id: stockId, user_id, thing_id } = itemQuery.rows[0];
-        sourceType = source ? source.replace("Stock", "") : null;
-        // Remove item from its source stock table
-        await client.query(`DELETE FROM ${source} WHERE id = $1`, [stockId]);
+//         if (itemResult.rows.length > 0) {
+//           const retailPrice = itemResult.rows[0].retail_price;
+//           console.log('Retail Price:',itemResult.rows[0] );
+//         } else {
+//           console.log('No item found with the provided serial number');
+//         }
+//         const retail_price = itemResult.rows[0].retail_price;
+//         const { source, id: stockId, user_id, thing_id } = itemQuery.rows[0];
+//         sourceType = source ? source.replace("Stock", "") : null;
+//         // Remove item from its source stock table
+//         await client.query(`DELETE FROM ${source} WHERE id = $1`, [stockId]);
 
-        // Add item to AdminStock with status "returned"
+//         // Add item to AdminStock with status "returned"
 
-        await client.query(
-          `
-          INSERT INTO AdminStock (thingId, addedBy, status)
-          VALUES ($1, $2, $3)
-          `,
-          [thing_id, returned_by, status]
-        );
+//         await client.query(
+//           `
+//           INSERT INTO AdminStock (thingId, addedBy, status)
+//           VALUES ($1, $2, $3)
+//           `,
+//           [thing_id, returned_by, status]
+//         );
   
-        let table;
-        if (source === "onlinecustomerStock") {
-          table = "onlinecustomer_details";
-        }
-        if (source === "customersStock") {
-          table = "customers_details";
-        }
-        if (source === "dealersStock") {
-          table = "dealers_details";
-        }
+//         let table;
+//         if (source === "onlinecustomerStock") {
+//           table = "onlinecustomer_details";
+//         }
+//         if (source === "customersStock") {
+//           table = "customers_details";
+//         }
+//         if (source === "dealersStock") {
+//           table = "dealers_details";
+//         }
   
-        // Fetch the user data from the respective table
-        const dataQuery = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [user_id]);
-        data = dataQuery.rows[0];
-        console.log(data)
-        if (!data) {
-          throw new Error(`User with ID ${user_id} not found`);
-        }
+//         // Fetch the user data from the respective table
+//         const dataQuery = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [user_id]);
+//         data = dataQuery.rows[0];
+//         console.log(data)
+//         if (!data) {
+//           throw new Error(`User with ID ${user_id} not found`);
+//         }
   
-        // Update the balance in the relevant customer/dealer table
-       // Update the balance and refund_amount in the relevant customer/dealer table
-      let balanceUpdateQuery = '';
-      let balanceUpdateValues = [];
+//         // Update the balance in the relevant customer/dealer table
+//        // Update the balance and refund_amount in the relevant customer/dealer table
+//       let balanceUpdateQuery = '';
+//       let balanceUpdateValues = [];
 
-      if (status === "return") {
-        // Refund scenario
-        balanceUpdateQuery = `
-          UPDATE ${table}
-          SET balance = balance - $1, refund_amount = refund_amount + $2
-          WHERE id = $3
-          RETURNING balance, refund_amount;
-        `;
-        balanceUpdateValues = [retail_price, retail_price, user_id];
-      } else if (status === "exchange") {
-        // Exchange scenario
-        const priceDifference = new_item_price - retail_price;
+//       if (status === "return") {
+//         // Refund scenario
+//         balanceUpdateQuery = `
+//           UPDATE ${table}
+//           SET balance = balance - $1, refund_amount = refund_amount + $2
+//           WHERE id = $3
+//           RETURNING balance, refund_amount;
+//         `;
+//         balanceUpdateValues = [retail_price, retail_price, user_id];
+//       } else if (status === "exchange") {
+//         // Exchange scenario
+//         const priceDifference = new_item_price - retail_price;
 
-        if (priceDifference > 0) {
-          // Customer needs to pay extra
-          balanceUpdateQuery = `
-            UPDATE ${table}
-            SET balance = balance + $1
-            WHERE id = $2
-            RETURNING balance;
-          `;
-          balanceUpdateValues = [priceDifference, user_id];
-        } else {
-          // Customer receives a refund
-          balanceUpdateQuery = `
-            UPDATE ${table}
-            SET balance = balance - $1, refund_amount = refund_amount + $2
-            WHERE id = $3
-            RETURNING balance, refund_amount;
-          `;
-          balanceUpdateValues = [-priceDifference, -priceDifference, user_id];
-        }
-      }
+//         if (priceDifference > 0) {
+//           // Customer needs to pay extra
+//           balanceUpdateQuery = `
+//             UPDATE ${table}
+//             SET balance = balance + $1
+//             WHERE id = $2
+//             RETURNING balance;
+//           `;
+//           balanceUpdateValues = [priceDifference, user_id];
+//         } else {
+//           // Customer receives a refund
+//           balanceUpdateQuery = `
+//             UPDATE ${table}
+//             SET balance = balance - $1, refund_amount = refund_amount + $2
+//             WHERE id = $3
+//             RETURNING balance, refund_amount;
+//           `;
+//           balanceUpdateValues = [-priceDifference, -priceDifference, user_id];
+//         }
+//       }
 
-      // Execute the balance update
-      const balanceResult = await client.query(balanceUpdateQuery, balanceUpdateValues);
-      const updatedBalance = balanceResult.rows[0].balance;
+//       // Execute the balance update
+//       const balanceResult = await client.query(balanceUpdateQuery, balanceUpdateValues);
+//       const updatedBalance = balanceResult.rows[0].balance;
 
-      // Update total return amount (only for returns)
-      if (status === "returned") {
-        totalReturnAmount += retail_price;
-      }
+//       // Update total return amount (only for returns)
+//       if (status === "returned") {
+//         totalReturnAmount += retail_price;
+//       }
 
   
-        // Store item details for the billing receipt
-        receiptItems.push({
-          serial_no,
-          retail_price: -retail_price, // Negative value for return
-        });
+//         // Store item details for the billing receipt
+//         receiptItems.push({
+//           serial_no,
+//           retail_price: -retail_price, // Negative value for return
+//         });
   
-        // Update warranty table if applicable
-        await client.query(
-          `
-          DELETE FROM thing_warranty
-          WHERE serial_no = $1
-          `,
-          [serial_no]
-        );
-      }
+//         // Update warranty table if applicable
+//         await client.query(
+//           `
+//           DELETE FROM thing_warranty
+//           WHERE serial_no = $1
+//           `,
+//           [serial_no]
+//         );
+//       }
   
-      // Generate the next receipt number
-      const lastReceiptQuery = await client.query(
-        `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
-      );
-      const receiptNo =
-        lastReceiptQuery.rows.length > 0 ? parseInt(lastReceiptQuery.rows[0].receipt_no) + 1 : 1000;
-        console.log(data);
-        console.log(data.name);
-      // Insert return record into `billing_receipt`
-      const billingReceiptResult = await client.query(
-        `
-        INSERT INTO billing_receipt (
-          receipt_no, name, phone, dealer_or_customer, total_amount, balance, billing_createdby,
-          dealers_id, customers_id, onlinecustomer_id, type,billing_address, datetime
-        ) VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12, CURRENT_TIMESTAMP
-        ) RETURNING id, receipt_no
-        `,
-        [
-          receiptNo,
-          data.name, // Name of the person performing the return
-          data.phone, // Phone number (optional, can be updated if required)
-          sourceType, // Source type (dealers, customers, or onlinecustomers)
-          -totalReturnAmount, // Return amount as a negative value
-          updatedBalance, // Balance for this return
-          returned_by, // User who processed the return
-          source === "dealersStock" ? user_id : null,
-          source === "customersStock" ? user_id : null,
-          source === "onlinecustomerStock" ? user_id : null,
-          status ,// The status passed in the request params
-          data.address
-        ]
-      );
+//       // Generate the next receipt number
+//       const lastReceiptQuery = await client.query(
+//         `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
+//       );
+//       const receiptNo =
+//         lastReceiptQuery.rows.length > 0 ? parseInt(lastReceiptQuery.rows[0].receipt_no) + 1 : 1000;
+//         console.log(data);
+//         console.log(data.name);
+//       // Insert return record into `billing_receipt`
+//       const billingReceiptResult = await client.query(
+//         `
+//         INSERT INTO billing_receipt (
+//           receipt_no, name, phone, dealer_or_customer, total_amount, balance, billing_createdby,
+//           dealers_id, customers_id, onlinecustomer_id, type,billing_address, datetime
+//         ) VALUES (
+//           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12, CURRENT_TIMESTAMP
+//         ) RETURNING id, receipt_no
+//         `,
+//         [
+//           receiptNo,
+//           data.name, // Name of the person performing the return
+//           data.phone, // Phone number (optional, can be updated if required)
+//           sourceType, // Source type (dealers, customers, or onlinecustomers)
+//           -totalReturnAmount, // Return amount as a negative value
+//           updatedBalance, // Balance for this return
+//           returned_by, // User who processed the return
+//           source === "dealersStock" ? user_id : null,
+//           source === "customersStock" ? user_id : null,
+//           source === "onlinecustomerStock" ? user_id : null,
+//           status ,// The status passed in the request params
+//           data.address
+//         ]
+//       );
   
-      const { id: billingReceiptId } = billingReceiptResult.rows[0];
+//       const { id: billingReceiptId } = billingReceiptResult.rows[0];
   
-      // Insert returned item details into `billing_items`
-      for (let item of receiptItems) {
-        await client.query(
-          `
-          INSERT INTO billing_items (
-            receipt_no, type, model, serial_no, mrp, retail_price
-          ) VALUES ($1, $2, $3, $4, $5, $6)
-          `,
-          [
-            receiptNo,
-            status, // The status passed in the request params
-            itemResult.rows[0].model, // Model (optional, can be retrieved if needed)
-            item.serial_no,
-            0, // MRP (optional)
-            item.retail_price, // Refund amount
-          ]
-        );
-      }
+//       // Insert returned item details into `billing_items`
+//       for (let item of receiptItems) {
+//         await client.query(
+//           `
+//           INSERT INTO billing_items (
+//             receipt_no, type, model, serial_no, mrp, retail_price
+//           ) VALUES ($1, $2, $3, $4, $5, $6)
+//           `,
+//           [
+//             receiptNo,
+//             status, // The status passed in the request params
+//             itemResult.rows[0].model, // Model (optional, can be retrieved if needed)
+//             item.serial_no,
+//             0, // MRP (optional)
+//             item.retail_price, // Refund amount
+//           ]
+//         );
+//       }
   
-      await client.query("COMMIT");
+//       await client.query("COMMIT");
   
-      // Respond with success details
-      return res.status(200).json({
-        message: "Items successfully returned and added to AdminStock",
-        total_return_amount: totalReturnAmount,
-        receipt_no: receiptNo,
-      });
-    } catch (error) {
-      await client.query("ROLLBACK");
-      console.error("Error processing return:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    } finally {
-      client.release();
-    }
-  });
+//       // Respond with success details
+//       return res.status(200).json({
+//         message: "Items successfully returned and added to AdminStock",
+//         total_return_amount: totalReturnAmount,
+//         receipt_no: receiptNo,
+//       });
+//     } catch (error) {
+//       await client.query("ROLLBACK");
+//       console.error("Error processing return:", error);
+//       return res.status(500).json({ error: "Internal server error" });
+//     } finally {
+//       client.release();
+//     }
+//   });
                        
   dashboard.post('/api/pay-balance', async (req, res) => {
     try {
@@ -1460,7 +1460,7 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
 
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table', async (req, res) => {
-  const { model, mrp, retail_price,discount, warranty_period } = req.body;
+  const { model, mrp, retail_price,discount, warranty_period,sgst,cgst,igst } = req.body;
    
     // Function to validate warranty_period
     function isValidWarrantyPeriod(warrantyPeriod) {
@@ -1491,9 +1491,9 @@ dashboard.post('/api/create/price_table', async (req, res) => {
     }
     
     const result = await db.query(
-      `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period)
-       VALUES ($1, $2, $3, $4, $5::INTERVAL) RETURNING *`,
-      [model, mrp, retail_price,discount, warranty_period]
+      `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period,sgst,cgst,igst)
+       VALUES ($1, $2, $3, $4, $5::INTERVAL,$6,$7,$8) RETURNING *`,
+      [model, mrp, retail_price,discount, warranty_period,sgst,cgst,igst]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -2257,7 +2257,6 @@ dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 // API to get a price_table model with its raw materials and required quantities
 dashboard.get('/api/model/:modelId', async (req, res) => {
     const { modelId } = req.params;
@@ -2331,5 +2330,117 @@ dashboard.put('/api/update/:modelId/:rawMaterialId', async (req, res) => {
   }
 });
 
+// -----------------for dealers------------------
+// Get customers by `addedby`
+dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
+  const { search } = req.query;
+  const { dealerid} = req.params;
+
+  try {
+    let query = `
+      SELECT 
+        id, name, address, email, phone, alt_phone, 
+        total_amount, paid_amount, balance, refund_amount, lastmodified 
+      FROM 
+        customers_details 
+      WHERE 
+        addedby = $1`;
+
+    const params = [dealerid];
+
+    // Add search filter if provided
+    if (search) {
+      query += ` AND (name ILIKE $2 OR phone ILIKE $3)`;
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    const result = await db.query(query, params);
+
+    res.status(200).json({
+      success: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching customer details.',
+    });
+  }
+});
+
+// API to get stock things details by email and optional status
+// API to get stock things details by email, status, and serialno
+dashboard.get('/api/dealersstock/:status', async (req, res) => {
+  const { email,serialno } = req.query;
+  const { status}=req.params;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: 'Email is required.',
+    });
+  }
+
+  try {
+    let query = `
+      SELECT 
+        ds.id AS stock_id,
+        ds.thingid,
+        ds.status,
+        ds.added_at,
+        ds.added_by,
+        dd.name AS dealer_name,
+        dd.phone AS dealer_phone,
+        u.email AS user_email,
+        u.name AS user_name,
+        t.serialno AS thing_serialno
+      FROM 
+        dealersStock ds
+      INNER JOIN 
+        dealers_details dd ON ds.user_id = dd.id
+      INNER JOIN 
+        Users u ON u.email = dd.email
+      INNER JOIN 
+        things t ON ds.thingid = t.id
+      WHERE 
+        u.email = $1
+    `;
+
+    const params = [email];
+
+    // Add status filter if provided
+    if (status) {
+      query += ` AND ds.status = $2`;
+      params.push(status);
+    }
+
+    // Add serialno filter if provided
+    if (serialno) {
+      query += ` AND t.serialno ILIKE $${params.length + 1}`;
+      params.push(`%${serialno}%`);
+    }
+
+    const { rows } = await pool.query(query, params);
+
+    if (rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No stock details found for the provided filters.',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: rows,
+    });
+  } catch (error) {
+    console.error('Error fetching stock details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching stock details.',
+    });
+  }
+});
 
 module.exports=dashboard;
