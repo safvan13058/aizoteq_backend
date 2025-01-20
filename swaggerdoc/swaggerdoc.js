@@ -18,6 +18,7 @@ const Swaggerdoc = {
                   "batchId": { "type": "string", "example": "BATCH-001" },
                   "model": { "type": "string", "example": "SL-100" },
                   "serialno": { "type": "string", "example": "SL100-ABC123" },
+                  "macaddress": { "type": "string", "example": "1223422D23D" },
                   "type": { "type": "string" }
                 },
                 "required": ["thingName", "serialno"]

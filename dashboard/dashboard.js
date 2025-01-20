@@ -1784,6 +1784,7 @@ dashboard.post('/open-session', async (req, res) => {
   }
 });
 const PDFDocument = require('pdfkit');
+
 // 2. Close Billing Session
 dashboard.post('/close-session', async (req, res) => {
   const { session_id, closed_by } = req.body;
@@ -2178,6 +2179,7 @@ dashboard.delete('/api/raw_materials/delete/:id', async (req, res) => {
 // API to get all raw materials
 dashboard.get('/api/raw_materials', async (req, res) => {
   const { search, category } = req.query;
+  console.log(req.query)
   let query = 'SELECT * FROM raw_materials_stock WHERE 1=1';
   const params = [];
   let paramIndex = 1; // Keeps track of parameter indices for SQL injection protection
@@ -2443,4 +2445,51 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
   }
 });
 
+dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
+  const {email } = req.query;
+  const{status}=req.params
+
+  if (!status || !email) {
+      return res.status(400).json({ error: 'Status and email are required parameters.' });
+  }
+
+  try {
+      const query = `
+          SELECT 
+              ds.id AS stock_id,
+              ds.thingid,
+              ds.user_id,
+              ds.status,
+              ds.added_at,
+              ds.added_by,
+              dd.name AS dealer_name,
+              dd.email AS dealer_email,
+              dd.phone AS dealer_phone,
+              dd.total_amount,
+              dd.balance
+          FROM 
+              dealersStock ds
+          JOIN 
+              dealers_details dd
+          ON 
+              ds.user_id = dd.id
+          WHERE 
+              ds.status = $1
+              AND dd.email = $2
+      `;
+
+      const values = [status, email];
+
+      const result = await pool.query(query, values);
+
+      if (result.rows.length === 0) {
+          return res.status(404).json({ message: 'No matching records found.' });
+      }
+
+      res.status(200).json(result.rows);
+  } catch (error) {
+      console.error('Error fetching dealers stock:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 module.exports=dashboard;
