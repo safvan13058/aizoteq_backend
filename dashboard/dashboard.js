@@ -2249,7 +2249,7 @@ dashboard.get('/api/raw_materials', async (req, res) => {
 dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
   const { modelId } = req.params;
   const { raw_material_id, required_qty } = req.body;
-  console.log(req.body)
+  console.log(`raw ${req.body}`)
   // Validate input
   if (!raw_material_id || !required_qty) {
       return res.status(400).json({ error: 'raw_material_id and required_qty are required' });
