@@ -118,7 +118,7 @@ dashboard.get("/api/users/graph", async (req, res) => {
 
   // Map groupBy to the appropriate SQL expressions
   const groupByExpression = {
-    day: "TO_CHAR(lastModified, 'Dy, Mon DD, YYYY')", // Full day and month in letters
+    day: "TO_CHAR(lastModified, 'Mon DD')", // Full day and month in letters
     week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
     month: "TO_CHAR(lastModified, 'Mon YYYY')", // Full month in letters and year
     year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
