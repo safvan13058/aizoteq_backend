@@ -62,6 +62,53 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
  
 
 //api for user graph
+// dashboard.get("/api/users/graph", async (req, res) => {
+//   const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
+
+//   if (!["day", "week", "month", "year"].includes(groupBy)) {
+//     return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
+//   }
+
+//   // Map groupBy to the appropriate SQL expressions
+//   // const groupByExpression = {
+//   //   day: "TO_CHAR(lastModified, 'YYYY-MM-DD')", // Extract only the date without time and time zone
+//   //   week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
+//   //   month: "TO_CHAR(lastModified, 'YYYY-MM')", // Year and month in YYYY-MM format
+//   //   year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
+//   // };
+//   const groupByExpression = {
+//     day: "TO_CHAR(lastModified, 'FMDay, FMMonth DD, YYYY')", // Full day and month in letters
+//     week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
+//     month: "TO_CHAR(lastModified, 'FMMonth YYYY')", // Full month in letters and year
+//     year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
+//   };
+
+//   const query = `
+//     SELECT 
+//       ${groupByExpression[groupBy]} AS period,
+//       COUNT(*) AS user_count
+//     FROM 
+//       Users
+//     GROUP BY 
+//       ${groupByExpression[groupBy]}
+//     ORDER BY 
+//       period ASC;
+//   `;
+//   try {
+//     const client = await db.connect();
+//     const result = await client.query(query);
+
+//     res.status(200).json({
+//       groupBy,
+//       data: result.rows, // Rows contain the grouped data
+//     });
+
+//     client.release();
+//   } catch (err) {
+//     console.error("Error fetching user graph data:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 dashboard.get("/api/users/graph", async (req, res) => {
   const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
 
@@ -70,37 +117,43 @@ dashboard.get("/api/users/graph", async (req, res) => {
   }
 
   // Map groupBy to the appropriate SQL expressions
-  // const groupByExpression = {
-  //   day: "TO_CHAR(lastModified, 'YYYY-MM-DD')", // Extract only the date without time and time zone
-  //   week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
-  //   month: "TO_CHAR(lastModified, 'YYYY-MM')", // Year and month in YYYY-MM format
-  //   year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
-  // };
   const groupByExpression = {
-    day: "TO_CHAR(lastModified, 'FMDay, FMMonth DD, YYYY')", // Full day and month in letters
+    day: "TO_CHAR(lastModified, 'Dy, Mon DD, YYYY')", // Full day and month in letters
     week: "TO_CHAR(lastModified, 'IYYY-IW')",  // ISO year and week number
-    month: "TO_CHAR(lastModified, 'FMMonth YYYY')", // Full month in letters and year
+    month: "TO_CHAR(lastModified, 'Mon YYYY')", // Full month in letters and year
     year: "EXTRACT(YEAR FROM lastModified)::INT", // Extract the year as an integer
+  };
+
+  const sortExpression = {
+    day: "TO_DATE(lastModified::TEXT, 'YYYY-MM-DD')", // Sort by date
+    week: "TO_DATE(lastModified::TEXT, 'YYYY-MM-DD')", // Use first day of the week
+    month: "DATE_TRUNC('month', lastModified)", // Sort by the first day of the month
+    year: "DATE_TRUNC('year', lastModified)", // Sort by the first day of the year
   };
 
   const query = `
     SELECT 
       ${groupByExpression[groupBy]} AS period,
-      COUNT(*) AS user_count
+      COUNT(*) AS user_count,
+      ${sortExpression[groupBy]} AS sort_date -- Add a sortable column
     FROM 
       Users
     GROUP BY 
-      ${groupByExpression[groupBy]}
+      ${groupByExpression[groupBy]}, sort_date -- Include the sortable column in GROUP BY
     ORDER BY 
-      period ASC;
+      sort_date ASC; -- Sort by the sortable column
   `;
+
   try {
     const client = await db.connect();
     const result = await client.query(query);
 
     res.status(200).json({
       groupBy,
-      data: result.rows, // Rows contain the grouped data
+      data: result.rows.map(row => ({
+        period: row.period,
+        user_count: row.user_count,
+      })), // Return the data without the sort_date field
     });
 
     client.release();
