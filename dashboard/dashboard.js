@@ -2400,7 +2400,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
   const { modelId, rawMaterialId } = req.params;
   const { requiredQty } = req.body;
-
+  console.log( modelId, rawMaterialId, requiredQty)
   if (!modelId || !rawMaterialId || !requiredQty) {
       return res.status(400).json({ error: 'Missing required fields' });
   }
