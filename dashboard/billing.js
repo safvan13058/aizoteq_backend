@@ -239,7 +239,7 @@ async function processBilling(data, stockTable, username, res) {
       const discountedTotal = totalAmount - discountValue;
       const paidAmount = payment_methods.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     //   const finaltotal=discountedTotal-discount
-      const balance = discountedTotal - paidAmount;
+      const balance = parseFloat((discountedTotal - paidAmount).toFixed(2)); 
   
       // Insert billing receipt
       const receiptQuery = await client.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
