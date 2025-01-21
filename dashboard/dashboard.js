@@ -2433,7 +2433,7 @@ dashboard.delete('/api/delete/thingrawmaterials/:id', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
+    const result = await db.query(
       'DELETE FROM thing_raw_materials WHERE id = $1 RETURNING *',
       [id]
     );
