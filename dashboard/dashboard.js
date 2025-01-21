@@ -2415,7 +2415,7 @@ dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
     const result = await db.query(
       `UPDATE thing_raw_materials 
        SET required_qty = $1, updated_at = NOW() 
-       WHERE model_id = $2 AND raw_material_id = $3 
+       WHERE model_id = $2 AND id = $3 
        RETURNING *`,
       [requiredQty, modelId, rawMaterialId]
     );
