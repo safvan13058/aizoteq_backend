@@ -1641,7 +1641,7 @@ homeapp.post('/api/scene-events', async (req, res) => {
     }
 });
 
-homeapp.put('/api/update/scene-events/scene/:sceneId', async (req, res) => {
+homeapp.put('/scene-events/scene/:sceneId', async (req, res) => {
     const { sceneId } = req.params; // Scene ID from the route parameters
     const { deviceId, action, datatime } = req.body; // Fields to update
 

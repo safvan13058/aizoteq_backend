@@ -46,13 +46,13 @@ testapp.post( "/app/addThing",
             await client.query("BEGIN"); // Start transaction
 
             // Create security key for thing
-            const securityKey = await SecurityKey(thing.serialno);
+            const securityKey = await SecurityKey(thing.macaddress);
             console.log(securityKey);
 
             // Insert Thing
             const thingQuery = `
-                INSERT INTO things (thingName, createdBy, batchId, model, serialno, type, securityKey)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                INSERT INTO things (thingName, createdBy, batchId, model, serialno,macaddress, type, securityKey)
+                VALUES ($1, $2, $3, $4, $5, $6, $7,$8)
                 RETURNING id
             `;
             const thingResult = await client.query(thingQuery, [
@@ -62,6 +62,7 @@ testapp.post( "/app/addThing",
                 thing.batchId,
                 thing.model,
                 thing.serialno,
+                thing.macaddress,
                 thing.type || null,
                 securityKey
             ]);
@@ -85,7 +86,7 @@ testapp.post( "/app/addThing",
                 }
 
                 for (let i = 1; i <= totalDevices; i++) {
-                    const deviceId = `${thing.serialno}_${counter}`;
+                    const deviceId = `${thing.macaddress}_${counter}`;
                     const name = `${attr.attributeName}_${i}`;
                     const deviceQuery = `
                         INSERT INTO Devices (thingId, deviceId, macAddress, hubIndex, createdBy, enable, status, icon, name, type)
@@ -95,7 +96,7 @@ testapp.post( "/app/addThing",
                         await client.query(deviceQuery, [
                             thingId,
                             deviceId,
-                            thing.serialno,
+                            thing.macaddress,
                             counter,
                             username,
                             true,
@@ -215,7 +216,7 @@ testapp.post( "/app/addThing",
         }
     }
 );
- //display all things
+ //display all things     
  testapp.get('/api/display/things',
     // validateJwt,
     // authorizeRoles('admin,staff'), 
@@ -256,7 +257,7 @@ testapp.post( "/app/addThing",
     }
 );
 
-// display things with id
+// display things with id 
 testapp.get('/api/display/things/:id',
     // validateJwt,
     // authorizeRoles('customer'),

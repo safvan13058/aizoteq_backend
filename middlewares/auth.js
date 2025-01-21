@@ -62,8 +62,9 @@ async function validateJwt(req, res, next) {
                     req.user.role = result.rows[0].userRole;
                     req.user.jwtsub = result.rows[0].jwtsub;
                     req.user.id = result.rows[0].id;
-                    req.user.username = result.rows[0].username;
+                    req.user.username = result.rows[0].userName;
                     console.log("all set")
+                    console.log(req.user)
                     next();
                 } finally {
 

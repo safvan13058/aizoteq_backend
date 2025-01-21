@@ -112,7 +112,7 @@ async function processBilling(data, stockTable, username, res) {
   
     const client = await db.connect();
     try {
-      let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1 addedby=$2`, [phone,user_id]);
+      let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1 AND addedby=$2`, [phone,user_id]);
       if (entity.rows.length === 0) {
         const result = await client.query(
           `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone,addedby, total_amount, paid_amount, balance)
@@ -244,11 +244,11 @@ async function processBilling(data, stockTable, username, res) {
       // Insert billing receipt
       const receiptQuery = await client.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
       const receiptNo = receiptQuery.rows.length > 0 ? parseInt(receiptQuery.rows[0].receipt_no) + 1 : 1000;
-  
+      const billtype="sold"
       const receiptResult = await client.query(
         `INSERT INTO billing_receipt (session_id, receipt_no, created_by, name, phone, email, billing_address, shipping_address, dealer_or_customer, total_amount, discount,payable_amount, paid_amount, balance, billing_createdby, ${type}_id, type, datetime)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16,$17, CURRENT_TIMESTAMP) RETURNING id`,
-        [sessionid, receiptNo, user_id, name, phone, email, address, shipping_address, type, totalAmount,discountValue,discountedTotal, paidAmount, balance, billing_createdby, entity.id, "sold"]
+        [sessionid, receiptNo, user_id, name, phone, email, address, shipping_address, type, totalAmount,discountValue,discountedTotal, paidAmount, balance, billing_createdby, entity.id,billtype]
       );
   
       const receiptId = receiptResult.rows[0].id;
@@ -305,6 +305,8 @@ async function processBilling(data, stockTable, username, res) {
                     discountedTotal, // Discounted total
                     paidAmount,
                     balance,
+                    billtype
+
                     // preparedBy,
                     // salesman
                   });

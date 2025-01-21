@@ -7,25 +7,28 @@ const { thingSchema } = require('../middlewares/validation');
 const { s3, upload } = require('../middlewares/s3');
 const path = require('path');
 const fs = require('fs');
-const{billing,returned}=require('./billing.js')
-const {getThingBySerialNo,removeFromAdminStock,removeFromdealersStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel}=require("./functions.js");
-dashboard.get('/',(req,res)=>{
-    res.send('dashboard working ')
-  })
-  const { swaggerU, spec } = require("./swaggerdoc_dash/swagger.js");
-  dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
+const { billing, returned } = require('./billing.js')
+const { getThingBySerialNo, removeFromAdminStock, removeFromdealersStock, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel } = require("./functions.js");
+dashboard.get('/', (req, res) => {
+  res.send('dashboard working ')
+})
+const { swaggerU, spec } = require("./swaggerdoc_dash/swagger.js");
+dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 
 // API endpoint to count users
-dashboard.get('/api/users/count', async (req, res) => {
-  console.log("working count")
+dashboard.get('/api/users/count',
+  validateJwt,
+  authorizeRoles('admin', 'dealers'),
+  async (req, res) => {
+    console.log("working count")
     try {
-        const result = await db.query('SELECT COUNT(*) AS user_count FROM Users');
-        res.json({ user_count: result.rows[0].user_count });
+      const result = await db.query('SELECT COUNT(*) AS user_count FROM Users');
+      res.json({ user_count: result.rows[0].user_count });
     } catch (err) {
-        console.error('Error querying the database:', err);
-        res.status(500).json({ error: 'Internal server error' });
+      console.error('Error querying the database:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
-});
+  });
 //api for sale graph
 dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
   const { user_id } = req.params;
@@ -33,11 +36,11 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 
   const validGroups = ['day', 'week', 'month', 'year'];
   if (!validGroups.includes(group_by)) {
-      return res.status(400).json({ error: 'Invalid group_by parameter. Use day, week, month, or year.' });
+    return res.status(400).json({ error: 'Invalid group_by parameter. Use day, week, month, or year.' });
   }
 
   try {
-      const query = `
+    const query = `
           SELECT 
               DATE_TRUNC($1, session_date) AS period,
               SUM(total_sales) AS total_sales
@@ -47,19 +50,19 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
           ORDER BY DATE_TRUNC($1, session_date);
       `;
 
-      const result = await db.query(query, [group_by, user_id]);
+    const result = await db.query(query, [group_by, user_id]);
 
-      res.json({
-          user_id,
-          group_by,
-          sales: result.rows,
-      });
+    res.json({
+      user_id,
+      group_by,
+      sales: result.rows,
+    });
   } catch (error) {
-      console.error('Error fetching sales data:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error fetching sales data:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
- 
+
 
 //api for user graph
 // dashboard.get("/api/users/graph", async (req, res) => {
@@ -166,123 +169,123 @@ dashboard.get("/api/users/graph", async (req, res) => {
 //api to display things
 dashboard.get('/api/display/things', async (req, res) => {
   try {
-      // Get `page`, `limit`, and `serialno` query parameters
-      const page = parseInt(req.query.page, 10) || 1; // Default to page 1
-      const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
-      const serialno = req.query.serialno || null; // Search by serial number if provided
+    // Get `page`, `limit`, and `serialno` query parameters
+    const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+    const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+    const serialno = req.query.serialno || null; // Search by serial number if provided
 
-      if (page < 1 || limit < 1) {
-          return res.status(400).json({ error: 'Invalid page or limit value' });
-      }
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({ error: 'Invalid page or limit value' });
+    }
 
-      const offset = (page - 1) * limit; // Calculate the offset
+    const offset = (page - 1) * limit; // Calculate the offset
 
-      // Query for filtering by `serialno` or listing all available things in `AdminStock`
-      let query = `
+    // Query for filtering by `serialno` or listing all available things in `AdminStock`
+    let query = `
           SELECT t.*, a.status AS stock_status, a.addedAt
           FROM AdminStock a
           INNER JOIN Things t ON a.thingId = t.id
       `;
-      let countQuery = `
+    let countQuery = `
           SELECT COUNT(*) AS total
           FROM AdminStock a
           INNER JOIN Things t ON a.thingId = t.id
       `;
-      const params = [];
-      let whereClause = '';
+    const params = [];
+    let whereClause = '';
 
-      // Add a filter for `serialno` if provided
-      if (serialno) {
-          whereClause = ' WHERE t.serialno = $1';
-          params.push(serialno);
-      }
+    // Add a filter for `serialno` if provided
+    if (serialno) {
+      whereClause = ' WHERE t.serialno = $1';
+      params.push(serialno);
+    }
 
-      // Add pagination
-      query += whereClause + ' ORDER BY t.id ASC LIMIT $2 OFFSET $3';
-      countQuery += whereClause;
+    // Add pagination
+    query += whereClause + ' ORDER BY t.id ASC LIMIT $2 OFFSET $3';
+    countQuery += whereClause;
 
-      params.push(limit, offset);
+    params.push(limit, offset);
 
-      // Fetch records with pagination
-      const result = await db.query(query, params);
+    // Fetch records with pagination
+    const result = await db.query(query, params);
 
-      // Fetch the total number of records to calculate total pages
-      const countResult = await db.query(countQuery, serialno ? [serialno] : []);
-      const total = parseInt(countResult.rows[0].total, 10);
-      const totalPages = Math.ceil(total / limit);
+    // Fetch the total number of records to calculate total pages
+    const countResult = await db.query(countQuery, serialno ? [serialno] : []);
+    const total = parseInt(countResult.rows[0].total, 10);
+    const totalPages = Math.ceil(total / limit);
 
-      // Respond with data
-      res.status(200).json({
-          page,
-          limit,
-          total,
-          totalPages,
-          data: result.rows,
-      });
+    // Respond with data
+    res.status(200).json({
+      page,
+      limit,
+      total,
+      totalPages,
+      data: result.rows,
+    });
   } catch (error) {
-      console.error('Error fetching things:', error); // Log the error for debugging
-      res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
+    console.error('Error fetching things:', error); // Log the error for debugging
+    res.status(500).json({ error: 'Internal Server Error' }); // Respond with an error
   }
 });
 
 // API endpoint for full count
 dashboard.get('/api/things/count', async (req, res) => {
-    try {
-        const result = await db.query('SELECT COUNT(*) AS total_count FROM Things');
-        res.json({ total_count: result.rows[0].total_count });
-    } catch (err) {
-        console.error('Error querying the database:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+  try {
+    const result = await db.query('SELECT COUNT(*) AS total_count FROM Things');
+    res.json({ total_count: result.rows[0].total_count });
+  } catch (err) {
+    console.error('Error querying the database:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // API endpoint for sorted count by model
 dashboard.get('/api/things/model-count', async (req, res) => {
-    try {
-        // Query to get grouped counts
-        const groupedResult = await db.query(`
+  try {
+    // Query to get grouped counts
+    const groupedResult = await db.query(`
             SELECT model, COUNT(*) AS model_count
             FROM Things
             GROUP BY model
             ORDER BY model_count DESC, model ASC
         `);
 
-        // Query to get the total count
-        const totalResult = await db.query(`
+    // Query to get the total count
+    const totalResult = await db.query(`
             SELECT COUNT(*) AS total_count
             FROM Things
         `);
 
-        const totalCount = totalResult.rows[0].total_count;
+    const totalCount = totalResult.rows[0].total_count;
 
-        // Add total count to the response
-        res.json({
-            total_count: totalCount,
-            model_counts: groupedResult.rows
-        });
-    } catch (err) {
-        console.error('Error querying the database:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    }
+    // Add total count to the response
+    res.json({
+      total_count: totalCount,
+      model_counts: groupedResult.rows
+    });
+  } catch (err) {
+    console.error('Error querying the database:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-dashboard.post("/api/billing/create",billing);
- 
-dashboard.post("/api/billing/return/:status",returned)
+dashboard.post("/api/billing/create", billing);
+
+dashboard.post("/api/billing/return/:status", returned)
 // dashboard.post("/api/billing/return/:status", async (req, res) => {
 //     const { serial_numbers, returned_by } = req.body;
 //     const { status } = req.params;
-  
+
 //     // Ensure serial_numbers is present and has at least one item
 //     if (!serial_numbers || serial_numbers.length === 0) {
 //       return res.status(400).json({ error: "At least one serial number is required" });
 //     }
-  
+
 //     const client = await db.connect();
-    
+
 //     try {
 //       await client.query("BEGIN");
-  
+
 //       let totalReturnAmount = 0;
 //       const receiptItems = []; // To store item details for the billing receipt
 //       let data;
@@ -297,22 +300,22 @@ dashboard.post("/api/billing/return/:status",returned)
 //           SELECT 'dealersStock' AS source, id, user_id, thing_id
 //           FROM dealersStock
 //           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-  
+
 //           UNION ALL
-  
+
 //           SELECT 'customersStock' AS source, id, user_id, thing_id
 //           FROM customersStock
 //           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-  
+
 //           UNION ALL
-  
+
 //           SELECT 'onlinecustomerStock' AS source, id, user_id, thing_id
 //           FROM onlinecustomerStock
 //           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
 //           `,
 //           [serial_no]
 //         );
-        
+
 //         // Check if the item is found
 //         if (itemQuery.rows.length === 0) {
 //           throw new Error(`Item with serial number ${serial_no} not found or already returned`);
@@ -322,7 +325,7 @@ dashboard.post("/api/billing/return/:status",returned)
 //           [serial_no]
 //         );
 
-        
+
 //         if (itemResult.rows.length > 0) {
 //           const retailPrice = itemResult.rows[0].retail_price;
 //           console.log('Retail Price:',itemResult.rows[0] );
@@ -344,7 +347,7 @@ dashboard.post("/api/billing/return/:status",returned)
 //           `,
 //           [thing_id, returned_by, status]
 //         );
-  
+
 //         let table;
 //         if (source === "onlinecustomerStock") {
 //           table = "onlinecustomer_details";
@@ -355,7 +358,7 @@ dashboard.post("/api/billing/return/:status",returned)
 //         if (source === "dealersStock") {
 //           table = "dealers_details";
 //         }
-  
+
 //         // Fetch the user data from the respective table
 //         const dataQuery = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [user_id]);
 //         data = dataQuery.rows[0];
@@ -363,7 +366,7 @@ dashboard.post("/api/billing/return/:status",returned)
 //         if (!data) {
 //           throw new Error(`User with ID ${user_id} not found`);
 //         }
-  
+
 //         // Update the balance in the relevant customer/dealer table
 //        // Update the balance and refund_amount in the relevant customer/dealer table
 //       let balanceUpdateQuery = '';
@@ -412,13 +415,13 @@ dashboard.post("/api/billing/return/:status",returned)
 //         totalReturnAmount += retail_price;
 //       }
 
-  
+
 //         // Store item details for the billing receipt
 //         receiptItems.push({
 //           serial_no,
 //           retail_price: -retail_price, // Negative value for return
 //         });
-  
+
 //         // Update warranty table if applicable
 //         await client.query(
 //           `
@@ -428,7 +431,7 @@ dashboard.post("/api/billing/return/:status",returned)
 //           [serial_no]
 //         );
 //       }
-  
+
 //       // Generate the next receipt number
 //       const lastReceiptQuery = await client.query(
 //         `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
@@ -462,9 +465,9 @@ dashboard.post("/api/billing/return/:status",returned)
 //           data.address
 //         ]
 //       );
-  
+
 //       const { id: billingReceiptId } = billingReceiptResult.rows[0];
-  
+
 //       // Insert returned item details into `billing_items`
 //       for (let item of receiptItems) {
 //         await client.query(
@@ -483,9 +486,9 @@ dashboard.post("/api/billing/return/:status",returned)
 //           ]
 //         );
 //       }
-  
+
 //       await client.query("COMMIT");
-  
+
 //       // Respond with success details
 //       return res.status(200).json({
 //         message: "Items successfully returned and added to AdminStock",
@@ -500,163 +503,168 @@ dashboard.post("/api/billing/return/:status",returned)
 //       client.release();
 //     }
 //   });
-                       
-  dashboard.post('/api/pay-balance', async (req, res) => {
-    try {
-        const { 
-            id,                   // ID of the customer, dealer, or online customer
-            type,                 // 'customer', 'dealer', or 'online_customer'
-            payments,             // Array of payment objects: [{ method: 'cash', amount: 500 }, { method: 'online', amount: 200 }]
-            created_by            // User creating the billing
-        } = req.body;
 
-        // Validate input
-        if (!id || !type || !payments || !Array.isArray(payments) || !created_by) {
-            return res.status(400).json({ error: 'All fields (id, type, payments, created_by) are required' });
-        }
+dashboard.post('/api/pay-balance', async (req, res) => {
+  try {
+    const {
+      id,                   // ID of the customer, dealer, or online customer
+      type,                 // 'customer', 'dealer', or 'online_customer'
+      payments,             // Array of payment objects: [{ method: 'cash', amount: 500 }, { method: 'online', amount: 200 }]
+      created_by            // User creating the billing
+    } = req.body;
 
-        // Validate payment methods and amounts
-        const validPaymentMethods = ['cash', 'online', 'bank'];
-        let totalPaid = 0;
+    // Validate input
+    if (!id || !type || !payments || !Array.isArray(payments) || !created_by) {
+      return res.status(400).json({ error: 'All fields (id, type, payments, created_by) are required' });
+    }
 
-        for (const payment of payments) {
-            if (!payment.method || !payment.amount) {
-                return res.status(400).json({ error: 'Each payment must have a method and an amount' });
-            }
-            if (!validPaymentMethods.includes(payment.method)) {
-                return res.status(400).json({ error: `Invalid payment method: ${payment.method}` });
-            }
-            if (payment.amount <= 0) {
-                return res.status(400).json({ error: 'Payment amount must be greater than zero' });
-            }
-            totalPaid += payment.amount;
-        }
+    // Validate payment methods and amounts
+    const validPaymentMethods = ['cash', 'online', 'bank'];
+    let totalPaid = 0;
 
-        // Define table and corresponding ID column based on type
-        let table, idColumn;
-        if (type === 'customer') {
-            table = 'customers_details';
-            idColumn = 'customers_id';
-        } else if (type === 'dealer') {
-            table = 'dealers_details';
-            idColumn = 'dealers_id';
-        } else if (type === 'online_customer') {
-            table = 'onlinecustomer_details';
-            idColumn = 'onlinecustomer_id';
-        } else {
-            return res.status(400).json({ error: 'Invalid type. Must be "customer", "dealer", or "online_customer".' });
-        }
+    for (const payment of payments) {
+      if (!payment.method || !payment.amount) {
+        return res.status(400).json({ error: 'Each payment must have a method and an amount' });
+      }
+      if (!validPaymentMethods.includes(payment.method)) {
+        return res.status(400).json({ error: `Invalid payment method: ${payment.method}` });
+      }
+      if (payment.amount <= 0) {
+        return res.status(400).json({ error: 'Payment amount must be greater than zero' });
+      }
+      totalPaid += payment.amount;
+    }
 
-        // Fetch current balance and details
-        const balanceQuery = `SELECT name, phone, email,address, balance FROM ${table} WHERE id = $1`;
-        const result = await db.query(balanceQuery, [id]);
+    // Define table and corresponding ID column based on type
+    let table, idColumn;
+    if (type === 'customer') {
+      table = 'customers_details';
+      idColumn = 'customers_id';
+    } else if (type === 'dealer') {
+      table = 'dealers_details';
+      idColumn = 'dealers_id';
+    } else if (type === 'online_customer') {
+      table = 'onlinecustomer_details';
+      idColumn = 'onlinecustomer_id';
+    } else {
+      return res.status(400).json({ error: 'Invalid type. Must be "customer", "dealer", or "online_customer".' });
+    }
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Record not found' });
-        }
+    // Fetch current balance and details
+    const balanceQuery = `SELECT name, phone, email,address, balance FROM ${table} WHERE id = $1`;
+    const result = await db.query(balanceQuery, [id]);
 
-        const { name, phone, email,address, balance } = result.rows[0];
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
 
-        // Check if the total payment exceeds the balance
-        if (totalPaid > balance) {
-            return res.status(400).json({ error: 'Total payment amount exceeds balance' });
-        }
+    const { name, phone, email, address, balance } = result.rows[0];
 
-        // Update balance in the table
-        const newBalance = balance - totalPaid;
-        const updateQuery = `
+    // Check if the total payment exceeds the balance
+    if (totalPaid > balance) {
+      return res.status(400).json({ error: 'Total payment amount exceeds balance' });
+    }
+
+    // Update balance in the table
+    const newBalance = balance - totalPaid;
+    const updateQuery = `
             UPDATE ${table}
             SET paid_amount = paid_amount + $1, balance = $2, lastmodified = CURRENT_TIMESTAMP
             WHERE id = $3
         `;
-        await db.query(updateQuery, [totalPaid, newBalance, id]);
+    await db.query(updateQuery, [totalPaid, newBalance, id]);
 
-        // Create billing receipt
-        const receiptInsertQuery = `
+    // Create billing receipt
+    const receiptInsertQuery = `
             INSERT INTO billing_receipt (name, phone, email, billing_address, dealer_or_customer, total_amount, paid_amount, balance, billing_createdby, ${idColumn}, type)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id
         `;
-        const receiptValues = [
-            name,
-            phone,
-            email,
-            address, // Replace with actual billing address if required
-            type,
-            totalPaid, // Total billed amount (this payment only)
-            totalPaid, // Paid amount
-            newBalance, // Remaining balance
-            created_by,
-            id, // ID of the customer, dealer, or online customer
-            "Balance",
-        ];
-        const receiptResult = await db.query(receiptInsertQuery, receiptValues);
-        const receiptId = receiptResult.rows[0].id;
+    const receiptValues = [
+      name,
+      phone,
+      email,
+      address, // Replace with actual billing address if required
+      type,
+      totalPaid, // Total billed amount (this payment only)
+      totalPaid, // Paid amount
+      newBalance, // Remaining balance
+      created_by,
+      id, // ID of the customer, dealer, or online customer
+      "Balance",
+    ];
+    const receiptResult = await db.query(receiptInsertQuery, receiptValues);
+    const receiptId = receiptResult.rows[0].id;
 
-        // Add payment details for each payment method
-        const paymentInsertQuery = `
+    // Add payment details for each payment method
+    const paymentInsertQuery = `
             INSERT INTO payment_details (receipt_id, payment_method, amount)
             VALUES ($1, $2, $3)
         `;
-        for (const payment of payments) {
-            await db.query(paymentInsertQuery, [receiptId, payment.method, payment.amount]);
-        }
-
-        // Respond with success
-        res.status(201).json({
-            message: 'Payment successful and receipt generated',
-            receiptId,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An internal server error occurred' });
+    for (const payment of payments) {
+      await db.query(paymentInsertQuery, [receiptId, payment.method, payment.amount]);
     }
+
+    // Respond with success
+    res.status(201).json({
+      message: 'Payment successful and receipt generated',
+      receiptId,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'An internal server error occurred' });
+  }
 });
 
 // API to update userRole
-  dashboard.put('/api/users/:id/role', async (req, res) => {
+dashboard.put('/api/users/:id/role',
+  validateJwt,
+  authorizeRoles('admin'), async (req, res) => {
     const { id } = req.params;
     const { userRole } = req.body;
-    const allowedRoles = ['admin', 'staff', 'customer','dealers'];
+    const allowedRoles = ['admin', 'staff', 'customer', 'dealers'];
     // Input validation: Check if userRole exists and is valid
     if (!userRole) {
-        return res.status(400).json({ error: 'userRole is required' });
+      return res.status(400).json({ error: 'userRole is required' });
     }
-         
+
 
     try {
-        const result = await db.query(
-            `UPDATE Users 
+      const result = await db.query(
+        `UPDATE Users 
              SET userRole = $1, lastModified = CURRENT_TIMESTAMP 
              WHERE id = $2 
              RETURNING *`,
-            [userRole, id]
-        );
+        [userRole, id]
+      );
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
-        res.status(200).json({
-            message: 'User role updated successfully',
-            user: result.rows[0],
-        });
+      res.status(200).json({
+        message: 'User role updated successfully',
+        user: result.rows[0],
+      });
     } catch (error) {
-        console.error('Error updating userRole:', error);
-        res.status(500).json({ error: 'Internal server error' });
+      console.error('Error updating userRole:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-});
+  });
 
 // API to get all users in role with optional search
-dashboard.get('/api/display/users/:role', async (req, res) => {
-  const { search } = req.query;
-  const role = req.params.role.toLowerCase(); // Normalize case for role comparison
-  const allowedRoles = ['admin', 'staff', 'customer','dealers']; // Valid roles
+dashboard.get('/api/display/users/:role',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { search } = req.query;
+    const role = req.params.role.toLowerCase(); // Normalize case for role comparison
+    const allowedRoles = ['admin', 'staff', 'customer', 'dealers']; // Valid roles
 
-  try {
+    try {
       // Validate role
       if (!allowedRoles.includes(role)) {
-          return res.status(400).json({ error: 'Invalid userRole' });
+        return res.status(400).json({ error: 'Invalid userRole' });
       }
 
       let query = `SELECT id, userName, userRole, profilePic,name, lastModified FROM Users WHERE LOWER(userRole) = $1`;
@@ -664,10 +672,10 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
 
       // Add search condition if search query is provided
       if (search) {
-          query += ` AND userName ILIKE %$2% 
+        query += ` AND userName ILIKE %$2% 
                        
                      `;
-          values.push(`%${search.toLowerCase()}%`);
+        values.push(`%${search.toLowerCase()}%`);
       }
 
       query += ` ORDER BY lastModified DESC`;
@@ -675,22 +683,21 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
       const result = await db.query(query, values);
 
       res.status(200).json({
-          message: 'Users retrieved successfully',
-          users: result.rows,
+        message: 'Users retrieved successfully',
+        users: result.rows,
       });
-  } catch (error) {
+    } catch (error) {
       console.error('Error retrieving users:', error);
       res.status(500).json({ error: 'Internal server error' });
-  }
-});
+    }
+  });
 
+dashboard.get("/api/billing/:receipt_no", async (req, res) => {
+  const { receipt_no } = req.params;
 
-  dashboard.get("/api/billing/:receipt_no", async (req, res) => {
-    const { receipt_no } = req.params;
-  
-    try {
-      // Step 1: Fetch billing receipt with its related payment details and billing items
-      const billingQuery = `
+  try {
+    // Step 1: Fetch billing receipt with its related payment details and billing items
+    const billingQuery = `
         SELECT 
           br.id AS receipt_id,
           br.receipt_no,
@@ -716,61 +723,61 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
         LEFT JOIN billing_items bi ON bi.receipt_no = br.receipt_no
         WHERE br.receipt_no = $1
       `;
-  
-      const result = await db.query(billingQuery, [receipt_no]);
-  
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: "Billing receipt not found" });
-      }
-  
-      // Step 2: Group the results by the billing receipt, including related payment details and items
-      const billingReceipt = {
-        receipt_id: result.rows[0].receipt_id,
-        receipt_no: result.rows[0].receipt_no,
-        customer_name: result.rows[0].customer_name,
-        phone: result.rows[0].phone,
-        billing_address: result.rows[0].billing_address,
-        shipping_address: result.rows[0].shipping_address,
-        dealer_or_customer: result.rows[0].dealer_or_customer,
-        total_amount: result.rows[0].total_amount,
-        balance: result.rows[0].balance,
-        billing_createdby: result.rows[0].billing_createdby,
-        datetime: result.rows[0].datetime,
-        lastmodified: result.rows[0].lastmodified,
-        payment_details: [],
-        billing_items: [],
-      };
-  
-      // Populate payment_details and billing_items arrays
-      result.rows.forEach(row => {
-        if (row.payment_method && row.payment_amount) {
-          billingReceipt.payment_details.push({
-            payment_method: row.payment_method,
-            amount: row.payment_amount,
-          });
-        }
-  
-        if (row.item_name && row.serial_no) {
-          billingReceipt.billing_items.push({
-            item_name: row.item_name,
-            model: row.model,
-            mrp: row.mrp,
-            serial_no: row.serial_no,
-            retail_price: row.retail_price,
-          });
-        }
-      });
-  
-      // Step 3: Send the response
-      return res.status(200).json(billingReceipt);
-    } catch (error) {
-      console.error("Error fetching billing receipt:", error);
-      return res.status(500).json({ error: "Internal server error" });
+
+    const result = await db.query(billingQuery, [receipt_no]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Billing receipt not found" });
     }
-  });
-  
- 
-  dashboard.get('/api/recent-bills', async (req, res) => {
+
+    // Step 2: Group the results by the billing receipt, including related payment details and items
+    const billingReceipt = {
+      receipt_id: result.rows[0].receipt_id,
+      receipt_no: result.rows[0].receipt_no,
+      customer_name: result.rows[0].customer_name,
+      phone: result.rows[0].phone,
+      billing_address: result.rows[0].billing_address,
+      shipping_address: result.rows[0].shipping_address,
+      dealer_or_customer: result.rows[0].dealer_or_customer,
+      total_amount: result.rows[0].total_amount,
+      balance: result.rows[0].balance,
+      billing_createdby: result.rows[0].billing_createdby,
+      datetime: result.rows[0].datetime,
+      lastmodified: result.rows[0].lastmodified,
+      payment_details: [],
+      billing_items: [],
+    };
+
+    // Populate payment_details and billing_items arrays
+    result.rows.forEach(row => {
+      if (row.payment_method && row.payment_amount) {
+        billingReceipt.payment_details.push({
+          payment_method: row.payment_method,
+          amount: row.payment_amount,
+        });
+      }
+
+      if (row.item_name && row.serial_no) {
+        billingReceipt.billing_items.push({
+          item_name: row.item_name,
+          model: row.model,
+          mrp: row.mrp,
+          serial_no: row.serial_no,
+          retail_price: row.retail_price,
+        });
+      }
+    });
+
+    // Step 3: Send the response
+    return res.status(200).json(billingReceipt);
+  } catch (error) {
+    console.error("Error fetching billing receipt:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+
+dashboard.get('/api/recent-bills', async (req, res) => {
   // Get the search term from the query string
   const { search_term } = req.query;
 
@@ -849,81 +856,81 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
     console.error('Error fetching recent billing details:', err);
     res.status(500).send('Internal Server Error');
   }
-  });
+});
 
-  dashboard.get("/api/billing/totalsales/all", async (req, res) => {
-    try {
-      // Helper function to format date for queries
-      const formatDate = (date) => {
-        return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
-      };
-  
-      // Get the current date
-      const currentDate = new Date();
-  
-      // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
-      const periods = [
-        { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
-        { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
-        { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
-        { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
-        { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
-      ];
-  
-      // Function to query total sales for each period
-      const totalSalesQuery = (startDate) => {
-        return `
+dashboard.get("/api/billing/totalsales/all", async (req, res) => {
+  try {
+    // Helper function to format date for queries
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
+    };
+
+    // Get the current date
+    const currentDate = new Date();
+
+    // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
+    const periods = [
+      { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
+      { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
+      { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
+      { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
+      { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
+    ];
+
+    // Function to query total sales for each period
+    const totalSalesQuery = (startDate) => {
+      return `
           SELECT 
             COUNT(id) AS total_receipts,
             SUM(total_amount) AS total_sales
           FROM billing_receipt
           WHERE datetime >= '${formatDate(startDate)}'
         `;
+    };
+
+    // Get sales data for each period
+    const salesData = await Promise.all(periods.map(async (period) => {
+      const result = await db.query(totalSalesQuery(period.date));
+      return {
+        period: period.period,
+        total_receipts: result.rows[0].total_receipts || 0,
+        total_sales: result.rows[0].total_sales || 0
       };
-  
-      // Get sales data for each period
-      const salesData = await Promise.all(periods.map(async (period) => {
-        const result = await db.query(totalSalesQuery(period.date));
-        return {
-          period: period.period,
-          total_receipts: result.rows[0].total_receipts || 0,
-          total_sales: result.rows[0].total_sales || 0
-        };
-      }));
-  
-      // Step 2: Return the total sales and receipt count for each period
-      return res.status(200).json({
-        message: "Total sales and receipt data fetched successfully",
-        data: salesData,
-      });
-    } catch (error) {
-      console.error("Error fetching total sales:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  dashboard.get("/api/billing/totalsales/all2", async (req, res) => {
-    try {
-      // Helper function to format date for queries
-      const formatDate = (date) => {
-        return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
-      };
-  
-      // Get the current date
-      const currentDate = new Date();
-  
-      // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
-      const periods = [
-        { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
-        { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
-        { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
-        { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
-        { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
-      ];
-  
-      // Function to query total sales and receipt details for each period
-      const salesAndReceiptsQuery = (startDate) => {
-        return `
+    }));
+
+    // Step 2: Return the total sales and receipt count for each period
+    return res.status(200).json({
+      message: "Total sales and receipt data fetched successfully",
+      data: salesData,
+    });
+  } catch (error) {
+    console.error("Error fetching total sales:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+dashboard.get("/api/billing/totalsales/all2", async (req, res) => {
+  try {
+    // Helper function to format date for queries
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
+    };
+
+    // Get the current date
+    const currentDate = new Date();
+
+    // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
+    const periods = [
+      { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
+      { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
+      { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
+      { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
+      { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
+    ];
+
+    // Function to query total sales and receipt details for each period
+    const salesAndReceiptsQuery = (startDate) => {
+      return `
           SELECT 
             br.id AS receipt_id,
             br.receipt_no,
@@ -950,87 +957,87 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
           WHERE br.datetime >= '${formatDate(startDate)}'
           ORDER BY br.datetime DESC
         `;
-      };
-  
-      // Get sales data for each period
-      const salesData = await Promise.all(periods.map(async (period) => {
-        const result = await db.query(salesAndReceiptsQuery(period.date));
-  
-        // Format the results to group payments and items under each receipt
-        const billingReceipts = [];
-        let currentReceipt = null;
-  
-        result.rows.forEach(row => {
-          // Check if we are still processing the same receipt
-          if (!currentReceipt || currentReceipt.receipt_id !== row.receipt_id) {
-            if (currentReceipt) billingReceipts.push(currentReceipt);
-            currentReceipt = {
-              receipt_id: row.receipt_id,
-              receipt_no: row.receipt_no,
-              customer_name: row.customer_name,
-              phone: row.phone,
-              billing_address: row.billing_address,
-              shipping_address: row.shipping_address,
-              dealer_or_customer: row.dealer_or_customer,
-              total_amount: row.total_amount,
-              balance: row.balance,
-              billing_createdby: row.billing_createdby,
-              datetime: row.datetime,
-              lastmodified: row.lastmodified,
-              payments: [],
-              items: []
-            };
-          }
-  
-          // Add payment details to the current receipt
-          if (row.payment_method && row.payment_amount) {
-            currentReceipt.payments.push({
-              payment_method: row.payment_method,
-              payment_amount: row.payment_amount
-            });
-          }
-  
-          // Add billing item details to the current receipt
-          if (row.item_name) {
-            currentReceipt.items.push({
-              item_name: row.item_name,
-              model: row.model,
-              mrp: row.mrp,
-              serial_no: row.serial_no,
-              retail_price: row.retail_price
-            });
-          }
-        });
-  
-        // Push the last receipt
-        if (currentReceipt) billingReceipts.push(currentReceipt);
-  
-        return {
-          period: period.period,
-          total_receipts: billingReceipts.length,
-          total_sales: billingReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.total_amount), 0),
-          receipts: billingReceipts
-        };
-      }));
-  
-      // Step 2: Return the total sales, receipt count, and receipt details for each period
-      return res.status(200).json({
-        message: "Total sales, receipt details, and payment information fetched successfully",
-        data: salesData,
+    };
+
+    // Get sales data for each period
+    const salesData = await Promise.all(periods.map(async (period) => {
+      const result = await db.query(salesAndReceiptsQuery(period.date));
+
+      // Format the results to group payments and items under each receipt
+      const billingReceipts = [];
+      let currentReceipt = null;
+
+      result.rows.forEach(row => {
+        // Check if we are still processing the same receipt
+        if (!currentReceipt || currentReceipt.receipt_id !== row.receipt_id) {
+          if (currentReceipt) billingReceipts.push(currentReceipt);
+          currentReceipt = {
+            receipt_id: row.receipt_id,
+            receipt_no: row.receipt_no,
+            customer_name: row.customer_name,
+            phone: row.phone,
+            billing_address: row.billing_address,
+            shipping_address: row.shipping_address,
+            dealer_or_customer: row.dealer_or_customer,
+            total_amount: row.total_amount,
+            balance: row.balance,
+            billing_createdby: row.billing_createdby,
+            datetime: row.datetime,
+            lastmodified: row.lastmodified,
+            payments: [],
+            items: []
+          };
+        }
+
+        // Add payment details to the current receipt
+        if (row.payment_method && row.payment_amount) {
+          currentReceipt.payments.push({
+            payment_method: row.payment_method,
+            payment_amount: row.payment_amount
+          });
+        }
+
+        // Add billing item details to the current receipt
+        if (row.item_name) {
+          currentReceipt.items.push({
+            item_name: row.item_name,
+            model: row.model,
+            mrp: row.mrp,
+            serial_no: row.serial_no,
+            retail_price: row.retail_price
+          });
+        }
       });
-    } catch (error) {
-      console.error("Error fetching total sales:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    }
-  });
-  
-  dashboard.get("/api/billing/search", async (req, res) => {
-    try {
-      // Get the search parameters from the query string
-      const { phone, name, receipt_no } = req.query;
-  
-      // Start building the SQL query dynamically
-      let query = `
+
+      // Push the last receipt
+      if (currentReceipt) billingReceipts.push(currentReceipt);
+
+      return {
+        period: period.period,
+        total_receipts: billingReceipts.length,
+        total_sales: billingReceipts.reduce((sum, receipt) => sum + parseFloat(receipt.total_amount), 0),
+        receipts: billingReceipts
+      };
+    }));
+
+    // Step 2: Return the total sales, receipt count, and receipt details for each period
+    return res.status(200).json({
+      message: "Total sales, receipt details, and payment information fetched successfully",
+      data: salesData,
+    });
+  } catch (error) {
+    console.error("Error fetching total sales:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+dashboard.get("/api/billing/search", async (req, res) => {
+  try {
+    // Get the search parameters from the query string
+    const { phone, name, receipt_no } = req.query;
+
+    // Start building the SQL query dynamically
+    let query = `
         SELECT 
           br.id AS receipt_id,
           br.receipt_no,
@@ -1056,99 +1063,100 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
         LEFT JOIN billing_items bi ON br.receipt_no = bi.receipt_no
         WHERE 1=1
       `;
-  
-      // Dynamically add conditions based on provided parameters
-      if (phone) {
-        query += ` AND br.phone LIKE '%${phone}%'`;
-      }
-      if (name) {
-        query += ` AND br.name ILIKE '%${name}%'`;
-      }
-      if (receipt_no) {
-        query += ` AND br.receipt_no = '${receipt_no}'`;
-      }
-  
-      // Execute the query
-      const result = await db.query(query);
-  
-      // If no results are found, return a 404
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: "No matching billing receipts found" });
-      }
-  
-      // Format the results to group payments and items under each receipt
-      const billingReceipts = [];
-      let currentReceipt = null;
-  
-      result.rows.forEach(row => {
-        // Check if we are still processing the same receipt
-        if (!currentReceipt || currentReceipt.receipt_id !== row.receipt_id) {
-          if (currentReceipt) billingReceipts.push(currentReceipt);
-          currentReceipt = {
-            receipt_id: row.receipt_id,
-            receipt_no: row.receipt_no,
-            customer_name: row.customer_name,
-            phone: row.phone,
-            billing_address: row.billing_address,
-            shipping_address: row.shipping_address,
-            dealer_or_customer: row.dealer_or_customer,
-            total_amount: row.total_amount,
-            balance: row.balance,
-            billing_createdby: row.billing_createdby,
-            datetime: row.datetime,
-            lastmodified: row.lastmodified,
-            payments: [],
-            items: []
-          };
-        }
-  
-        // Add payment details to the current receipt
-        if (row.payment_method && row.payment_amount) {
-          currentReceipt.payments.push({
-            payment_method: row.payment_method,
-            payment_amount: row.payment_amount
-          });
-        }
-  
-        // Add billing item details to the current receipt
-        if (row.item_name) {
-          currentReceipt.items.push({
-            item_name: row.item_name,
-            model: row.model,
-            mrp: row.mrp,
-            serial_no: row.serial_no,
-            retail_price: row.retail_price
-          });
-        }
-      });
-  
-      // Push the last receipt
-      if (currentReceipt) billingReceipts.push(currentReceipt);
-  
-      // Step 2: Return the search results with receipt details
-      return res.status(200).json({
-        message: "Billing receipts fetched successfully",
-        data: billingReceipts
-      });
-    } catch (error) {
-      console.error("Error searching for billing receipts:", error);
-      return res.status(500).json({ error: "Internal server error" });
+
+    // Dynamically add conditions based on provided parameters
+    if (phone) {
+      query += ` AND br.phone LIKE '%${phone}%'`;
     }
-  });
-  
-  dashboard.get("/api/things/receipt/:serial_no", async (req, res) => {q
-    const { serial_no } = req.params;
-  
-    if (!serial_no) {
-      return res.status(400).json({ error: "Serial number is required" });
+    if (name) {
+      query += ` AND br.name ILIKE '%${name}%'`;
     }
-  
-    try {
-      const client = await db.connect();
-  
-      // Query to get the thing details by serial_no
-      const result = await client.query(
-        `SELECT 
+    if (receipt_no) {
+      query += ` AND br.receipt_no = '${receipt_no}'`;
+    }
+
+    // Execute the query
+    const result = await db.query(query);
+
+    // If no results are found, return a 404
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "No matching billing receipts found" });
+    }
+
+    // Format the results to group payments and items under each receipt
+    const billingReceipts = [];
+    let currentReceipt = null;
+
+    result.rows.forEach(row => {
+      // Check if we are still processing the same receipt
+      if (!currentReceipt || currentReceipt.receipt_id !== row.receipt_id) {
+        if (currentReceipt) billingReceipts.push(currentReceipt);
+        currentReceipt = {
+          receipt_id: row.receipt_id,
+          receipt_no: row.receipt_no,
+          customer_name: row.customer_name,
+          phone: row.phone,
+          billing_address: row.billing_address,
+          shipping_address: row.shipping_address,
+          dealer_or_customer: row.dealer_or_customer,
+          total_amount: row.total_amount,
+          balance: row.balance,
+          billing_createdby: row.billing_createdby,
+          datetime: row.datetime,
+          lastmodified: row.lastmodified,
+          payments: [],
+          items: []
+        };
+      }
+
+      // Add payment details to the current receipt
+      if (row.payment_method && row.payment_amount) {
+        currentReceipt.payments.push({
+          payment_method: row.payment_method,
+          payment_amount: row.payment_amount
+        });
+      }
+
+      // Add billing item details to the current receipt
+      if (row.item_name) {
+        currentReceipt.items.push({
+          item_name: row.item_name,
+          model: row.model,
+          mrp: row.mrp,
+          serial_no: row.serial_no,
+          retail_price: row.retail_price
+        });
+      }
+    });
+
+    // Push the last receipt
+    if (currentReceipt) billingReceipts.push(currentReceipt);
+
+    // Step 2: Return the search results with receipt details
+    return res.status(200).json({
+      message: "Billing receipts fetched successfully",
+      data: billingReceipts
+    });
+  } catch (error) {
+    console.error("Error searching for billing receipts:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+dashboard.get("/api/things/receipt/:serial_no", async (req, res) => {
+  q
+  const { serial_no } = req.params;
+
+  if (!serial_no) {
+    return res.status(400).json({ error: "Serial number is required" });
+  }
+
+  try {
+    const client = await db.connect();
+
+    // Query to get the thing details by serial_no
+    const result = await client.query(
+      `SELECT 
           t.id AS thing_id,
           t.serial_no,
           t.thingName AS thing_name,
@@ -1160,31 +1168,31 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
         LEFT JOIN price_table p ON t.model = p.model
         LEFT JOIN AdminStock a ON t.id = a.thing_id
         WHERE t.serial_no = $1`,
-        [serial_no]
-      );
-  
-      if (result.rows.length === 0) {
-        return res.status(404).json({ error: "Thing not found with the provided serial number" });
-      }
-  
-      const thing = result.rows[0];
-  
-      // Check if the thing is available in the stock
-      if (!thing.stock_status || thing.stock_status !== "available") {
-        return res.status(400).json({
-          error: "Thing is not available in the stock",
-        });
-      }
-  
-      res.status(200).json({ data: thing });
-    } catch (error) {
-      console.error("Error fetching thing details:", error);
-      res.status(500).json({ error: "Internal server error" });
-    }
-  });
+      [serial_no]
+    );
 
-  // API Endpoint: Find Receipt Bill
-  dashboard.get("/api/billing/receipt/:type/:id", async (req, res) => {
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Thing not found with the provided serial number" });
+    }
+
+    const thing = result.rows[0];
+
+    // Check if the thing is available in the stock
+    if (!thing.stock_status || thing.stock_status !== "available") {
+      return res.status(400).json({
+        error: "Thing is not available in the stock",
+      });
+    }
+
+    res.status(200).json({ data: thing });
+  } catch (error) {
+    console.error("Error fetching thing details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// API Endpoint: Find Receipt Bill
+dashboard.get("/api/billing/receipt/:type/:id", async (req, res) => {
   const { type, id } = req.params;
   const { search } = req.query; // Search parameter
 
@@ -1272,20 +1280,20 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
   }
 });
 
-  //warranty
-  dashboard.get("/api/warranty/:serial_no", async (req, res) => {
-    const { serial_no } = req.params;
-  
-    if (!serial_no) {
-      return res.status(400).json({ error: "Serial number is required" });
-    }
-  
-    const client = await db.connect();
-  
-    try {
-      // Fetch warranty details
-      const warrantyQuery = await client.query(
-        `
+//warranty
+dashboard.get("/api/warranty/:serial_no", async (req, res) => {
+  const { serial_no } = req.params;
+
+  if (!serial_no) {
+    return res.status(400).json({ error: "Serial number is required" });
+  }
+
+  const client = await db.connect();
+
+  try {
+    // Fetch warranty details
+    const warrantyQuery = await client.query(
+      `
         SELECT 
           w.id AS warranty_id,
           w.serial_no,
@@ -1304,34 +1312,34 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
         WHERE 
           w.serial_no = $1
         `,
-        [serial_no]
-      );
-  
-      if (warrantyQuery.rows.length === 0) {
-        return res.status(404).json({ error: `No warranty found for serial number: ${serial_no}` });
-      }
-  
-      return res.status(200).json({
-        message: "Warranty details retrieved successfully",
-        warranty_details: warrantyQuery.rows[0],
-      });
-    } catch (error) {
-      console.error("Error fetching warranty details:", error);
-      return res.status(500).json({ error: "Internal server error" });
-    } finally {
-      client.release();
+      [serial_no]
+    );
+
+    if (warrantyQuery.rows.length === 0) {
+      return res.status(404).json({ error: `No warranty found for serial number: ${serial_no}` });
     }
-  });
-  
-  //display warranties with search
-  dashboard.get('/warranties', async (req, res) => {
-    const { search, sort = 'DESC' } = req.query; // Get the search term and sort order from query parameters
-    try {
-      const allowedSort = ['ASC', 'DESC'];
-      const order = allowedSort.includes(sort.toUpperCase()) ? sort.toUpperCase() : 'ASC';
-  
-      const result = await db.query(
-        `SELECT 
+
+    return res.status(200).json({
+      message: "Warranty details retrieved successfully",
+      warranty_details: warrantyQuery.rows[0],
+    });
+  } catch (error) {
+    console.error("Error fetching warranty details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
+  }
+});
+
+//display warranties with search
+dashboard.get('/warranties', async (req, res) => {
+  const { search, sort = 'DESC' } = req.query; // Get the search term and sort order from query parameters
+  try {
+    const allowedSort = ['ASC', 'DESC'];
+    const order = allowedSort.includes(sort.toUpperCase()) ? sort.toUpperCase() : 'ASC';
+
+    const result = await db.query(
+      `SELECT 
             tw.id AS warranty_id,
             tw.serial_no,
             tw.date AS warranty_start_date,
@@ -1359,77 +1367,83 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
             OR br.receipt_no ILIKE '%' || $1::TEXT || '%'
          ORDER BY 
             tw.date ${order};`, // Dynamically set ASC or DESC for sorting
-        [search || null]
-      );
-      res.status(200).json(result.rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to retrieve warranties' });
-    }
-  });
-  
-// API to insert data into the dealers_details table
-  dashboard.post('/api/create/account/for/:Party', async (req, res) => {
-  const {table}=req.params.Party;
-  const { name, address, email, phone, alt_phone} = req.body;
-
-  // Validate required fields
-  if (!name || !address || !phone) {
-    return res.status(400).json({ error: 'Name, address, and phone are required fields.' });
+      [search || null]
+    );
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to retrieve warranties' });
   }
+});
 
-  try {
-    const query = `
+// API to insert data into the dealers_details table
+dashboard.post('/api/create/account/for/:Party',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { table } = req.params.Party;
+    const { name, address, email, phone, alt_phone } = req.body;
+
+    // Validate required fields
+    if (!name || !address || !phone) {
+      return res.status(400).json({ error: 'Name, address, and phone are required fields.' });
+    }
+
+    try {
+      const query = `
       INSERT INTO ${table}_details 
       (name, address, email, phone, alt_phone) 
       VALUES ($1, $2, $3, $4, $5) 
       RETURNING *;
     `;
-    const values = [name, address, email, phone, alt_phone];
+      const values = [name, address, email, phone, alt_phone];
 
-    const client = await db.connect();
-    const result = await client.query(query, values);
-    client.release();
+      const client = await db.connect();
+      const result = await client.query(query, values);
+      client.release();
 
-    res.status(201).json({
-      message: 'Dealer data inserted successfully.',
-      data: result.rows[0],
-    });
-  } catch (error) {
-    console.error('Error inserting data:', error);
-    res.status(500).json({ error: 'An error occurred while inserting dealer data.' });
-  }
-  }); 
+      res.status(201).json({
+        message: 'Dealer data inserted successfully.',
+        data: result.rows[0],
+      });
+    } catch (error) {
+      console.error('Error inserting data:', error);
+      res.status(500).json({ error: 'An error occurred while inserting dealer data.' });
+    }
+  });
 
 //Api to display
-  dashboard.get('/api/display/party/:Party', async (req, res) => {
+dashboard.get('/api/display/party/:Party',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
-  
+
     // Validate the Party parameter
     const validParties = ['onlinecustomer', 'customers', 'dealers'];
     if (!validParties.includes(Party)) {
       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
     }
-  
+
     try {
       // Construct the table name dynamically
       const tableName = `${Party}_details`;
-  
+
       // SQL query for fetching data
       let sql = `SELECT * FROM ${tableName}`;
       const values = [];
-  
+
       // Add search functionality if a query is provided
       if (query) {
         sql += ` WHERE name ILIKE $1 OR address ILIKE $1 OR phone ILIKE $1`;
         values.push(`%${query}%`); // Case-insensitive matching
       }
-  
+
       const client = await db.connect();
       const result = await client.query(sql, values);
       client.release();
-  
+
       // Respond with the fetched data
       res.status(200).json({
         message: `Data retrieved successfully from ${tableName}.`,
@@ -1440,35 +1454,38 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
-  
-  //delete account 
-  dashboard.delete('/api/delete/account/for/:Party/:id', async (req, res) => {
+
+//delete account 
+dashboard.delete('/api/delete/account/for/:Party/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
     const { Party, id } = req.params;
-  
+
     // Validate the id
     if (!id) {
       return res.status(400).json({ error: 'ID is required.' });
     }
-  
+
     try {
       // Construct the table name dynamically based on the Party parameter
       const table = `${Party}_details`;
-  
+
       // Create the DELETE query
       const query = `
         DELETE FROM ${table} WHERE id = $1 RETURNING *;
       `;
-  
+
       // Execute the query
       const client = await db.connect();
       const result = await client.query(query, [id]);
       client.release();
-  
+
       // Check if any record was deleted
       if (result.rowCount === 0) {
         return res.status(404).json({ error: `No record found with ID ${id}.` });
       }
-  
+
       res.status(200).json({
         message: 'Record deleted successfully.',
         deleted_data: result.rows[0],
@@ -1479,283 +1496,304 @@ dashboard.get('/api/display/users/:role', async (req, res) => {
     }
   });
 
-  //update account datas
-  dashboard.put('/api/update/account/for/:Party/:id', async (req, res) => {
-  const { Party, id } = req.params;
-  const { name, address, email, phone, alt_phone } = req.body;
+//update account datas
+dashboard.put('/api/update/account/for/:Party/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { Party, id } = req.params;
+    const { name, address, email, phone, alt_phone } = req.body;
 
-  // Validate the required fields
-  if (!name && !address && !phone && !alt_phone && !email) {
-    return res.status(400).json({ error: 'At least one field to update is required.' });
-  }
-
-  try {
-    // Construct the table name dynamically based on the Party parameter
-    const table = `${Party}_details`;
-
-    // Build the SET clause of the query dynamically based on provided fields
-    let setClause = [];
-    let values = [];
-
-    if (name) {
-      setClause.push(`name = $${setClause.length + 1}`);
-      values.push(name);
-    }
-    if (address) {
-      setClause.push(`address = $${setClause.length + 1}`);
-      values.push(address);
-    }
-    if (email) {
-      setClause.push(`email = $${setClause.length + 1}`);
-      values.push(email);
-    }
-    if (phone) {
-      setClause.push(`phone = $${setClause.length + 1}`);
-      values.push(phone);
-    }
-    if (alt_phone) {
-      setClause.push(`alt_phone = $${setClause.length + 1}`);
-      values.push(alt_phone);
+    // Validate the required fields
+    if (!name && !address && !phone && !alt_phone && !email) {
+      return res.status(400).json({ error: 'At least one field to update is required.' });
     }
 
-    // Append the id as the last parameter to the query
-    values.push(id);
+    try {
+      // Construct the table name dynamically based on the Party parameter
+      const table = `${Party}_details`;
 
-    // Construct the final query string
-    const query = `
+      // Build the SET clause of the query dynamically based on provided fields
+      let setClause = [];
+      let values = [];
+
+      if (name) {
+        setClause.push(`name = $${setClause.length + 1}`);
+        values.push(name);
+      }
+      if (address) {
+        setClause.push(`address = $${setClause.length + 1}`);
+        values.push(address);
+      }
+      if (email) {
+        setClause.push(`email = $${setClause.length + 1}`);
+        values.push(email);
+      }
+      if (phone) {
+        setClause.push(`phone = $${setClause.length + 1}`);
+        values.push(phone);
+      }
+      if (alt_phone) {
+        setClause.push(`alt_phone = $${setClause.length + 1}`);
+        values.push(alt_phone);
+      }
+
+      // Append the id as the last parameter to the query
+      values.push(id);
+
+      // Construct the final query string
+      const query = `
       UPDATE ${table} 
       SET ${setClause.join(', ')} 
       WHERE id = $${values.length} 
       RETURNING *;
     `;
 
-    // Execute the query
-    const client = await db.connect();
-    const result = await client.query(query, values);
-    client.release();
+      // Execute the query
+      const client = await db.connect();
+      const result = await client.query(query, values);
+      client.release();
 
-    // Check if any record was updated
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: `No record found with ID ${id}.` });
+      // Check if any record was updated
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: `No record found with ID ${id}.` });
+      }
+
+      res.status(200).json({
+        message: 'Record updated successfully.',
+        updated_data: result.rows[0],
+      });
+    } catch (error) {
+      console.error('Error updating record:', error);
+      res.status(500).json({ error: 'An error occurred while updating the record.' });
     }
-
-    res.status(200).json({
-      message: 'Record updated successfully.',
-      updated_data: result.rows[0],
-    });
-  } catch (error) {
-    console.error('Error updating record:', error);
-    res.status(500).json({ error: 'An error occurred while updating the record.' });
-  }
-});
+  });
 
 // Create a new entry in the price_table
-dashboard.post('/api/create/price_table', async (req, res) => {
-  const { model, mrp, retail_price,discount, warranty_period,sgst,cgst,igst } = req.body;
-   
+dashboard.post('/api/create/price_table',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst } = req.body;
+
     // Function to validate warranty_period
     function isValidWarrantyPeriod(warrantyPeriod) {
       const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
       return regex.test(warrantyPeriod);
     }
- 
-       // Validate input data
-  if (!model || !mrp || !retail_price ) {
-    return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
-  }
 
-  if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
-    return res.status(400).json({
-      error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
-    });
-  }
-  try {
-    const checkModelQuery = 'SELECT * FROM price_table WHERE model ILIKE $1';
-    const existingModel = await db.query(checkModelQuery, [model]);
-
-    if (existingModel.rows.length > 0) {
-      return res.status(400).json({ error: 'Model already exists in the price table.' });
+    // Validate input data
+    if (!model || !mrp || !retail_price) {
+      return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
     }
 
-    if (existingModel.rows.length > 0) {
-      return res.status(400).json({ error: 'Model already exists in the price table.' });
+    if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+      return res.status(400).json({
+        error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+      });
     }
-    
-    const result = await db.query(
-      `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period,sgst,cgst,igst)
+    try {
+      const checkModelQuery = 'SELECT * FROM price_table WHERE model ILIKE $1';
+      const existingModel = await db.query(checkModelQuery, [model]);
+
+      if (existingModel.rows.length > 0) {
+        return res.status(400).json({ error: 'Model already exists in the price table.' });
+      }
+
+      if (existingModel.rows.length > 0) {
+        return res.status(400).json({ error: 'Model already exists in the price table.' });
+      }
+
+      const result = await db.query(
+        `INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period,sgst,cgst,igst)
        VALUES ($1, $2, $3, $4, $5::INTERVAL,$6,$7,$8) RETURNING *`,
-      [model, mrp, retail_price,discount, warranty_period,sgst,cgst,igst]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to create entry' });
-  }
-});
+        [model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst]
+      );
+      res.status(201).json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create entry' });
+    }
+  });
 
 // Read all entries from the price_table
-dashboard.get('/api/display/prices-table', async (req, res) => {
-  const { search } = req.query; // Get the search query from the request
+dashboard.get('/api/display/prices-table',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { search } = req.query; // Get the search query from the request
 
-  try {
-    // Base query
-    let query = 'SELECT * FROM price_table';
-    const params = [];
+    try {
+      // Base query
+      let query = 'SELECT * FROM price_table';
+      const params = [];
 
-    // Add search condition if a search query is provided
-    if (search) {
-      query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
-      params.push(`%${search}%`); // Add wildcards for partial matching
+      // Add search condition if a search query is provided
+      if (search) {
+        query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
+        params.push(`%${search}%`); // Add wildcards for partial matching
+      }
+
+      // Execute the query
+      const result = await db.query(query, params);
+      res.status(200).json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to retrieve prices' });
     }
-
-    // Execute the query
-    const result = await db.query(query, params);
-    res.status(200).json(result.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to retrieve prices' });
-  }
-});
+  });
 
 // Read a single entry by ID
-dashboard.get('/api/display/single/price_table/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const result = await db.query('SELECT * FROM price_table WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Price entry not found' });
-    } else {
-      res.status(200).json(result.rows[0]);
+dashboard.get('/api/display/single/price_table/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      const result = await db.query('SELECT * FROM price_table WHERE id = $1', [id]);
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: 'Price entry not found' });
+      } else {
+        res.status(200).json(result.rows[0]);
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to retrieve price entry' });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to retrieve price entry' });
-  }
-});
+  });
 
 // Update an existing entry
-dashboard.put('/api/update/price_table/:id', async (req, res) => {
-  const { id } = req.params;
-  const {
-    model, mrp, retail_price, sgst, cgst, igst, discount, warranty_period
-  } = req.body;
+dashboard.put('/api/update/price_table/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      model, mrp, retail_price, sgst, cgst, igst, discount, warranty_period
+    } = req.body;
 
-  // Function to validate warranty_period
-  function isValidWarrantyPeriod(warrantyPeriod) {
-    const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
-    return regex.test(warrantyPeriod);
-  }
-
-  // Validate warranty_period if provided
-  if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
-    return res.status(400).json({
-      error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
-    });
-  }
-
-  try {
-    const updates = [];
-    const values = [];
-    let queryIndex = 1;
-
-    // Build query dynamically
-    if (model !== undefined) {
-      updates.push(`model = $${queryIndex++}`);
-      values.push(model);
-    }
-    if (mrp !== undefined) {
-      updates.push(`mrp = $${queryIndex++}`);
-      values.push(mrp);
-    }
-    if (retail_price !== undefined) {
-      updates.push(`retail_price = $${queryIndex++}`);
-      values.push(retail_price);
-    }
-    if (sgst !== undefined) {
-      updates.push(`sgst = $${queryIndex++}`);
-      values.push(sgst);
-    }
-    if (cgst !== undefined) {
-      updates.push(`cgst = $${queryIndex++}`);
-      values.push(cgst);
-    }
-    if (igst !== undefined) {
-      updates.push(`igst = $${queryIndex++}`);
-      values.push(igst);
-    }
-    if (discount !== undefined) {
-      updates.push(`discount = $${queryIndex++}`);
-      values.push(discount);
-    }
-    if (warranty_period !== undefined) {
-      updates.push(`warranty_period = $${queryIndex++}::INTERVAL`);
-      values.push(warranty_period);
+    // Function to validate warranty_period
+    function isValidWarrantyPeriod(warrantyPeriod) {
+      const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
+      return regex.test(warrantyPeriod);
     }
 
-    // If no fields to update
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No valid fields provided for update' });
+    // Validate warranty_period if provided
+    if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+      return res.status(400).json({
+        error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+      });
     }
 
-    // Add id as the last parameter
-    values.push(id);
+    try {
+      const updates = [];
+      const values = [];
+      let queryIndex = 1;
 
-    const query = `
+      // Build query dynamically
+      if (model !== undefined) {
+        updates.push(`model = $${queryIndex++}`);
+        values.push(model);
+      }
+      if (mrp !== undefined) {
+        updates.push(`mrp = $${queryIndex++}`);
+        values.push(mrp);
+      }
+      if (retail_price !== undefined) {
+        updates.push(`retail_price = $${queryIndex++}`);
+        values.push(retail_price);
+      }
+      if (sgst !== undefined) {
+        updates.push(`sgst = $${queryIndex++}`);
+        values.push(sgst);
+      }
+      if (cgst !== undefined) {
+        updates.push(`cgst = $${queryIndex++}`);
+        values.push(cgst);
+      }
+      if (igst !== undefined) {
+        updates.push(`igst = $${queryIndex++}`);
+        values.push(igst);
+      }
+      if (discount !== undefined) {
+        updates.push(`discount = $${queryIndex++}`);
+        values.push(discount);
+      }
+      if (warranty_period !== undefined) {
+        updates.push(`warranty_period = $${queryIndex++}::INTERVAL`);
+        values.push(warranty_period);
+      }
+
+      // If no fields to update
+      if (updates.length === 0) {
+        return res.status(400).json({ error: 'No valid fields provided for update' });
+      }
+
+      // Add id as the last parameter
+      values.push(id);
+
+      const query = `
       UPDATE price_table
       SET ${updates.join(', ')}
       WHERE id = $${queryIndex}
       RETURNING *;
     `;
 
-    const result = await db.query(query, values);
+      const result = await db.query(query, values);
 
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Price entry not found' });
-    } else {
-      res.status(200).json(result.rows[0]);
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: 'Price entry not found' });
+      } else {
+        res.status(200).json(result.rows[0]);
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update price entry' });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update price entry' });
-  }
-});
+  });
 
 
 // Delete an entry
-dashboard.delete('/api/delete/price_table/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    console.log("working delete")
-    const result = await db.query('DELETE FROM price_table WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      res.status(404).json({ error: 'Price entry not found' });
-    } else {
-      res.status(200).json({ message: 'Price entry deleted successfully' });
+dashboard.delete('/api/delete/price_table/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    try {
+      console.log("working delete")
+      const result = await db.query('DELETE FROM price_table WHERE id = $1 RETURNING *', [id]);
+      if (result.rows.length === 0) {
+        res.status(404).json({ error: 'Price entry not found' });
+      } else {
+        res.status(200).json({ message: 'Price entry deleted successfully' });
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete price entry' });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to delete price entry' });
-  }
-});
+  });
 
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
-dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
-  const { entity_type, entity_id } = req.params;
+dashboard.get("/api/billing/:entity_type/:entity_id",
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { entity_type, entity_id } = req.params;
 
-  // Determine the table and column based on entity type
-  let tableColumn;
-  if (entity_type === "dealer") {
-    tableColumn = "dealers_id";
-  } else if (entity_type === "customer") {
-    tableColumn = "customers_id";
-  } else if (entity_type === "online_customer") {
-    tableColumn = "onlinecustomer_id";
-  } else {
-    return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
-  }
+    // Determine the table and column based on entity type
+    let tableColumn;
+    if (entity_type === "dealer") {
+      tableColumn = "dealers_id";
+    } else if (entity_type === "customer") {
+      tableColumn = "customers_id";
+    } else if (entity_type === "online_customer") {
+      tableColumn = "onlinecustomer_id";
+    } else {
+      return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
+    }
 
-  // Query to fetch billing receipt details
-  const query = `
+    // Query to fetch billing receipt details
+    const query = `
     SELECT 
         br.id AS billing_receipt_id,
         br.receipt_no,
@@ -1780,8 +1818,8 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
         br.${tableColumn} = $1;
   `;
 
-  // Queries to fetch associated items, warranties, and payments
-  const itemsQuery = `
+    // Queries to fetch associated items, warranties, and payments
+    const itemsQuery = `
     SELECT 
         bi.id AS billing_item_id,
         bi.receipt_no,
@@ -1797,7 +1835,7 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
         bi.receipt_no IN (SELECT receipt_no FROM billing_receipt WHERE ${tableColumn} = $1);
   `;
 
-  const warrantiesQuery = `
+    const warrantiesQuery = `
     SELECT 
         tw.id AS warranty_id,
         tw.serial_no AS warranty_serial_no,
@@ -1810,7 +1848,7 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
         tw.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
   `;
 
-  const paymentsQuery = `
+    const paymentsQuery = `
     SELECT 
         pd.id AS payment_id,
         pd.receipt_id,
@@ -1822,95 +1860,101 @@ dashboard.get("/api/billing/:entity_type/:entity_id", async (req, res) => {
         pd.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
   `;
 
-  try {
-    const client = await db.connect();
+    try {
+      const client = await db.connect();
 
-    // Execute queries concurrently
-    const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
-      client.query(query, [entity_id]),
-      client.query(itemsQuery, [entity_id]),
-      client.query(warrantiesQuery, [entity_id]),
-      client.query(paymentsQuery, [entity_id]),
-    ]);
+      // Execute queries concurrently
+      const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
+        client.query(query, [entity_id]),
+        client.query(itemsQuery, [entity_id]),
+        client.query(warrantiesQuery, [entity_id]),
+        client.query(paymentsQuery, [entity_id]),
+      ]);
 
-    if (billingResult.rows.length === 0) {
-      return res.status(404).json({ error: "No billing details found for the given entity." });
+      if (billingResult.rows.length === 0) {
+        return res.status(404).json({ error: "No billing details found for the given entity." });
+      }
+
+      // Structure the response
+      const billingReceipts = billingResult.rows.map((receipt) => {
+        // Get related items, warranties, and payments for the current receipt
+        const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
+        const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
+        const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
+
+        return {
+          ...receipt,
+          items,
+          warranties,
+          payments,
+        };
+      });
+
+      res.status(200).json({ data: billingReceipts });
+      client.release();
+    } catch (err) {
+      console.error("Error fetching billing details:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-
-    // Structure the response
-    const billingReceipts = billingResult.rows.map((receipt) => {
-      // Get related items, warranties, and payments for the current receipt
-      const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
-      const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
-      const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
-
-      return {
-        ...receipt,
-        items,
-        warranties,
-        payments,
-      };
-    });
-
-    res.status(200).json({ data: billingReceipts });
-    client.release();
-  } catch (err) {
-    console.error("Error fetching billing details:", err);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+  });
 
 // 1. Open Billing Session
-dashboard.post('/open-session', async (req, res) => {
-  const { opened_by } = req.body;
-  const userid=req.user?.id||req.body.userid;
-  try {
+dashboard.post('/open-session',
+  validateJwt,
+  authorizeRoles('admin', 'dealer'),
+  async (req, res) => {
+    const { opened_by } = req.body;
+    const userid = req.user?.id || req.body.userid;
+    try {
       const result = await db.query(
-          `INSERT INTO billing_session (session_date, opened_by,user_id) 
-           VALUES (CURRENT_DATE, $1,$2) RETURNING *`, 
-           [opened_by,userid]
+        `INSERT INTO billing_session (session_date, opened_by,user_id) 
+           VALUES (CURRENT_DATE, $1,$2) RETURNING *`,
+        [opened_by, userid]
       );
       res.status(201).json({ message: 'Session opened', session: result.rows[0] });
-  } catch (err) {
+    } catch (err) {
       res.status(500).json({ error: err.message });
-  }
-});
+    }
+  });
 const PDFDocument = require('pdfkit');
 
 // 2. Close Billing Session
-dashboard.post('/close-session', async (req, res) => {
-  const { session_id, closed_by } = req.body;
+dashboard.post('/close-session',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { session_id, closed_by } = req.body;
 
-  if (!session_id || !closed_by) {
+    if (!session_id || !closed_by) {
       return res.status(400).json({ error: "Session ID and closed_by are required" });
-  }
+    }
 
-  const client = await db.connect();
-  try {
+    const client = await db.connect();
+    try {
       // Validate if session exists and is open
       const sessionValidation = await isSessionOpen(session_id, client);
       if (!sessionValidation.isValid && sessionValidation.message === "Session does not exist.") {
-          return res.status(404).json({ error: sessionValidation.message });
+        return res.status(404).json({ error: sessionValidation.message });
       }
       if (!sessionValidation.isValid) {
-          return res.status(400).json({ error: sessionValidation.message });
+        return res.status(400).json({ error: sessionValidation.message });
       }
 
       // Retrieve session opening time
       const sessionDetails = await client.query(
-          `SELECT opened_at,opened_by FROM billing_session WHERE id = $1`,
-          [session_id]
+        `SELECT opened_at,opened_by FROM billing_session WHERE id = $1`,
+        [session_id]
       );
 
       if (sessionDetails.rows.length === 0) {
-          return res.status(404).json({ error: "Session not found" });
+        return res.status(404).json({ error: "Session not found" });
       }
 
-      const { opened_at,opened_by } = sessionDetails.rows[0];
+      const { opened_at, opened_by } = sessionDetails.rows[0];
 
       // Calculate session summary
       const summary = await client.query(
-          `SELECT COUNT(*) AS total_transactions, 
+        `SELECT COUNT(*) AS total_transactions, 
                   SUM(total_amount) AS total_sales, 
                   SUM(discount) AS total_discount, 
                   SUM(paid_amount) AS total_paid, 
@@ -1920,10 +1964,35 @@ dashboard.post('/close-session', async (req, res) => {
            FROM billing_receipt 
            LEFT JOIN payment_details ON billing_receipt.id = payment_details.receipt_id
            WHERE session_id = $1`,
-          [session_id]
+        [session_id]
       );
 
       const {
+        total_transactions,
+        total_sales,
+        total_discount,
+        total_paid,
+        total_cash,
+        total_bank,
+        total_online,
+      } = summary.rows[0];
+
+      // Close session
+      await client.query(
+        `UPDATE billing_session 
+           SET closed_by = $1, closed_at = CURRENT_TIMESTAMP, status = 'closed', 
+               total_cash = $2, total_bank = $3, total_online = $4, total_sales = $5 
+           WHERE id = $6`,
+        [closed_by, total_cash, total_bank, total_online, total_sales, session_id]
+      );
+
+      // Save daily report
+      const report = await client.query(
+        `INSERT INTO daily_report 
+           (session_id, total_transactions, total_sales, total_discount, total_paid, total_cash, total_bank, total_online) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+        [
+          session_id,
           total_transactions,
           total_sales,
           total_discount,
@@ -1931,32 +2000,7 @@ dashboard.post('/close-session', async (req, res) => {
           total_cash,
           total_bank,
           total_online,
-      } = summary.rows[0];
-
-      // Close session
-      await client.query(
-          `UPDATE billing_session 
-           SET closed_by = $1, closed_at = CURRENT_TIMESTAMP, status = 'closed', 
-               total_cash = $2, total_bank = $3, total_online = $4, total_sales = $5 
-           WHERE id = $6`,
-          [closed_by, total_cash, total_bank, total_online, total_sales, session_id]
-      );
-
-      // Save daily report
-      const report = await client.query(
-          `INSERT INTO daily_report 
-           (session_id, total_transactions, total_sales, total_discount, total_paid, total_cash, total_bank, total_online) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-          [
-              session_id,
-              total_transactions,
-              total_sales,
-              total_discount,
-              total_paid,
-              total_cash,
-              total_bank,
-              total_online,
-          ]
+        ]
       );
 
       // Generate PDF report
@@ -1982,26 +2026,29 @@ dashboard.post('/close-session', async (req, res) => {
       doc.end();
 
       writeStream.on('finish', () => {
-          res.status(200).json({
-              message: 'Session closed successfully',
-              report: report.rows[0],
-              pdfPath: `/downloads/session_${session_id}_report.pdf`,
-          });
+        res.status(200).json({
+          message: 'Session closed successfully',
+          report: report.rows[0],
+          pdfPath: `/downloads/session_${session_id}_report.pdf`,
+        });
       });
 
-  } catch (err) {
+    } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Internal server error" });
-  } finally {
+    } finally {
       client.release();
-  }
-});
+    }
+  });
 
 //display daily report
-dashboard.get("/api/reports/daily", async (req, res) => {
-  const { date } = req.query; // Optional query parameter to filter by date
+dashboard.get("/api/reports/daily",
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { date } = req.query; // Optional query parameter to filter by date
 
-  try {
+    try {
       let query = `
           SELECT 
               dr.id AS report_id,
@@ -2027,8 +2074,8 @@ dashboard.get("/api/reports/daily", async (req, res) => {
 
       const params = [];
       if (date) {
-          query += " WHERE dr.report_date = $1";
-          params.push(date);
+        query += " WHERE dr.report_date = $1";
+        params.push(date);
       }
 
       query += " ORDER BY dr.report_date DESC";
@@ -2036,18 +2083,18 @@ dashboard.get("/api/reports/daily", async (req, res) => {
       const result = await db.query(query, params);
 
       res.status(200).json({
-          success: true,
-          data: result.rows,
+        success: true,
+        data: result.rows,
       });
-  } catch (err) {
+    } catch (err) {
       console.error(err);
       res.status(500).json({
-          success: false,
-          message: "Failed to retrieve daily reports.",
-          error: err.message,
+        success: false,
+        message: "Failed to retrieve daily reports.",
+        error: err.message,
       });
-  }
-});
+    }
+  });
 
 // All-in-one sales graph
 dashboard.get('/api/sales', async (req, res) => {
@@ -2093,226 +2140,245 @@ dashboard.get('/api/sales', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch sales data' });
   }
 });
-  
+
 //API to raw_materials
 // -----------------------------------
 // API to create a new raw material
-dashboard.post('/api/raw_materials/create', upload.single('image'), async (req, res) => {
-  const { Component,package, category, value,unit_price_in_rupees,unit_price_in_dollars, reference_no, stock_quantity, reorder_level } = req.body;
-  let fileUrl = null;
-  console.log(req.body)
-  if (req.file) {
-    // console.log(req.file)
+dashboard.post('/api/raw_materials/create',
+  validateJwt,
+  authorizeRoles('admin'),
+  upload.single('image'), async (req, res) => {
+    const { Component, package, category, value, unit_price_in_rupees, unit_price_in_dollars, reference_no, stock_quantity, reorder_level } = req.body;
+    let fileUrl = null;
+    console.log(req.body)
+    if (req.file) {
+      // console.log(req.file)
       const file = req.file;
       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
       const params = {
-          Bucket: process.env.S3_BUCKET_NAME,
-          Key: fileKey,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-          // ACL: 'public-read', // Uncomment if you want the file to be publicly readable
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+        // ACL: 'public-read', // Uncomment if you want the file to be publicly readable
       };
 
       const uploadResult = await s3.upload(params).promise();
       fileUrl = uploadResult.Location; // S3 file URL
-  }
+    }
 
-  const query = `INSERT INTO raw_materials_stock (Component, category,package, value, reference_no, image,unit_price_in_rupees,unit_price_in_dollars,stock_quantity, reorder_level)
+    const query = `INSERT INTO raw_materials_stock (Component, category,package, value, reference_no, image,unit_price_in_rupees,unit_price_in_dollars,stock_quantity, reorder_level)
                  VALUES ($1, $2, $3, $4, $5, $6, $7,$8,$9,$10) RETURNING id`;
 
-  try {
-      const result = await db.query(query, [Component, category,package, value, reference_no, fileUrl,unit_price_in_rupees,unit_price_in_dollars,stock_quantity, reorder_level]);
+    try {
+      const result = await db.query(query, [Component, category, package, value, reference_no, fileUrl, unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level]);
       res.status(201).json({ message: 'Raw material created successfully', id: result.rows[0].id });
-  } catch (err) {
+    } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
-  }
-});
+    }
+  });
 
 // API to update a raw material by ID
-dashboard.put('/api/raw_materials/update/:id', upload.single('image'), async (req, res) => {
-  const { id } = req.params;
-  console.log( req.body)
-  const {
-    Component, category, package: pkg, value, reference_no, 
-    unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level
-  } = req.body;
-  
-  let fileUrl = null;
+dashboard.put('/api/raw_materials/update/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  upload.single('image'), async (req, res) => {
+    const { id } = req.params;
+    console.log(req.body)
+    const {
+      Component, category, package: pkg, value, reference_no,
+      unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level
+    } = req.body;
 
-  // If an image file is uploaded, process it for S3
-  if (req.file) {
-    const file = req.file;
-    const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
-    const params = {
-      Bucket: process.env.S3_BUCKET_NAME,
-      Key: fileKey,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-    };
+    let fileUrl = null;
+
+    // If an image file is uploaded, process it for S3
+    if (req.file) {
+      const file = req.file;
+      const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+      const params = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      try {
+        const uploadResult = await s3.upload(params).promise();
+        fileUrl = uploadResult.Location; // S3 file URL
+      } catch (uploadErr) {
+        console.error('Error uploading file:', uploadErr);
+        return res.status(500).json({ error: 'Failed to upload image', message: uploadErr.message });
+      }
+    }
 
     try {
-      const uploadResult = await s3.upload(params).promise();
-      fileUrl = uploadResult.Location; // S3 file URL
-    } catch (uploadErr) {
-      console.error('Error uploading file:', uploadErr);
-      return res.status(500).json({ error: 'Failed to upload image', message: uploadErr.message });
-    }
-  }
+      // Dynamically construct query
+      const updates = [];
+      const values = [];
+      let queryIndex = 1;
 
-  try {
-    // Dynamically construct query
-    const updates = [];
-    const values = [];
-    let queryIndex = 1;
+      if (Component) {
+        updates.push(`Component = $${queryIndex++}`);
+        values.push(Component);
+      }
+      if (category) {
+        updates.push(`category = $${queryIndex++}`);
+        values.push(category);
+      }
+      if (pkg) {
+        updates.push(`package = $${queryIndex++}`);
+        values.push(pkg);
+      }
+      if (value) {
+        updates.push(`value = $${queryIndex++}`);
+        values.push(value);
+      }
+      if (reference_no) {
+        updates.push(`reference_no = $${queryIndex++}`);
+        values.push(reference_no);
+      }
+      if (unit_price_in_rupees) {
+        updates.push(`unit_price_in_rupees = $${queryIndex++}`);
+        values.push(unit_price_in_rupees);
+      }
+      if (unit_price_in_dollars) {
+        updates.push(`unit_price_in_dollars = $${queryIndex++}`);
+        values.push(unit_price_in_dollars);
+      }
+      if (fileUrl) {
+        updates.push(`image = $${queryIndex++}`);
+        values.push(fileUrl);
+      }
+      if (stock_quantity) {
+        updates.push(`stock_quantity = $${queryIndex++}`);
+        values.push(stock_quantity);
+      }
+      if (reorder_level) {
+        updates.push(`reorder_level = $${queryIndex++}`);
+        values.push(reorder_level);
+      }
 
-    if (Component) {
-      updates.push(`Component = $${queryIndex++}`);
-      values.push(Component);
-    }
-    if (category) {
-      updates.push(`category = $${queryIndex++}`);
-      values.push(category);
-    }
-    if (pkg) {
-      updates.push(`package = $${queryIndex++}`);
-      values.push(pkg);
-    }
-    if (value) {
-      updates.push(`value = $${queryIndex++}`);
-      values.push(value);
-    }
-    if (reference_no) {
-      updates.push(`reference_no = $${queryIndex++}`);
-      values.push(reference_no);
-    }
-    if (unit_price_in_rupees) {
-      updates.push(`unit_price_in_rupees = $${queryIndex++}`);
-      values.push(unit_price_in_rupees);
-    }
-    if (unit_price_in_dollars) {
-      updates.push(`unit_price_in_dollars = $${queryIndex++}`);
-      values.push(unit_price_in_dollars);
-    }
-    if (fileUrl) {
-      updates.push(`image = $${queryIndex++}`);
-      values.push(fileUrl);
-    }
-    if (stock_quantity) {
-      updates.push(`stock_quantity = $${queryIndex++}`);
-      values.push(stock_quantity);
-    }
-    if (reorder_level) {
-      updates.push(`reorder_level = $${queryIndex++}`);
-      values.push(reorder_level);
-    }
+      // If no fields to update, return an error
+      if (updates.length === 0) {
+        return res.status(400).json({ error: 'No valid fields provided for update' });
+      }
 
-    // If no fields to update, return an error
-    if (updates.length === 0) {
-      return res.status(400).json({ error: 'No valid fields provided for update' });
-    }
+      // Add the id as the last parameter
+      values.push(id);
 
-    // Add the id as the last parameter
-    values.push(id);
-
-    const query = `
+      const query = `
       UPDATE raw_materials_stock
       SET ${updates.join(', ')}
       WHERE id = $${queryIndex}
       RETURNING *;
     `;
 
-    const result = await db.query(query, values);
+      const result = await db.query(query, values);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Raw material not found' });
-    } else {
-      res.status(200).json({ message: 'Raw material updated successfully', data: result.rows[0] });
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Raw material not found' });
+      } else {
+        res.status(200).json({ message: 'Raw material updated successfully', data: result.rows[0] });
+      }
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update raw material', message: err.message });
     }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to update raw material', message: err.message });
-  }
-});
+  });
 
-dashboard.put('/api/raw/stock/update/:id', async (req, res) => {
-  const { id } = req.params;
-  const { stock_quantity } = req.body;  // Only extract stock_quantity
+dashboard.put('/api/raw/stock/update/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    const { stock_quantity } = req.body;  // Only extract stock_quantity
 
-  const query = `
+    const query = `
     UPDATE raw_materials_stock
     SET stock_quantity = $1
     WHERE id = $2
   `;
 
-  try {
+    try {
       await db.query(query, [stock_quantity, id]); // Update only stock_quantity
       res.status(200).json({ message: 'Stock quantity updated successfully' });
-  } catch (err) {
+    } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to update stock quantity', message: err.message });
-  }
-});
+    }
+  });
 
 // API to delete a raw material by ID
-dashboard.delete('/api/raw_materials/delete/:id', async (req, res) => {
-  const { id } = req.params;
-  const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
+dashboard.delete('/api/raw_materials/delete/:id',
 
-  try {
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
+
+    try {
       await db.query(query, [id]);
       res.status(200).json({ message: 'Raw material deleted successfully' });
-  } catch (err) {
+    } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Failed to delete raw material', message: err.message });
-  }
-});
+    }
+  });
 
 // API to get all raw materials
-dashboard.get('/api/raw_materials', async (req, res) => {
-  const { search, category } = req.query;
-  console.log(req.query)
-  let query = 'SELECT * FROM raw_materials_stock WHERE 1=1';
-  const params = [];
-  let paramIndex = 1; // Keeps track of parameter indices for SQL injection protection
+dashboard.get('/api/raw_materials',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { search, category } = req.query;
+    console.log(req.query)
+    let query = 'SELECT * FROM raw_materials_stock WHERE 1=1';
+    const params = [];
+    let paramIndex = 1; // Keeps track of parameter indices for SQL injection protection
 
-  if (search) {
-    query += ` AND (
+    if (search) {
+      query += ` AND (
       Component ILIKE $${paramIndex} OR
       category ILIKE $${paramIndex} OR
       package ILIKE $${paramIndex} OR
       value ILIKE $${paramIndex} OR
       reference_no ILIKE $${paramIndex}
     )`;
-    params.push(`%${search}%`);
-    paramIndex++; // Increment index after adding a parameter
-  }
+      params.push(`%${search}%`);
+      paramIndex++; // Increment index after adding a parameter
+    }
 
-  if (category) {
-    query += ` AND category = $${paramIndex}`;
-    params.push(category);
-  }
+    if (category) {
+      query += ` AND category = $${paramIndex}`;
+      params.push(category);
+    }
 
-  try {
-    const result = await db.query(query, params);
-    res.status(200).json({ raw_materials: result.rows });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
-  }
-});
+    try {
+      const result = await db.query(query, params);
+      res.status(200).json({ raw_materials: result.rows });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
+    }
+  });
 
 // API to add raw material to a model
-dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
-  const { modelId } = req.params;
-  const { raw_material_id, required_qty } = req.body;
-  console.log(`raw ${req.body}`)
-  // Validate input
-  if (!raw_material_id || !required_qty) {
+dashboard.post('/api/model/:modelId/add-raw-material',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { modelId } = req.params;
+    const { raw_material_id, required_qty } = req.body;
+    console.log(`raw ${req.body}`)
+    // Validate input
+    if (!raw_material_id || !required_qty) {
       return res.status(400).json({ error: 'raw_material_id and required_qty are required' });
-  }
+    }
 
-  try {
+    try {
       // Check if the model exists
       const modelCheckQuery = `
           SELECT id, model FROM price_table WHERE id = $1;
@@ -2320,7 +2386,7 @@ dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
       const modelCheckResult = await db.query(modelCheckQuery, [modelId]);
 
       if (modelCheckResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Model not found' });
+        return res.status(404).json({ error: 'Model not found' });
       }
 
       const modelName = modelCheckResult.rows[0].model;
@@ -2332,7 +2398,7 @@ dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
       const rawMaterialCheckResult = await db.query(rawMaterialCheckQuery, [raw_material_id]);
 
       if (rawMaterialCheckResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Raw material not found' });
+        return res.status(404).json({ error: 'Raw material not found' });
       }
 
       // Insert new record into thing_raw_materials
@@ -2343,36 +2409,39 @@ dashboard.post('/api/model/:modelId/add-raw-material', async (req, res) => {
       const insertResult = await db.query(insertQuery, [raw_material_id, modelName, required_qty, modelId]);
 
       res.status(201).json({
-          message: 'Raw material added to the model successfully',
-          thing_raw_material_id: insertResult.rows[0].id,
+        message: 'Raw material added to the model successfully',
+        thing_raw_material_id: insertResult.rows[0].id,
       });
-  } catch (err) {
+    } catch (err) {
       console.error('Error adding raw material to model:', err);
       res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
+    }
+  });
 
 // API to get a price_table model with its raw materials and required quantities
-dashboard.get('/api/model/:modelId', async (req, res) => {
+dashboard.get('/api/model/:modelId',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
     const { modelId } = req.params;
 
     try {
-        // Query to get model details from price_table
-        const modelQuery = `
+      // Query to get model details from price_table
+      const modelQuery = `
             SELECT id, model, mrp, retail_price,discount, warranty_period, lastmodified
             FROM price_table
             WHERE id = $1;
         `;
-        const modelResult = await db.query(modelQuery, [modelId]);
+      const modelResult = await db.query(modelQuery, [modelId]);
 
-        if (modelResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Model not found' });
-        }
+      if (modelResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Model not found' });
+      }
 
-        const model = modelResult.rows[0];
+      const model = modelResult.rows[0];
 
-        // Query to get raw materials and their required quantities
-        const rawMaterialsQuery = `
+      // Query to get raw materials and their required quantities
+      const rawMaterialsQuery = `
             SELECT rm.id AS raw_material_id, rm.Component,rm.package, rm.category, rm.value, 
                    rm.reference_no, rm.image, rm.stock_quantity, rm.reorder_level, 
                    trm.required_qty,trm.id,trm.model_id
@@ -2380,90 +2449,97 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
             INNER JOIN raw_materials_stock rm ON trm.raw_material_id = rm.id
             WHERE trm.model_id = $1;
         `;
-        const rawMaterialsResult = await db.query(rawMaterialsQuery, [modelId]);
+      const rawMaterialsResult = await db.query(rawMaterialsQuery, [modelId]);
 
-        // Combine model details with raw materials
-        const response = {
-            model,
-            raw_materials: rawMaterialsResult.rows,
-        };
+      // Combine model details with raw materials
+      const response = {
+        model,
+        raw_materials: rawMaterialsResult.rows,
+      };
 
-        res.status(200).json(response);
+      res.status(200).json(response);
     } catch (err) {
-        console.error('Error fetching data:', err);
-        res.status(500).json({ error: 'Internal Server Error' });
+      console.error('Error fetching data:', err);
+      res.status(500).json({ error: 'Internal Server Error' });
     }
 
-});
+  });
 
 //update of models rawmaterial_req_qty
-dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
-  const { modelId, rawMaterialId } = req.params;
-  const { requiredQty } = req.body;
+dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { modelId, rawMaterialId } = req.params;
+    const { requiredQty } = req.body;
+    console.log(modelId, rawMaterialId, requiredQty)
+    // Validate inputs
+    if (!modelId || !rawMaterialId || requiredQty == null) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
 
-  // Validate inputs
-  if (!modelId || !rawMaterialId || requiredQty == null) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+    if (isNaN(requiredQty) || requiredQty < 0) {
+      return res.status(400).json({ error: 'Invalid required quantity' });
+    }
 
-  if (isNaN(requiredQty) || requiredQty < 0) {
-    return res.status(400).json({ error: 'Invalid required quantity' });
-  }
-
-  try {
-    // Perform update query
-    const result = await db.query(
-      `UPDATE thing_raw_materials 
+    try {
+      // Perform update query
+      const result = await db.query(
+        `UPDATE thing_raw_materials 
        SET required_qty = $1, updated_at = NOW() 
        WHERE model_id = $2 AND id = $3 
        RETURNING *`,
-      [requiredQty, modelId, rawMaterialId]
-    );
+        [requiredQty, modelId, rawMaterialId]
+      );
 
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Record not found' });
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Record not found' });
+      }
+
+      res.status(200).json({
+        message: 'Required quantity updated successfully',
+        data: result.rows[0]
+      });
+    } catch (error) {
+      console.error('Error updating required quantity:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    res.status(200).json({ 
-      message: 'Required quantity updated successfully', 
-      data: result.rows[0] 
-    });
-  } catch (error) {
-    console.error('Error updating required quantity:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  });
 
 //delete raw materials in an model
-dashboard.delete('/api/delete/thingrawmaterials/:id', async (req, res) => {
-  const { id } = req.params;
+dashboard.delete('/api/delete/thingrawmaterials/:id',
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
 
-  if (!id || isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid ID parameter' });
-  }
-
-  try {
-    const result = await db.query(
-      'DELETE FROM thing_raw_materials WHERE id = $1 RETURNING *',
-      [id]
-    );
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Record not found' });
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid ID parameter' });
     }
 
-    res.status(200).json({ message: 'Record deleted successfully', data: result.rows[0] });
-  } catch (error) {
-    console.error('Error deleting record:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+    try {
+      const result = await db.query(
+        'DELETE FROM thing_raw_materials WHERE id = $1 RETURNING *',
+        [id]
+      );
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ message: 'Record not found' });
+      }
+
+      res.status(200).json({ message: 'Record deleted successfully', data: result.rows[0] });
+    } catch (error) {
+      console.error('Error deleting record:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
 
 // -----------------for dealers------------------
 // Get customers by `addedby`
 dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
   const { search } = req.query;
-  const { dealerid} = req.params;
+  const { dealerid } = req.params;
 
   try {
     let query = `
@@ -2502,9 +2578,9 @@ dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
 // API to get stock things details by email, status, and serialno
 // Route: Fetch dealersStock with thing details
 dashboard.get('/api/dealersstock/:status', async (req, res) => {
-  const {  serialno } = req.query;
-  const {status}=req.params;
-  const {email}=req.body;
+  const { serialno } = req.query;
+  const { status } = req.params;
+  const { email } = req.body;
 
   if (!email) {
     return res.status(400).json({
@@ -2554,7 +2630,7 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
       query += ` AND t.serialno ILIKE $${params.length + 1}`;
       params.push(`%${serialno}%`);
     }
- 
+
     const { rows } = await db.query(query, params);
 
     if (rows.length === 0) {
@@ -2578,15 +2654,15 @@ dashboard.get('/api/dealersstock/:status', async (req, res) => {
 });
 
 dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
-  const {email } = req.query;
-  const{status}=req.params
+  const { email } = req.query;
+  const { status } = req.params
 
   if (!status || !email) {
-      return res.status(400).json({ error: 'Status and email are required parameters.' });
+    return res.status(400).json({ error: 'Status and email are required parameters.' });
   }
 
   try {
-      const query = `
+    const query = `
           SELECT 
               ds.id AS stock_id,
               ds.thingid,
@@ -2610,20 +2686,20 @@ dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
               AND dd.email = $2
       `;
 
-      const values = [status, email];
+    const values = [status, email];
 
-      const result = await db.query(query, values);
+    const result = await db.query(query, values);
 
-      if (result.rows.length === 0) {
-          return res.status(404).json({ message: 'No matching records found.' });
-      }
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'No matching records found.' });
+    }
 
-      res.status(200).json(result.rows);
+    res.status(200).json(result.rows);
   } catch (error) {
-      console.error('Error fetching dealers stock:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error fetching dealers stock:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
-}); 
+});
 
 
-module.exports=dashboard;
+module.exports = dashboard;
