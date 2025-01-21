@@ -18,6 +18,7 @@ const {getThingBySerialNo,removeFromStock,removeFromStockdealers,addToStock,gene
     email,
     items,
     discount,
+    gstin,
     payment_methods,
     billing_createdby,
   } = req.body;
@@ -93,6 +94,7 @@ async function processBilling(data, stockTable, username, res) {
       email,
       items,
       discount,
+      gstin,
       payment_methods,
       billing_createdby,
     } = data;
@@ -292,6 +294,7 @@ async function processBilling(data, stockTable, username, res) {
                     date: new Date().toLocaleDateString(),
                     name,
                     phone,
+                    gstin,
                     address,
                     shipping_address,
                     items: groupedItems, // This will be the grouped items array
