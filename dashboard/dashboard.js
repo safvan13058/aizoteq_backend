@@ -2397,7 +2397,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 });
 
 //update of models rawmaterial_req_qty
-dashboard.put('/api/update/:modelId/:rawMaterialId', async (req, res) => {
+dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
   const { modelId, rawMaterialId } = req.params;
   const { requiredQty } = req.body;
 
