@@ -2416,8 +2416,9 @@ dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
 
       if (result.rowCount === 0) {
           return res.status(404).json({ error: 'Record not found' });
-      }
-
+      } 
+      console.log(result)
+      
       res.status(200).json({ message: 'Required quantity updated successfully', data: result.rows[0] });
   } catch (error) {
       console.error(error);
