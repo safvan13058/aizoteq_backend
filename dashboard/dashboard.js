@@ -2424,6 +2424,30 @@ dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
       res.status(500).json({ error: 'Internal server error' });
   }
 });
+//delete raw materials in an model
+dashboard.delete('/api/delete/thingrawmaterials/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!id || isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid ID parameter' });
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM thing_raw_materials WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: 'Record not found' });
+    }
+
+    res.status(200).json({ message: 'Record deleted successfully', data: result.rows[0] });
+  } catch (error) {
+    console.error('Error deleting record:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // -----------------for dealers------------------
 // Get customers by `addedby`
