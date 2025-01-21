@@ -289,7 +289,7 @@ Handlebars.registerHelper("increment", function (value) {
 });
 async function generatePDF(filePath, data) {
   // Load HTML template
-  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice3.html", "utf8");
+  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice2.html", "utf8");
   const template = Handlebars.compile(templateHtml);
 
   // Replace placeholders with data
