@@ -82,7 +82,7 @@ body {
 }
 
 /* Column Widths */
-.items th:nth-child(1) {
+.items th:nth-child(1),.items th:nth-child(3) {
     width: 5%; /* Sr. No */
 }
 
@@ -90,7 +90,7 @@ body {
     width: 25%; /* Description of Goods */
 }
 
-.items th:nth-child(3), .items th:nth-child(4), 
+ .items th:nth-child(4), 
 .items th:nth-child(5), .items th:nth-child(6), 
 .items th:nth-child(7), .items th:nth-child(8), 
 .items th:nth-child(9), .items th:nth-child(10) {
@@ -205,12 +205,12 @@ body {
                         <th>Description of Goods</th>
                         <th>Qty/Unit</th>
                         <th>Rate (Per Item)</th>
-                        <!-- <th>Total</th> -->
+                        <th>Total</th>
                         <th>Discount</th>
                         <th>Taxable Value</th>
                         <th>CGST <br><span>(tax 9%)</span> </th>
                         <th>SGST<br><span>(tax 9%)</span> </th>
-                        <th>IGST<br><span>(tax 9%)</span> </th>
+                        <!-- <th>IGST<br><span>(tax 9%)</span> </th> -->
                         <th>TotalAmount</th>
                     </tr>
                 </thead>
@@ -222,24 +222,23 @@ body {
                         <td>{{model}}</td>
                         <td>{{qty}} NOS</td>
                         <td>{{retail_price}}</td>
-                        <!-- <td>{{final_price}}</td> -->
+                        <td>{{totalRetailPrice}}</td>
                         <td>{{item_discount}}</td>
                         <td>{{discounted_price}}</td>
                         <td>{{sgst}}</td>
                         <td>{{cgst}}</td>
-                        <td>{{igst}}</td>
+                        <!-- <td>{{igst}}</td> -->
                         <td>{{final_price}}</td>
                     </tr>
                     {{/each}}
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="5" style="text-align: right;"><strong>Total:</strong></td>
-                        <td>{{totalDiscountedPrice}}</td>
-                        <td>{{totalCGST}}</td>
-                        <td>{{totalSGST}}</td>
-                        <td>{{totalIGST}}</td>
-                        <td>{{totalAll}}</td>
+                        <td colspan="6" style="text-align: right;"><strong>Total:</strong></td>
+                        <td> {{totalDiscountedPrice}} </td>
+                        <td> {{totalCGST}} </td>           
+                        <td> {{totalSGST}} </td>           
+                        <td> {{totalAll }} </td>           
                     </tr>
                     <tr>
                         <td colspan="9" style="text-align: left;">
@@ -285,9 +284,10 @@ body {
         </div>
 
         <div class="footer">
+            <h3>Bill type:{{billtype}}</h3>
             <p>Prepared By: {{preparedBy}}<br>
-                Salesman: {{salesman}}<br>
-                Authorized Signatory</p>
+               Salesman: {{salesman}}<br>
+               Authorized Signatory</p>
         </div>
     </div>
     

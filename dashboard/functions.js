@@ -16,15 +16,20 @@ const getThingBySerialNo = async (serialNo) => {
     return result.rows[0] || null;
   };
   const removeFromStock = async (stockTable,thingId) => {
-    const result = await db.query(`DELETE FROM ${stockTable} WHERE thingId = $1 RETURNING *`, [thingId]);
+    const result = await db.query(`DELETE FROM ${stockTable} WHERE thingId = $1  RETURNING *`, [thingId]);
+    return result.rows[0] || null;
+  };
+  const removeFromStockdealers = async (stockTable,thingId,user_id) => {
+    const result = await db.query(`DELETE FROM ${stockTable} WHERE thingId = $1 AND user_id=$2 RETURNING *`, [thingId,user_id]);
     return result.rows[0] || null;
   };
   
+  
   // Helper function: Add thing to dealer's or customer's stock
-  const addToStock = async (stockTable, thingId,userid, addedBy, status = "new") => {
+  const addToStock = async (stockTable, thingId,userid, addedBy,added_id, status = "new") => {
     await db.query(
-      `INSERT INTO ${stockTable} (thingid,user_id,added_by, status) VALUES ($1, $2, $3,$4)`,
-      [thingId,userid, addedBy, status]
+      `INSERT INTO ${stockTable} (thingid,user_id,added_id,added_by, status) VALUES ($1, $2, $3,$4,$5)`,
+      [thingId,userid,added_id, addedBy, status]
     );
   };
    
@@ -89,8 +94,9 @@ const getThingBySerialNo = async (serialNo) => {
     let totalIGST = 0; // To accumulate total IGST
     let totalDiscountedPrice = 0; // To accumulate total discounted price
     let totalAll = 0;
+    let totalRetailPrice = 0;
     for (const item of items) {
-        const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst, final_price } = item;
+        const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst,psgst,pcgst,pigst, final_price } = item;
         
         // Accumulate tax totals
         totalSGST += sgst;
@@ -100,6 +106,9 @@ const getThingBySerialNo = async (serialNo) => {
         // Accumulate the total discounted price
         totalDiscountedPrice += discounted_price;
         totalAll += sgst + cgst + igst + discounted_price;
+        // Accumulate total retail price
+        totalRetailPrice += retail_price;
+
         // Group items by model
         if (!grouped[model]) {
             grouped[model] = {
@@ -113,12 +122,17 @@ const getThingBySerialNo = async (serialNo) => {
                 sgst,
                 cgst,
                 igst,
+                psgst,
+                pcgst,
+                pigst,
                 final_price,
+                totalRetailPrice
             };
         } else {
             grouped[model].qty += 1; // Increment quantity for subsequent occurrences
             
             // Accumulate the item properties for each model
+            grouped[model].totalRetailPrice += retail_price;
             grouped[model].item_discount += item_discount;
             grouped[model].discounted_price += discounted_price;
             grouped[model].sgst += sgst;
@@ -132,7 +146,8 @@ const getThingBySerialNo = async (serialNo) => {
     totalCGST,
     totalIGST,
     totalDiscountedPrice, // Return the total discounted price
-    totalAll)
+    totalAll,
+    totalRetailPrice)
     return {
         
         groupedItems: Object.values(grouped), // Convert the grouped object back to an array
@@ -140,7 +155,8 @@ const getThingBySerialNo = async (serialNo) => {
         totalCGST,
         totalIGST,
         totalDiscountedPrice, // Return the total discounted price
-        totalAll
+        totalAll,
+        totalRetailPrice
 
       };
 }
@@ -338,4 +354,4 @@ async function sendEmailWithAttachment(toEmail, name, receiptNo, pdfPath) {
   }
 }
 
-  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock}
+  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStockdealers,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock}
