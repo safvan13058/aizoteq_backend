@@ -289,7 +289,7 @@ Handlebars.registerHelper("increment", function (value) {
 });
 async function generatePDF(filePath, data) {
   // Load HTML template
-  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice2.html", "utf8");
+  const templateHtml = fs.readFileSync("./dashboard/receipt/invoice3.html", "utf8");
   const template = Handlebars.compile(templateHtml);
 
   // Replace placeholders with data
@@ -299,11 +299,12 @@ async function generatePDF(filePath, data) {
   // const browser = await puppeteer.launch();
   const browser = await puppeteer.launch({
     executablePath: '/root/.cache/puppeteer/chrome/linux-132.0.6834.83/chrome-linux64/chrome',
-    args: ['--no-sandbox']
+    args: ['--no-sandbox', '--disable-web-security']
   });
   
   const page = await browser.newPage();
 
+  await page.setContent(compiledHtml, { waitUntil: "networkidle0" });
   // Set content
   await page.setContent(compiledHtml, { waitUntil: "domcontentloaded" });
 
