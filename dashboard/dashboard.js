@@ -2375,7 +2375,7 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
         const rawMaterialsQuery = `
             SELECT rm.id AS raw_material_id, rm.Component,rm.package, rm.category, rm.value, 
                    rm.reference_no, rm.image, rm.stock_quantity, rm.reorder_level, 
-                   trm.required_qty,trm.id
+                   trm.required_qty,trm.id,trm.model_id
             FROM thing_raw_materials trm
             INNER JOIN raw_materials_stock rm ON trm.raw_material_id = rm.id
             WHERE trm.model_id = $1;
