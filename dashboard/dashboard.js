@@ -2400,31 +2400,40 @@ dashboard.get('/api/model/:modelId', async (req, res) => {
 dashboard.put('/api/update/raw/:modelId/:rawMaterialId', async (req, res) => {
   const { modelId, rawMaterialId } = req.params;
   const { requiredQty } = req.body;
-  console.log( modelId, rawMaterialId, requiredQty)
-  if (!modelId || !rawMaterialId || !requiredQty) {
-      return res.status(400).json({ error: 'Missing required fields' });
+
+  // Validate inputs
+  if (!modelId || !rawMaterialId || requiredQty == null) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  if (isNaN(requiredQty) || requiredQty < 0) {
+    return res.status(400).json({ error: 'Invalid required quantity' });
   }
 
   try {
-      const result = await db.query(
-          `UPDATE thing_raw_materials 
-           SET required_qty = $1 
-           WHERE model_id = $2 AND raw_material_id = $3 
-           RETURNING *`,
-          [requiredQty, modelId, rawMaterialId]
-      );
+    // Perform update query
+    const result = await db.query(
+      `UPDATE thing_raw_materials 
+       SET required_qty = $1, updated_at = NOW() 
+       WHERE model_id = $2 AND raw_material_id = $3 
+       RETURNING *`,
+      [requiredQty, modelId, rawMaterialId]
+    );
 
-      if (result.rowCount === 0) {
-          return res.status(404).json({ error: 'Record not found' });
-      } 
-      console.log(result)
-      
-      res.status(200).json({ message: 'Required quantity updated successfully', data: result.rows[0] });
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+
+    res.status(200).json({ 
+      message: 'Required quantity updated successfully', 
+      data: result.rows[0] 
+    });
   } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Internal server error' });
+    console.error('Error updating required quantity:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 //delete raw materials in an model
 dashboard.delete('/api/delete/thingrawmaterials/:id', async (req, res) => {
   const { id } = req.params;
