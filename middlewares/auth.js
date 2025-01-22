@@ -136,10 +136,10 @@ async function validateJwt(req, res, next) {
                     console.log(user)
                     req.user = {
                         ...req.user,
-                        role: user.userRole,
+                        role: user.userrole,
                         jwtsub: user.jwtsub,
                         id: user.id,
-                        username: user.userName,
+                        username: user.username,
                     };
 
                     console.log('User authenticated:', req.user);
