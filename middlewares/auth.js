@@ -1,6 +1,7 @@
 // auth.js
 const jwt = require('jsonwebtoken');
 const { promisify } = require('util');
+const db=require('./dbconnection')
 const { client, COGNITO_ISSUER } = require('./cognito');
 
 const getSigningKey = promisify(client.getSigningKey.bind(client));
