@@ -765,8 +765,8 @@ dashboard.put('/api/users/:id/role',
 
 // API to get all users in role with optional search
 dashboard.get('/api/display/users/:role',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { search } = req.query;
     const role = req.params.role.toLowerCase(); // Normalize case for role comparison
