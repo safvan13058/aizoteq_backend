@@ -67,12 +67,13 @@ async function validateJwt(req, res, next) {
                     req.user.username = result.rows[0].userName;
                     console.log("all set")
                     console.log(req.user)
-                    next();
+                   
                 } finally {
 
                     client.release();
                      // Release the client back to the pool
                     console.log("all set final")
+                    next();
                 }
             }
         );
@@ -93,5 +94,6 @@ function authorizeRoles(...allowedRoles) {
         next();
     };
 }
+
 
 module.exports = { validateJwt, authorizeRoles };
