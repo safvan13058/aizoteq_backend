@@ -133,6 +133,7 @@ async function validateJwt(req, res, next) {
                     }
 
                     const user = result.rows[0];
+                    console.log(user)
                     req.user = {
                         ...req.user,
                         role: user.userRole,
