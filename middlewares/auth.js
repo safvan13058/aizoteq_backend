@@ -59,7 +59,7 @@ async function validateJwt(req, res, next) {
                     if (result.rows.length === 0) {
                         return res.status(404).json({ message: 'User not found' });
                     }
-                    console.log(`result${result}`)
+                    console.log(`result${ result.rows[0]}`)
                     // Attach user data (role and jwtsub) to the request object
                     req.user.role = result.rows[0].userRole;
                     req.user.jwtsub = result.rows[0].jwtsub;
@@ -67,6 +67,7 @@ async function validateJwt(req, res, next) {
                     req.user.username = result.rows[0].userName;
                     console.log("all set")
                     console.log(req.user)
+                    console.log(req.user.role)
                    
                 } finally {
 
