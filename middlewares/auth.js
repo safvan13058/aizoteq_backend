@@ -83,8 +83,9 @@ async function validateJwt(req, res, next) {
 }
 // Middleware for role-based access control
 function authorizeRoles(...allowedRoles) {
-    console.log(req.user)
+   
     return (req, res, next) => {
+        console.log(req.user)
         const userRole = req.user.role;
         if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({ message: 'Access forbidden: insufficient role' });
