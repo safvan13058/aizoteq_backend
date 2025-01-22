@@ -54,11 +54,12 @@ async function validateJwt(req, res, next) {
                         'SELECT * FROM users WHERE jwtsub = $1',
                         [userSub]
                     );
-                    console.log(result)
+                    console,log(`usersub${userSub}`)
+                    
                     if (result.rows.length === 0) {
                         return res.status(404).json({ message: 'User not found' });
                     }
-
+                    console.log(`result${result}`)
                     // Attach user data (role and jwtsub) to the request object
                     req.user.role = result.rows[0].userRole;
                     req.user.jwtsub = result.rows[0].jwtsub;
@@ -82,6 +83,7 @@ async function validateJwt(req, res, next) {
 }
 // Middleware for role-based access control
 function authorizeRoles(...allowedRoles) {
+    console.log(req.user)
     return (req, res, next) => {
         const userRole = req.user.role;
         if (!allowedRoles.includes(userRole)) {
