@@ -63,6 +63,117 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
   }
 });
 
+dashboard.get('/api/searchThings/working/:status',
+  validateJwt,
+  authorizeRoles('admin', 'dealers'),
+  async (req, res) => {
+  const { serialno } = req.query;
+  const { status } = req.params;
+  const  userrole=req.user.role
+ if (userrole==="admin"){
+  try {
+      // Default to showing all records with 'rework' status if no serialno is provided
+      let query = ` 
+          SELECT 
+              t.id AS thing_id,
+              t.thingName,
+              t.createdby,
+              t.batchId,
+              t.model,
+              t.securityKey,
+              t.serialno,
+              a.status AS admin_stock_status,
+              a.addedAt,
+              a.addedby,
+              tf.failureReason,
+              tf.fixed_by,
+              tf.loggedAt
+          FROM Things t
+          LEFT JOIN AdminStock a ON t.id = a.thingId
+          LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+          WHERE a.status = $1
+      `;
+      
+      // If serialno is provided, modify the query to filter by serialno using ILIKE
+      if (serialno) {
+          query += ` AND t.serialno ILIKE $2`;
+      }
+
+      // Log the query and parameters for debugging
+      console.log('Executing query:', query);
+      console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
+
+      // Execute the query with appropriate parameters
+      const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
+
+      // Check if results exist
+      if (result.rows.length === 0) {
+          return res.status(404).json({ message: 'No matching records found' });
+      }
+
+      // Return results
+      res.json(result.rows);
+  } catch (err) {
+      // Log the full error for debugging
+      console.error('Error executing query', err);
+
+      // Respond with more detailed error information
+      res.status(500).json({ error: 'Internal Server Error', details: err.message });
+  }
+}
+else if(userrole==="dealer"){
+  try {
+    // Default to showing all records with 'rework' status if no serialno is provided
+    let query = ` 
+        SELECT 
+            t.id AS thing_id,
+            t.thingName,
+            t.createdby,
+            t.batchId,
+            t.model,
+            t.securityKey,
+            t.serialno,
+            a.status AS admin_stock_status,
+            a.addedAt,
+            a.addedby,
+            tf.failureReason,
+            tf.fixed_by,
+            tf.loggedAt
+        FROM Things t
+        LEFT JOIN dealersStock a ON t.id = a.thingId
+        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+        WHERE a.status = $1 AND a.user_id
+    `;
+    
+    // If serialno is provided, modify the query to filter by serialno using ILIKE
+    if (serialno) {
+        query += ` AND t.serialno ILIKE $2`;
+    }
+
+    // Log the query and parameters for debugging
+    console.log('Executing query:', query);
+    console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
+
+    // Execute the query with appropriate parameters
+    const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
+
+    // Check if results exist
+    if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No matching records found' });
+    }
+
+    // Return results
+    res.json(result.rows);
+} catch (err) {
+    // Log the full error for debugging
+    console.error('Error executing query', err);
+
+    // Respond with more detailed error information
+    res.status(500).json({ error: 'Internal Server Error', details: err.message });
+}
+}
+
+});
 
 //api for user graph
 // dashboard.get("/api/users/graph", async (req, res) => {
@@ -2701,5 +2812,101 @@ dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
   }
 });
 
+// API endpoint to insert dealer data
+dashboard.post('/api/add-dealer/:user_id', async (req, res) => {
+  const { user_id } = req.params; 
+  const { company_name, GSTIN, logo } = req.body;
 
+  if (!company_name ) {
+    return res.status(400).json({ error: 'Company name are required' });
+  }
+
+  try {
+    // Check if the user_id exists in the users table
+    const userCheckQuery = `SELECT id FROM users WHERE id = $1`;
+    const userCheckResult = await db.query(userCheckQuery, [user_id]);
+
+    if (userCheckResult.rowCount === 0) {
+      return res.status(400).json({ error: 'User ID does not exist' });
+    }
+
+    // Check if the user_id already exists multiple times in dealers_store table
+    const dealerCheckQuery = `SELECT COUNT(*) FROM dealers_store WHERE user_id = $1`;
+    const dealerCheckResult = await db.query(dealerCheckQuery, [user_id]);
+
+    if (parseInt(dealerCheckResult.rows[0].count) > 0) {
+      return res.status(400).json({ error: 'User ID already has a dealer entry' });
+    }
+
+    // Insert dealer data if user_id is valid and not duplicated
+    const query = `
+      INSERT INTO dealers_store (company_name, GSTIN, logo, user_id) 
+      VALUES ($1, $2, $3, $4) 
+      RETURNING *;
+    `;
+    const values = [company_name, GSTIN, logo || null, user_id];
+
+    const result = await pool.query(query, values);
+    res.status(201).json({ message: 'Dealer added successfully', dealer: result.rows[0] });
+
+  } catch (error) {
+    console.error('Error inserting dealer:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+// API endpoint to update dealer data by user_id
+dashboard.put('/update-dealer/:user_id', async (req, res) => {
+  const { user_id } = req.params;
+  const { company_name, GSTIN, logo } = req.body;
+
+  if (!company_name && !GSTIN && !logo) {
+    return res.status(400).json({ error: 'At least one field is required to update' });
+  }
+
+  try {
+    // Check if the user_id exists in the dealers_store table
+    const dealerCheckQuery = `SELECT id FROM dealers_store WHERE user_id = $1`;
+    const dealerCheckResult = await pool.query(dealerCheckQuery, [user_id]);
+
+    if (dealerCheckResult.rowCount === 0) {
+      return res.status(404).json({ error: 'Dealer entry not found for the given user ID' });
+    }
+
+    // Construct dynamic update query based on provided fields
+    let updateFields = [];
+    let values = [];
+    let counter = 1;
+
+    if (company_name) {
+      updateFields.push(`company_name = $${counter++}`);
+      values.push(company_name);
+    }
+    if (GSTIN) {
+      updateFields.push(`GSTIN = $${counter++}`);
+      values.push(GSTIN);
+    }
+    if (logo) {
+      updateFields.push(`logo = $${counter++}`);
+      values.push(logo);
+    }
+
+    values.push(user_id); // Add user_id to values for WHERE condition
+
+    const updateQuery = `
+      UPDATE dealers_store 
+      SET ${updateFields.join(', ')} 
+      WHERE user_id = $${counter} 
+      RETURNING *;
+    `;
+
+    const result = await pool.query(updateQuery, values);
+
+    res.status(200).json({ message: 'Dealer updated successfully', dealer: result.rows[0] });
+
+  } catch (error) {
+    console.error('Error updating dealer:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 module.exports = dashboard;

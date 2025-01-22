@@ -287,20 +287,7 @@ CREATE TABLE customersStock (
     CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) -- Foreign key constraint
 );
 
-CREATE TABLE onlinecustomerStock (
-    id SERIAL PRIMARY KEY,             -- Unique identifier for each record
-    user_id INT NOT NULL,  
-    thingid INT NOT NULL,            -- Reference to the user ID
-    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
-    added_id INT
-    added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
-    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
-    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username),-- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);    
-    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES onlinecustomer_details(id) -- Foreign key constraint
-
-);
-
+  
 -- Create customer_details table
 CREATE TABLE onlinecustomer_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
@@ -353,7 +340,17 @@ CREATE TABLE dealers_details (
      
     CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
 );
-
+CREATE TABLE dealers_store (
+    id SERIAL PRIMARY KEY,
+    company_name VARCHAR(255) NOT NULL,
+    GSTIN VARCHAR(15) NULL UNIQUE,
+    logo VARCHAR(2080),
+    user_id INT NOT NULL,
+    CONSTRAINT fk_user FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE 
+        ON UPDATE CASCADE
+);
 -- Create price_table
 CREATE TABLE price_table (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each row
