@@ -17,8 +17,8 @@ dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 
 // API endpoint to count users
 dashboard.get('/api/users/count',
-  validateJwt,
-  authorizeRoles('admin', 'dealers'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealers'),
   async (req, res) => {
     console.log("working count")
     try {
@@ -64,8 +64,8 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 });
 
 dashboard.get('/api/searchThings/working/:status',
-  validateJwt,
-  authorizeRoles('admin', 'dealers'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealers'),
   async (req, res) => {
   const { serialno } = req.query;
   const { status } = req.params;
@@ -1489,8 +1489,8 @@ dashboard.get('/warranties', async (req, res) => {
 
 // API to insert data into the dealers_details table
 dashboard.post('/api/create/account/for/:Party',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { table } = req.params.Party;
     const { name, address, email, phone, alt_phone } = req.body;
@@ -1525,8 +1525,8 @@ dashboard.post('/api/create/account/for/:Party',
 
 //Api to display
 dashboard.get('/api/display/party/:Party',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
@@ -1568,8 +1568,8 @@ dashboard.get('/api/display/party/:Party',
 
 //delete account 
 dashboard.delete('/api/delete/account/for/:Party/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { Party, id } = req.params;
 
@@ -1609,8 +1609,8 @@ dashboard.delete('/api/delete/account/for/:Party/:id',
 
 //update account datas
 dashboard.put('/api/update/account/for/:Party/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { Party, id } = req.params;
     const { name, address, email, phone, alt_phone } = req.body;
@@ -1682,8 +1682,8 @@ dashboard.put('/api/update/account/for/:Party/:id',
 
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst } = req.body;
 
@@ -1729,8 +1729,8 @@ dashboard.post('/api/create/price_table',
 
 // Read all entries from the price_table
 dashboard.get('/api/display/prices-table',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { search } = req.query; // Get the search query from the request
 
@@ -1756,8 +1756,8 @@ dashboard.get('/api/display/prices-table',
 
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1775,8 +1775,8 @@ dashboard.get('/api/display/single/price_table/:id',
 
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -1866,8 +1866,8 @@ dashboard.put('/api/update/price_table/:id',
 
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1886,8 +1886,8 @@ dashboard.delete('/api/delete/price_table/:id',
 
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { entity_type, entity_id } = req.params;
 
@@ -2011,8 +2011,8 @@ dashboard.get("/api/billing/:entity_type/:entity_id",
 
 // 1. Open Billing Session
 dashboard.post('/open-session',
-  validateJwt,
-  authorizeRoles('admin', 'dealer'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { opened_by } = req.body;
     const userid = req.user?.id || req.body.userid;
@@ -2031,8 +2031,8 @@ const PDFDocument = require('pdfkit');
 
 // 2. Close Billing Session
 dashboard.post('/close-session',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { session_id, closed_by } = req.body;
 
@@ -2154,8 +2154,8 @@ dashboard.post('/close-session',
 
 //display daily report
 dashboard.get("/api/reports/daily",
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { date } = req.query; // Optional query parameter to filter by date
 
@@ -2256,8 +2256,8 @@ dashboard.get('/api/sales', async (req, res) => {
 // -----------------------------------
 // API to create a new raw material
 dashboard.post('/api/raw_materials/create',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   upload.single('image'), async (req, res) => {
     const { Component, package, category, value, unit_price_in_rupees, unit_price_in_dollars, reference_no, stock_quantity, reorder_level } = req.body;
     let fileUrl = null;
@@ -2292,8 +2292,8 @@ dashboard.post('/api/raw_materials/create',
 
 // API to update a raw material by ID
 dashboard.put('/api/raw_materials/update/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   upload.single('image'), async (req, res) => {
     const { id } = req.params;
     console.log(req.body)
@@ -2400,8 +2400,8 @@ dashboard.put('/api/raw_materials/update/:id',
   });
 
 dashboard.put('/api/raw/stock/update/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const { stock_quantity } = req.body;  // Only extract stock_quantity
@@ -2424,8 +2424,8 @@ dashboard.put('/api/raw/stock/update/:id',
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id',
 
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
@@ -2441,8 +2441,8 @@ dashboard.delete('/api/raw_materials/delete/:id',
 
 // API to get all raw materials
 dashboard.get('/api/raw_materials',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { search, category } = req.query;
     console.log(req.query)
@@ -2478,8 +2478,8 @@ dashboard.get('/api/raw_materials',
 
 // API to add raw material to a model
 dashboard.post('/api/model/:modelId/add-raw-material',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { modelId } = req.params;
     const { raw_material_id, required_qty } = req.body;
@@ -2531,8 +2531,8 @@ dashboard.post('/api/model/:modelId/add-raw-material',
 
 // API to get a price_table model with its raw materials and required quantities
 dashboard.get('/api/model/:modelId',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { modelId } = req.params;
 
@@ -2578,8 +2578,8 @@ dashboard.get('/api/model/:modelId',
 
 //update of models rawmaterial_req_qty
 dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { modelId, rawMaterialId } = req.params;
     const { requiredQty } = req.body;
@@ -2620,8 +2620,8 @@ dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
 
 //delete raw materials in an model
 dashboard.delete('/api/delete/thingrawmaterials/:id',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
 
