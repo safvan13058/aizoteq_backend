@@ -1958,7 +1958,7 @@ homeapp.post("/api/users/profile-pic",
     validateJwt,
     authorizeRoles('admin', 'dealer','staff','customer'),
      upload.single("profilepic"), async (req, res) => {
-    console.log(req.file)
+    console.log(req.user)
     const { userId } = req.user.id;
     console.log(userId)
     if (!req.file) {
@@ -1969,7 +1969,7 @@ homeapp.post("/api/users/profile-pic",
       // Generate unique file name
       const fileExtension = path.extname(req.file.originalname);
       const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
-  
+      
       // Upload file to S3
       const params = {
         Bucket: process.env.S3_BUCKET_NAME,
