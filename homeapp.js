@@ -1936,7 +1936,7 @@ homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
 
 homeapp.get("/api/display/user",
     validateJwt,
-    authorizeRoles('admin', 'dealers','staff','customer'),
+    authorizeRoles('admin', 'dealer','staff','customer'),
      async (req, res) => {
     const userId = req.user.id ;
     const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
@@ -1954,9 +1954,12 @@ homeapp.get("/api/display/user",
       res.status(500).json({ error: "Failed to fetch user by ID." });
     }
   });
-homeapp.post("/api/users/:userId/profile-pic", upload.single("profilepic"), async (req, res) => {
+homeapp.post("/api/users/profile-pic",
+    validateJwt,
+    authorizeRoles('admin', 'dealer','staff','customer'),
+     upload.single("profilepic"), async (req, res) => {
     console.log(req.file)
-    const { userId } = req.params;
+    const { userId } = req.user.id;
     console.log(userId)
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
