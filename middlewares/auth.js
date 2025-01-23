@@ -85,7 +85,7 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // }
 async function validateJwt(req, res, next) {
     try {
-        console.log(req.headers.authorization);
+        console.log(`headers ==${req.headers.authorization}`);
 
         const token = req.headers.authorization;
         if (!token || !token.startsWith('Bearer ')) {
@@ -133,7 +133,7 @@ async function validateJwt(req, res, next) {
                     }
 
                     const user = result.rows[0];
-                    console.log(user)
+                    
                     req.user = {
                         ...req.user,
                         role: user.userrole,
@@ -162,7 +162,7 @@ async function validateJwt(req, res, next) {
 function authorizeRoles(...allowedRoles) {
    
     return (req, res, next) => {
-        console.log(req.user)
+        console.log(`authorizerole ${req.user}`)
         const userRole = req.user.role;
         if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({ message: 'Access forbidden: insufficient role' });
