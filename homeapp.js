@@ -1960,7 +1960,7 @@ homeapp.post("/api/users/profile-pic",
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     upload.single("profilepic"), async (req, res) => {
         console.log(`profilepic changeing===${req.user}`)
-        const { userId } = req.user.id;
+        const  userId  = req.user.id;
         console.log(userId)
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
