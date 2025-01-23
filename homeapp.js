@@ -1961,7 +1961,7 @@ homeapp.post("/api/users/profile-pic",
     upload.single("profilepic"), async (req, res) => {
         console.log(`profilepic changeing===${req.user}`)
         const  userId  = req.user.id;
-        console.log(userId)
+        console.log(`change pic id${userId}`)
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
         }
