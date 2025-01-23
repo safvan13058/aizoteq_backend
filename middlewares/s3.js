@@ -10,8 +10,9 @@ const s3 = new AWS.S3({
 
 const storage = multer.memoryStorage();
 // const upload = multer({ storage });
+// Use memory storage for handling file buffers
 const upload = multer({
-    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    storage, // Specify memory storage
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
 });
-
 module.exports = { s3, upload };
