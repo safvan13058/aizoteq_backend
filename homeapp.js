@@ -1958,7 +1958,7 @@ homeapp.get("/api/display/user",
             res.status(500).json({ error: "Failed to fetch user by ID." });
         }
     });
-homeapp.post("/api/users/:userid/profile-pic",
+homeapp.post("/api/users/profile-pic",
     // validateJwt,
     // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     upload.single("profilepic"), 
