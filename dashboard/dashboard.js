@@ -1487,8 +1487,8 @@ dashboard.post('/api/create/account/for/:Party',
 
 //Api to display
 dashboard.get('/api/display/party/:Party',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
