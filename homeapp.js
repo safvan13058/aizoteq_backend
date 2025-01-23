@@ -5,6 +5,9 @@ const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
 
+homeapp.use(bodyParser.json({ limit: '10mb' }));
+homeapp.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
 homeapp.get('/homeapp', (req, res) => {
     res.send("homeapp working")
 });

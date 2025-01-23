@@ -162,7 +162,7 @@ async function validateJwt(req, res, next) {
 function authorizeRoles(...allowedRoles) {
    
     return (req, res, next) => {
-        console.log(`authorizerole ${req.user}`)
+        console.log(`authorizerole ${req.user.role}`)
         const userRole = req.user.role;
         if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({ message: 'Access forbidden: insufficient role' });
