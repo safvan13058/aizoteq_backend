@@ -70,7 +70,8 @@ dashboard.get('/api/searchThings/working/:status',
   const { serialno } = req.query;
   const { status } = req.params;
   const userrole = req.user.role;
-
+   
+  console.log(`working ${userrole}`)
   try {
       // Define base query and parameters
       let query = `
@@ -1751,6 +1752,7 @@ dashboard.get('/api/display/prices-table',
   validateJwt,
   authorizeRoles('admin','dealer'),
   async (req, res) => {
+    console.log(`working pricetable ${req.user} `)
     const { search } = req.query; // Get the search query from the request
 
     try {
