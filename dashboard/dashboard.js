@@ -729,6 +729,7 @@ dashboard.get('/api/display/users/:role',
   validateJwt,
   authorizeRoles('admin'),
   async (req, res) => {
+    console.log(`changerole${req.user}`)
     const { search } = req.query;
     const role = req.params.role.toLowerCase(); // Normalize case for role comparison
     const allowedRoles = ['admin', 'staff', 'customer', 'dealers']; // Valid roles
