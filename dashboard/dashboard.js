@@ -17,8 +17,8 @@ dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 
 // API endpoint to count users
 dashboard.get('/api/users/count',
-  // validateJwt,
-  // authorizeRoles('admin', 'dealers'),
+  validateJwt,
+  authorizeRoles('admin', 'dealers'),
   async (req, res) => {
     console.log("working count")
     try {
@@ -64,16 +64,16 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 });
 
 dashboard.get('/api/searchThings/working/:status',
-  // validateJwt,
-  // authorizeRoles('admin', 'dealers'),
-  async (req, res) => {
+  validateJwt,
+  authorizeRoles('admin', 'dealers'),
+   async (req, res) => {
   const { serialno } = req.query;
   const { status } = req.params;
-  const  userrole=req.user.role
- if (userrole==="admin"){
+  const userrole = req.user.role;
+
   try {
-      // Default to showing all records with 'rework' status if no serialno is provided
-      let query = ` 
+      // Define base query and parameters
+      let query = `
           SELECT 
               t.id AS thing_id,
               t.thingName,
@@ -82,31 +82,44 @@ dashboard.get('/api/searchThings/working/:status',
               t.model,
               t.securityKey,
               t.serialno,
-              a.status AS admin_stock_status,
+              a.status AS stock_status,
               a.addedAt,
               a.addedby,
               tf.failureReason,
               tf.fixed_by,
               tf.loggedAt
           FROM Things t
-          LEFT JOIN AdminStock a ON t.id = a.thingId
+          LEFT JOIN ${userrole === 'admin' ? 'AdminStock' : 'dealersStock'} a ON t.id = a.thingId
           LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
           WHERE a.status = $1
       `;
-      
-      // If serialno is provided, modify the query to filter by serialno using ILIKE
-      if (serialno) {
-          query += ` AND t.serialno ILIKE $2`;
+      const params = [status];
+
+      // If user is a dealer, fetch their ID and add to query
+      if (userrole === 'dealer') {
+          const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+          const dealerResult = await db.query(dealerQuery, [req.user.email]);
+          if (dealerResult.rows.length === 0) {
+              return res.status(404).json({ message: 'Dealer not found' });
+          }
+          query += ` AND a.user_id = $2`;
+          params.push(dealerResult.rows[0].id);
       }
 
-      // Log the query and parameters for debugging
+      // Add serialno filter if provided
+      if (serialno) {
+          query += ` AND t.serialno ILIKE $${params.length + 1}`;
+          params.push(`%${serialno}%`);
+      }
+
+      // Log for debugging
       console.log('Executing query:', query);
-      console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
+      console.log('Query parameters:', params);
 
-      // Execute the query with appropriate parameters
-      const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
+      // Execute the query
+      const result = await db.query(query, params);
 
-      // Check if results exist
+      // Handle no results
       if (result.rows.length === 0) {
           return res.status(404).json({ message: 'No matching records found' });
       }
@@ -114,65 +127,13 @@ dashboard.get('/api/searchThings/working/:status',
       // Return results
       res.json(result.rows);
   } catch (err) {
-      // Log the full error for debugging
-      console.error('Error executing query', err);
-
-      // Respond with more detailed error information
-      res.status(500).json({ error: 'Internal Server Error', details: err.message });
+      // Log error and return response
+      console.error('Error executing query:', err);
+      res.status(500).json({
+          error: 'Internal Server Error',
+          details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+      });
   }
-}
-else if(userrole==="dealer"){
-  try {
-    // Default to showing all records with 'rework' status if no serialno is provided
-    let query = ` 
-        SELECT 
-            t.id AS thing_id,
-            t.thingName,
-            t.createdby,
-            t.batchId,
-            t.model,
-            t.securityKey,
-            t.serialno,
-            a.status AS admin_stock_status,
-            a.addedAt,
-            a.addedby,
-            tf.failureReason,
-            tf.fixed_by,
-            tf.loggedAt
-        FROM Things t
-        LEFT JOIN dealersStock a ON t.id = a.thingId
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        WHERE a.status = $1 AND a.user_id
-    `;
-    
-    // If serialno is provided, modify the query to filter by serialno using ILIKE
-    if (serialno) {
-        query += ` AND t.serialno ILIKE $2`;
-    }
-
-    // Log the query and parameters for debugging
-    console.log('Executing query:', query);
-    console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
-
-    // Execute the query with appropriate parameters
-    const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
-
-    // Check if results exist
-    if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No matching records found' });
-    }
-
-    // Return results
-    res.json(result.rows);
-} catch (err) {
-    // Log the full error for debugging
-    console.error('Error executing query', err);
-
-    // Respond with more detailed error information
-    res.status(500).json({ error: 'Internal Server Error', details: err.message });
-}
-}
-
 });
 
 //api for user graph
@@ -765,8 +726,8 @@ dashboard.put('/api/users/:id/role',
 
 // API to get all users in role with optional search
 dashboard.get('/api/display/users/:role',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { search } = req.query;
     const role = req.params.role.toLowerCase(); // Normalize case for role comparison
@@ -1255,7 +1216,7 @@ dashboard.get("/api/billing/search", async (req, res) => {
 });
 
 dashboard.get("/api/things/receipt/:serial_no", async (req, res) => {
-  q
+  
   const { serial_no } = req.params;
 
   if (!serial_no) {
@@ -1489,8 +1450,8 @@ dashboard.get('/warranties', async (req, res) => {
 
 // API to insert data into the dealers_details table
 dashboard.post('/api/create/account/for/:Party',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin','dealer'),
   async (req, res) => {
     const { table } = req.params.Party;
     const { name, address, email, phone, alt_phone } = req.body;
@@ -1533,6 +1494,7 @@ dashboard.get('/api/display/party/:Party',
 
     // Validate the Party parameter
     const validParties = ['onlinecustomer', 'customers', 'dealers'];
+
     if (!validParties.includes(Party)) {
       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
     }
@@ -1565,11 +1527,67 @@ dashboard.get('/api/display/party/:Party',
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
-
+  // dashboard.get('/api/display/party/:Party',
+  //   // validateJwt,
+  //   // authorizeRoles('admin', 'dealer'),
+  //   async (req, res) => {
+  //     const { Party } = req.params; // Get the table name from route parameters
+  //     const { query } = req.query; // Get search query from query parameters (optional)
+  
+  //     // Validate the Party parameter
+  //     const validParties = ['onlinecustomer', 'customers', 'dealers'];
+  //     if (!validParties.includes(Party)) {
+  //       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
+  //     }
+  
+  //     try {
+  //       let sql, values, tableName;
+  
+  //       if (req.user.role === "admin") {
+  //         // Admin-specific logic
+  //         tableName = `${Party}_details`;
+  //         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
+  //         values = [req.user.id];
+  
+  //         if (query) {
+  //           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
+  //           values.push(`%${query}%`); // Case-insensitive matching
+  //         }
+  //       } else if (req.user.role === "dealer") {
+  //         // Dealer-specific logic
+  //         tableName = `customers_details`;
+  //         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
+  //         values = [req.user.id];
+  
+  //         if (query) {
+  //           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
+  //           values.push(`%${query}%`); // Case-insensitive matching
+  //         }
+  //       } else {
+  //         return res.status(403).json({ error: 'Unauthorized access.' });
+  //       }
+  
+  //       // Execute query
+  //       const client = await db.connect();
+  //       const result = await client.query(sql, values);
+  //       client.release();
+  
+  //       // Respond with the fetched data
+  //       res.status(200).json({
+  //         message: `Data retrieved successfully from ${tableName}.`,
+  //         data: result.rows,
+  //       });
+  //     } catch (error) {
+  //       console.error('Error fetching data:', error);
+  //       res.status(500).json({ error: 'An error occurred while fetching data.' });
+  //     }
+  //   }
+  // );
+  
 //delete account 
 dashboard.delete('/api/delete/account/for/:Party/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin','dealer'),
   async (req, res) => {
     const { Party, id } = req.params;
 
@@ -1609,8 +1627,8 @@ dashboard.delete('/api/delete/account/for/:Party/:id',
 
 //update account datas
 dashboard.put('/api/update/account/for/:Party/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { Party, id } = req.params;
     const { name, address, email, phone, alt_phone } = req.body;
@@ -1682,8 +1700,8 @@ dashboard.put('/api/update/account/for/:Party/:id',
 
 // Create a new entry in the price_table
 dashboard.post('/api/create/price_table',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst } = req.body;
 
@@ -1729,8 +1747,8 @@ dashboard.post('/api/create/price_table',
 
 // Read all entries from the price_table
 dashboard.get('/api/display/prices-table',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin','dealer'),
   async (req, res) => {
     const { search } = req.query; // Get the search query from the request
 
@@ -1756,8 +1774,8 @@ dashboard.get('/api/display/prices-table',
 
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1775,8 +1793,8 @@ dashboard.get('/api/display/single/price_table/:id',
 
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -1866,8 +1884,8 @@ dashboard.put('/api/update/price_table/:id',
 
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -1886,8 +1904,8 @@ dashboard.delete('/api/delete/price_table/:id',
 
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { entity_type, entity_id } = req.params;
 
@@ -2011,8 +2029,8 @@ dashboard.get("/api/billing/:entity_type/:entity_id",
 
 // 1. Open Billing Session
 dashboard.post('/open-session',
-  // validateJwt,
-  // authorizeRoles('admin', 'dealer'),
+  validateJwt,
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { opened_by } = req.body;
     const userid = req.user?.id || req.body.userid;
@@ -2031,8 +2049,8 @@ const PDFDocument = require('pdfkit');
 
 // 2. Close Billing Session
 dashboard.post('/close-session',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { session_id, closed_by } = req.body;
 
@@ -2154,8 +2172,8 @@ dashboard.post('/close-session',
 
 //display daily report
 dashboard.get("/api/reports/daily",
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { date } = req.query; // Optional query parameter to filter by date
 
@@ -2256,8 +2274,8 @@ dashboard.get('/api/sales', async (req, res) => {
 // -----------------------------------
 // API to create a new raw material
 dashboard.post('/api/raw_materials/create',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   upload.single('image'), async (req, res) => {
     const { Component, package, category, value, unit_price_in_rupees, unit_price_in_dollars, reference_no, stock_quantity, reorder_level } = req.body;
     let fileUrl = null;
@@ -2292,8 +2310,8 @@ dashboard.post('/api/raw_materials/create',
 
 // API to update a raw material by ID
 dashboard.put('/api/raw_materials/update/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   upload.single('image'), async (req, res) => {
     const { id } = req.params;
     console.log(req.body)
@@ -2400,8 +2418,8 @@ dashboard.put('/api/raw_materials/update/:id',
   });
 
 dashboard.put('/api/raw/stock/update/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const { stock_quantity } = req.body;  // Only extract stock_quantity
@@ -2424,8 +2442,8 @@ dashboard.put('/api/raw/stock/update/:id',
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id',
 
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
     const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
@@ -2441,8 +2459,8 @@ dashboard.delete('/api/raw_materials/delete/:id',
 
 // API to get all raw materials
 dashboard.get('/api/raw_materials',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { search, category } = req.query;
     console.log(req.query)
@@ -2478,8 +2496,8 @@ dashboard.get('/api/raw_materials',
 
 // API to add raw material to a model
 dashboard.post('/api/model/:modelId/add-raw-material',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { modelId } = req.params;
     const { raw_material_id, required_qty } = req.body;
@@ -2531,8 +2549,8 @@ dashboard.post('/api/model/:modelId/add-raw-material',
 
 // API to get a price_table model with its raw materials and required quantities
 dashboard.get('/api/model/:modelId',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { modelId } = req.params;
 
@@ -2578,8 +2596,8 @@ dashboard.get('/api/model/:modelId',
 
 //update of models rawmaterial_req_qty
 dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { modelId, rawMaterialId } = req.params;
     const { requiredQty } = req.body;
@@ -2620,8 +2638,8 @@ dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
 
 //delete raw materials in an model
 dashboard.delete('/api/delete/thingrawmaterials/:id',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { id } = req.params;
 
@@ -2909,4 +2927,5 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 module.exports = dashboard;

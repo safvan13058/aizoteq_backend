@@ -1934,8 +1934,11 @@ homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
     }
   });
 
-homeapp.get("/api/display/user", async (req, res) => {
-    const userId = req.user?.id || req.query.userid;
+homeapp.get("/api/display/user",
+    validateJwt,
+    authorizeRoles('admin', 'dealers','staff','customer'),
+     async (req, res) => {
+    const userId = req.user.id ;
     const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
   
     try {
