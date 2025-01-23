@@ -5,21 +5,21 @@ const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
 
-homeapp.get('/homeapp',(req,res)=>{
+homeapp.get('/homeapp', (req, res) => {
     res.send("homeapp working")
 });
 //ADD home
-homeapp.post( '/app/add/home/',
+homeapp.post('/app/add/home/',
     // validateJwt,
     // authorizeRoles('customer'),
-    async (req, res) =>  {
+    async (req, res) => {
         console.log(req.body)
         console.log(req.body.id)
         try {
-            const {name}   = req.body; // Destructure the required fields from the request body
+            const { name } = req.body; // Destructure the required fields from the request body
             const username = req.user?.username || req.body.username; // Authenticated user's username
-            const id   = req.user?.id|| req.body.id; // Authenticated user's ID
-            const user_id =id;
+            const id = req.user?.id || req.body.id; // Authenticated user's ID
+            const user_id = id;
             // Check if required data is provided
             if (!name || !username) {
                 return res.status(400).json({ error: 'name and created_by are required' });
@@ -34,28 +34,28 @@ homeapp.post( '/app/add/home/',
 
             // Execute the query
             const result = await db.query(query, [name, username, user_id]);
-            
-             // Retrieve the ID of the inserted home
-            const homeId =result.rows[0].id;
 
-             // Insert query for the sharedaccess table
-             const sharedAccessQuery = `
+            // Retrieve the ID of the inserted home
+            const homeId = result.rows[0].id;
+
+            // Insert query for the sharedaccess table
+            const sharedAccessQuery = `
                  INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
                  VALUES ($1, $2, $3, $4, $5, $6)
              `;
- 
-             // Owner's data insertion into sharedaccess table
-             const sharedAccessValues = [
-                 user_id,            // Owner's ID
-                 username,           // Owner's email or username
-                 homeId,             // Home ID
-                 'home',             // Entity type
-                 'admin',            // Access type (Owner gets 'admin' access)
-                 'accepted'          // Status (Automatically accepted for the owner)
-             ];
- 
-             // Execute the query for sharedaccess
-             await db.query(sharedAccessQuery, sharedAccessValues);
+
+            // Owner's data insertion into sharedaccess table
+            const sharedAccessValues = [
+                user_id,            // Owner's ID
+                username,           // Owner's email or username
+                homeId,             // Home ID
+                'home',             // Entity type
+                'admin',            // Access type (Owner gets 'admin' access)
+                'accepted'          // Status (Automatically accepted for the owner)
+            ];
+
+            // Execute the query for sharedaccess
+            await db.query(sharedAccessQuery, sharedAccessValues);
             // Respond with success message and the inserted row ID
             res.status(201).json({
                 message: 'Home added successfully',
@@ -72,12 +72,12 @@ homeapp.post( '/app/add/home/',
 homeapp.get('/app/display/homes/',
     // validateJwt,
     // authorizeRoles('customer'),
-    async (req, res) => {          
+    async (req, res) => {
         try {
             console.log(req.body)
             console.log(req.query)
-            
-            const userId = req.user?.id ||  req.query.userId; // Get the user_id from the authenticated user
+
+            const userId = req.user?.id || req.query.userId; // Get the user_id from the authenticated user
             // const userId = req.body; // for testing
 
             // Query to fetch homes by user_id
@@ -108,7 +108,7 @@ homeapp.get('/app/display/homes/',
 // homeapp.get('/app/display/homes/',  async (req, res) => {
 //     try {
 //         const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
-       
+
 //         if (!userId && !email) {
 //             return res.status(400).json({ error: 'User authentication required' });
 //         }
@@ -152,77 +152,77 @@ homeapp.get('/app/display/homes/',
 homeapp.put('/app/update/home/:id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const homeId = req.params.id; // Get home ID from URL parameter
-        const { name } = req.body; 
-        const created_by = req.user?.username||req.body.username; // Extract fields to update from request body
+    async (req, res) => {
+        try {
+            const homeId = req.params.id; // Get home ID from URL parameter
+            const { name } = req.body;
+            const created_by = req.user?.username || req.body.username; // Extract fields to update from request body
 
-        // Validate input
-        if (!name && !created_by) {
-            return res.status(400).json({ error: 'At least one of name or created_by must be provided' });
-        }
+            // Validate input
+            if (!name && !created_by) {
+                return res.status(400).json({ error: 'At least one of name or created_by must be provided' });
+            }
 
-        // Build dynamic query based on provided fields
-        const updates = [];
-        const values = [];
-        if (name) {
-            updates.push('name = $' + (values.length + 1));
-            values.push(name);
-        }
-        if (created_by) {
-            updates.push('created_by = $' + (values.length + 1));
-            values.push(created_by);
-        }
-        values.push(homeId); // Add homeId for the WHERE clause
+            // Build dynamic query based on provided fields
+            const updates = [];
+            const values = [];
+            if (name) {
+                updates.push('name = $' + (values.length + 1));
+                values.push(name);
+            }
+            if (created_by) {
+                updates.push('created_by = $' + (values.length + 1));
+                values.push(created_by);
+            }
+            values.push(homeId); // Add homeId for the WHERE clause
 
-        const query = `
+            const query = `
             UPDATE home
             SET ${updates.join(', ')}
             WHERE id = $${values.length}
         `;
 
-        // Execute the update query
-        const result = await db.query(query, values);
+            // Execute the update query
+            const result = await db.query(query, values);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Home not found or no changes made' });
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Home not found or no changes made' });
+            }
+
+            res.status(200).json({ message: 'Home updated successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while updating the home' });
         }
-
-        res.status(200).json({ message: 'Home updated successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while updating the home' });
-    }
-});
+    });
 
 // Delete Home
 homeapp.delete('/app/delete/home/:id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const homeId = req.params.id; // Get the home ID from the URL parameter
+    async (req, res) => {
+        try {
+            const homeId = req.params.id; // Get the home ID from the URL parameter
 
-        // Delete query
-        const query = `
+            // Delete query
+            const query = `
             DELETE FROM home
             WHERE id = $1
         `;
 
-        // Execute the query
-        const result = await db.query(query, [homeId]);
+            // Execute the query
+            const result = await db.query(query, [homeId]);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Home not found' }); // No home with the specified ID
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Home not found' }); // No home with the specified ID
+            }
+
+            res.status(200).json({ message: 'Home deleted successfully' }); // Success response
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while deleting the home' });
         }
-
-        res.status(200).json({ message: 'Home deleted successfully' }); // Success response
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while deleting the home' });
-    }
-});
+    });
 
 // ADD floor
 // homeapp.post('/app/add/floor/:home_id',
@@ -303,7 +303,7 @@ homeapp.delete('/app/delete/home/:id',
 //     }
 // );
 
-homeapp.post('/app/add/floor/:home_id', 
+homeapp.post('/app/add/floor/:home_id',
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
@@ -355,20 +355,20 @@ homeapp.post('/app/add/floor/:home_id',
                 RETURNING id
             `;
             const insertResult = await db.query(insertQuery, [home_id, newFloorName, insertionIndex]);
-             // Step 5: Insert the owner's details into the sharedaccess table
-             const sharedAccessQuery = `
+            // Step 5: Insert the owner's details into the sharedaccess table
+            const sharedAccessQuery = `
              INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
              VALUES ($1, $2, $3, $4, $5, $6)
          `;
-         const sharedAccessValues = [
-             user_id,           // Owner's ID
-             null,              // No email required for the owner
-             floorId,           // Floor ID
-             'floor',           // Entity type
-             'admin',           // Owner gets 'admin' access
-             'accepted'         // Automatically accepted for the owner
-         ];
-         await db.query(sharedAccessQuery, sharedAccessValues);
+            const sharedAccessValues = [
+                user_id,           // Owner's ID
+                null,              // No email required for the owner
+                floorId,           // Floor ID
+                'floor',           // Entity type
+                'admin',           // Owner gets 'admin' access
+                'accepted'         // Automatically accepted for the owner
+            ];
+            await db.query(sharedAccessQuery, sharedAccessValues);
 
             // Step 6: Respond with success and the inserted floor details
             res.status(201).json({
@@ -388,97 +388,97 @@ homeapp.post('/app/add/floor/:home_id',
 homeapp.get('/app/display/floors/:home_id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const homeId = req.params.home_id; // Extract home ID from the request URL
+    async (req, res) => {
+        try {
+            const homeId = req.params.home_id; // Extract home ID from the request URL
 
-        // Validate input
-        if (!homeId) {
-            return res.status(400).json({ error: 'home_id is required' });
-        }
+            // Validate input
+            if (!homeId) {
+                return res.status(400).json({ error: 'home_id is required' });
+            }
 
-        // Query to fetch floors by home_id
-        const query = ` 
+            // Query to fetch floors by home_id
+            const query = ` 
                 SELECT * 
                 FROM floor 
                 WHERE home_id = $1 
                 ORDER BY floor_index ASC
             `;
 
-        // Execute the query
-        const result = await db.query(query, [homeId]);
+            // Execute the query
+            const result = await db.query(query, [homeId]);
 
-        // Check if floors exist
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No floors found for the specified home' });
+            // Check if floors exist
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'No floors found for the specified home' });
+            }
+
+            // Respond with the list of floors
+            res.status(200).json(result.rows);
+        } catch (error) {
+            console.error('Error fetching floors:', error.message);
+            res.status(500).json({ error: 'An error occurred while fetching floors' });
         }
-
-        // Respond with the list of floors
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error('Error fetching floors:', error.message);
-        res.status(500).json({ error: 'An error occurred while fetching floors' });
-    }
-});
+    });
 
 homeapp.put('/app/reorder/floor/:floor_id', async (req, res) => {
     const floorId = parseInt(req.params.floor_id, 10);
     const { home_id, new_floor_index } = req.body;
-  
+
     if (!home_id || new_floor_index === undefined) {
-      return res.status(400).json({ error: 'home_id and new_floor_index are required.' });
+        return res.status(400).json({ error: 'home_id and new_floor_index are required.' });
     }
-  
+
     try {
-      // Start a transaction
-      const client = await pool.connect();
-      await client.query('BEGIN');
-  
-      // Get the current floor_index for the specified floor
-      const currentFloorQuery = 'SELECT floor_index FROM floor WHERE id = $1 AND home_id = $2';
-      const currentFloorResult = await client.query(currentFloorQuery, [floorId, home_id]);
-  
-      if (currentFloorResult.rowCount === 0) {
-        await client.query('ROLLBACK');
-        return res.status(404).json({ error: 'Floor not found for the specified home_id.' });
-      }
-  
-      const currentFloorIndex = currentFloorResult.rows[0].floor_index;
-  
-      if (currentFloorIndex < new_floor_index) {
-        // Shift down all floors between the current index and the new index
-        const shiftDownQuery = `
+        // Start a transaction
+        const client = await pool.connect();
+        await client.query('BEGIN');
+
+        // Get the current floor_index for the specified floor
+        const currentFloorQuery = 'SELECT floor_index FROM floor WHERE id = $1 AND home_id = $2';
+        const currentFloorResult = await client.query(currentFloorQuery, [floorId, home_id]);
+
+        if (currentFloorResult.rowCount === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Floor not found for the specified home_id.' });
+        }
+
+        const currentFloorIndex = currentFloorResult.rows[0].floor_index;
+
+        if (currentFloorIndex < new_floor_index) {
+            // Shift down all floors between the current index and the new index
+            const shiftDownQuery = `
           UPDATE floor
           SET floor_index = floor_index - 1
           WHERE home_id = $1 AND floor_index > $2 AND floor_index <= $3
         `;
-        await client.query(shiftDownQuery, [home_id, currentFloorIndex, new_floor_index]);
-      } else if (currentFloorIndex > new_floor_index) {
-        // Shift up all floors between the current index and the new index
-        const shiftUpQuery = `
+            await client.query(shiftDownQuery, [home_id, currentFloorIndex, new_floor_index]);
+        } else if (currentFloorIndex > new_floor_index) {
+            // Shift up all floors between the current index and the new index
+            const shiftUpQuery = `
           UPDATE floor
           SET floor_index = floor_index + 1
           WHERE home_id = $1 AND floor_index >= $3 AND floor_index < $2
         `;
-        await client.query(shiftUpQuery, [home_id, currentFloorIndex, new_floor_index]);
-      }
-  
-      // Update the floor_index for the specified floor
-      const updateFloorQuery = `
+            await client.query(shiftUpQuery, [home_id, currentFloorIndex, new_floor_index]);
+        }
+
+        // Update the floor_index for the specified floor
+        const updateFloorQuery = `
         UPDATE floor
         SET floor_index = $1, last_modified = CURRENT_TIMESTAMP
         WHERE id = $2 AND home_id = $3
       `;
-      await client.query(updateFloorQuery, [new_floor_index, floorId, home_id]);
-  
-      // Commit the transaction
-      await client.query('COMMIT');
-      res.status(200).json({ message: 'Floor index updated successfully.' });
+        await client.query(updateFloorQuery, [new_floor_index, floorId, home_id]);
+
+        // Commit the transaction
+        await client.query('COMMIT');
+        res.status(200).json({ message: 'Floor index updated successfully.' });
     } catch (err) {
-      console.error(err.message);
-      res.status(500).json({ error: 'Internal server error.' });
+        console.error(err.message);
+        res.status(500).json({ error: 'Internal server error.' });
     }
-  });
+});
 //Update Floor
 homeapp.put('/app/update/floors/:id',
     // validateJwt,
@@ -536,12 +536,12 @@ homeapp.put('/app/update/floors/:id',
 homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
     const client = await db.connect();
     try {
-        const floor_id=req.params.floor_id
-        const user_id=req.user.id||req.body.user_id
-        const {  order } = req.body; // order is an array of { room_id, orderIndex }
+        const floor_id = req.params.floor_id
+        const user_id = req.user.id || req.body.user_id
+        const { order } = req.body; // order is an array of { room_id, orderIndex }
 
         // Validate input
-        if ( !floor_id || !Array.isArray(order)) {
+        if (!floor_id || !Array.isArray(order)) {
             return res.status(400).json({ error: 'user_id, floor_id, and order array are required' });
         }
 
@@ -557,7 +557,7 @@ homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
              floor_id = $2 AND room_id = $3
         `;
         for (const { room_id, orderIndex } of order) {
-            await client.query(updateQuery, [orderIndex,  floor_id, room_id]);
+            await client.query(updateQuery, [orderIndex, floor_id, room_id]);
         }
 
         await client.query('COMMIT'); // Commit the transaction
@@ -576,147 +576,147 @@ homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
 homeapp.delete('/app/delete/floors/:id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const floorId = req.params.id; // Extract floor ID from the request URL
+    async (req, res) => {
+        try {
+            const floorId = req.params.id; // Extract floor ID from the request URL
 
-        // Delete query with parameterized input
-        const query = 'DELETE FROM floor WHERE id = $1';
+            // Delete query with parameterized input
+            const query = 'DELETE FROM floor WHERE id = $1';
 
-        // Execute the query
-        const result = await db.query(query, [floorId]);
+            // Execute the query
+            const result = await db.query(query, [floorId]);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ message: 'Floor not found' });
+            if (result.rowCount === 0) {
+                return res.status(404).json({ message: 'Floor not found' });
+            }
+
+            res.status(200).json({ message: 'Floor deleted successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while deleting the floor' });
         }
-
-        res.status(200).json({ message: 'Floor deleted successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while deleting the floor' });
-    }
-});
+    });
 
 // ADD Room
-homeapp.post('/app/add/room/:floor_id', 
+homeapp.post('/app/add/room/:floor_id',
     // validateJwt,
     // authorizeRoles('customer'),
-    upload.single('image'), 
+    upload.single('image'),
     async (req, res) => {
-    try {
-        const floor_id = req.params.floor_id;
-        const { name, alias_name } = req.body; // Include `user_id` in the request body
-        const user_id=req.user?.id||req.body.user_id;
-        // Validate input
-        if (!floor_id || !name) {
-            return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
-        }
+        try {
+            const floor_id = req.params.floor_id;
+            const { name, alias_name } = req.body; // Include `user_id` in the request body
+            const user_id = req.user?.id || req.body.user_id;
+            // Validate input
+            if (!floor_id || !name) {
+                return res.status(400).json({ error: 'floor_id, name, and user_id are required' });
+            }
 
-        // Placeholder for S3 file upload (if needed in the future)
-        let fileUrl = null;
-        if (req.file) {
-            const file=req.file
-            const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
-            const params = {
-                Bucket: process.env.S3_BUCKET_NAME,
-                Key: fileKey,
-                Body: file.buffer,
-                ContentType: file.mimetype,
-                // ACL: 'public-read', // Make the file publicly readable
-            };
+            // Placeholder for S3 file upload (if needed in the future)
+            let fileUrl = null;
+            if (req.file) {
+                const file = req.file
+                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+                const params = {
+                    Bucket: process.env.S3_BUCKET_NAME,
+                    Key: fileKey,
+                    Body: file.buffer,
+                    ContentType: file.mimetype,
+                    // ACL: 'public-read', // Make the file publicly readable
+                };
 
-            const uploadResult = await s3.upload(params).promise();
-            fileUrl = uploadResult.Location; // S3 file URL
-        }; // Implement S3 upload logic here and set fileUrl accordingly
+                const uploadResult = await s3.upload(params).promise();
+                fileUrl = uploadResult.Location; // S3 file URL
+            }; // Implement S3 upload logic here and set fileUrl accordingly
 
-        // Start a database transaction
-        await db.query('BEGIN');
+            // Start a database transaction
+            await db.query('BEGIN');
 
-        // Calculate the next orderIndex for this user and floor
-        const getOrderIndexQuery = `
+            // Calculate the next orderIndex for this user and floor
+            const getOrderIndexQuery = `
             SELECT COALESCE(MAX(orderIndex), 0) + 1 AS nextOrderIndex
             FROM UserRoomOrder
             WHERE floor_id = $1 AND user_id = $2
         `;
-        const orderIndexResult = await db.query(getOrderIndexQuery, [floor_id, user_id]);
-        const nextOrderIndex = orderIndexResult.rows[0].nextorderindex; // Get the next available orderIndex
+            const orderIndexResult = await db.query(getOrderIndexQuery, [floor_id, user_id]);
+            const nextOrderIndex = orderIndexResult.rows[0].nextorderindex; // Get the next available orderIndex
 
-        // Insert query for the room
-        const roomQuery = `
+            // Insert query for the room
+            const roomQuery = `
             INSERT INTO room (floor_id, name, alias_name, image_url, home_id) 
             VALUES ($1, $2, $3, $4, $5) 
             RETURNING id
         `;
 
-        const roomValues = [
-            floor_id,
-            name,
-            alias_name || null, // Optional field
-            fileUrl, // Replace with actual file URL if integrating S3
-            null // Replace with actual home_id if available
-        ];
+            const roomValues = [
+                floor_id,
+                name,
+                alias_name || null, // Optional field
+                fileUrl, // Replace with actual file URL if integrating S3
+                null // Replace with actual home_id if available
+            ];
 
-        const roomResult = await db.query(roomQuery, roomValues);
-        const roomId = roomResult.rows[0].id; // Retrieve the ID of the inserted row
+            const roomResult = await db.query(roomQuery, roomValues);
+            const roomId = roomResult.rows[0].id; // Retrieve the ID of the inserted row
 
-        // Insert query for UserRoomOrder
-        const userRoomOrderQuery = `
+            // Insert query for UserRoomOrder
+            const userRoomOrderQuery = `
             INSERT INTO UserRoomOrder (user_id, floor_id, room_id, orderIndex) 
             VALUES ($1, $2, $3, $4)
         `;
 
-        const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
+            const userRoomOrderValues = [user_id, floor_id, roomId, nextOrderIndex];
 
-        await db.query(userRoomOrderQuery, userRoomOrderValues);
-         // Insert query for sharedaccess table
-         const sharedAccessQuery = `
+            await db.query(userRoomOrderQuery, userRoomOrderValues);
+            // Insert query for sharedaccess table
+            const sharedAccessQuery = `
          INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
          VALUES ($1, $2, $3, $4, $5, $6)
      `;
 
-     const sharedAccessValues = [
-         user_id,            // Owner's ID
-         null,               // No email required for the owner
-         roomId,             // Room ID
-         'room',             // Entity type
-         'admin',            // Owner gets 'admin' access
-         'accepted'          // Automatically accepted for the owner
-     ];
+            const sharedAccessValues = [
+                user_id,            // Owner's ID
+                null,               // No email required for the owner
+                roomId,             // Room ID
+                'room',             // Entity type
+                'admin',            // Owner gets 'admin' access
+                'accepted'          // Automatically accepted for the owner
+            ];
 
-     await db.query(sharedAccessQuery, sharedAccessValues);
-        // Commit the transaction
-        await db.query('COMMIT');
+            await db.query(sharedAccessQuery, sharedAccessValues);
+            // Commit the transaction
+            await db.query('COMMIT');
 
-        // Respond with success message and inserted room ID
-        res.status(201).json({
-            message: 'Room added successfully',
-            roomId: roomId
-        });
-    } catch (error) {
-        // Rollback the transaction in case of an error
-        await db.query('ROLLBACK');
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while adding the room' });
-    }
-});
+            // Respond with success message and inserted room ID
+            res.status(201).json({
+                message: 'Room added successfully',
+                roomId: roomId
+            });
+        } catch (error) {
+            // Rollback the transaction in case of an error
+            await db.query('ROLLBACK');
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while adding the room' });
+        }
+    });
 
 // Display room
-homeapp.get('/app/display/rooms/:floor_id', 
+homeapp.get('/app/display/rooms/:floor_id',
     // validateJwt,
     // authorizeRoles('customer'), 
     async (req, res) => {
-    try {
-        const floorId = req.params.floor_id; // Extract floor ID from the request URL
-        // const { user_id } = req.query; // Assume user_id is passed as a query parameter
+        try {
+            const floorId = req.params.floor_id; // Extract floor ID from the request URL
+            // const { user_id } = req.query; // Assume user_id is passed as a query parameter
 
-        // Validate input
-        if (!floorId ) {
-            return res.status(400).json({ error: 'floor_id and user_id are required' });
-        }
+            // Validate input
+            if (!floorId) {
+                return res.status(400).json({ error: 'floor_id and user_id are required' });
+            }
 
-        // Query to fetch rooms based on UserRoomOrder orderIndex
-        // AND uro.user_id = $2
-        const query = `
+            // Query to fetch rooms based on UserRoomOrder orderIndex
+            // AND uro.user_id = $2
+            const query = `
             SELECT r.*
             FROM room r
             INNER JOIN UserRoomOrder uro
@@ -725,22 +725,22 @@ homeapp.get('/app/display/rooms/:floor_id',
             ORDER BY uro.orderIndex ASC
         `;
 
-        // Execute the query
-        const result = await db.query(query, [floorId]);
+            // Execute the query
+            const result = await db.query(query, [floorId]);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No rooms found for this floor and user' });
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'No rooms found for this floor and user' });
+            }
+
+            res.status(200).json({
+                message: 'Rooms retrieved successfully',
+                rooms: result.rows
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while retrieving rooms' });
         }
-
-        res.status(200).json({
-            message: 'Rooms retrieved successfully',
-            rooms: result.rows
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while retrieving rooms' });
-    }
-});
+    });
 //change room from floor to other floor
 homeapp.put('/api/room/:room_id/change-floor/:floor_id', async (req, res) => {
     const client = await db.connect();
@@ -808,96 +808,96 @@ homeapp.put('/app/update/rooms/:id',
     // validateJwt,
     // authorizeRoles('customer'), 
     upload.single('image'), async (req, res) => {
-    try {
-        const roomId = req.params.id; // Extract room ID from the request URL
-        const { name, alias_name } = req.body; // Extract fields from the request body
-        const file = req.file; // Extract the uploaded file
+        try {
+            const roomId = req.params.id; // Extract room ID from the request URL
+            const { name, alias_name } = req.body; // Extract fields from the request body
+            const file = req.file; // Extract the uploaded file
 
-        // Validate input
-        if (!name && !alias_name && !file) {
-            return res.status(400).json({ error: 'At least one of name, alias_name, or image must be provided' });
-        }
+            // Validate input
+            if (!name && !alias_name && !file) {
+                return res.status(400).json({ error: 'At least one of name, alias_name, or image must be provided' });
+            }
 
-        let fileUrl;
-        if (file) {
-            // Define S3 upload parameters
-            const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
-            const params = {
-                Bucket: process.env.S3_BUCKET_NAME,
-                Key: fileKey,
-                Body: file.buffer,
-                ContentType: file.mimetype,
-                // ACL: 'public-read', // Make the file publicly readable
-            };
+            let fileUrl;
+            if (file) {
+                // Define S3 upload parameters
+                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+                const params = {
+                    Bucket: process.env.S3_BUCKET_NAME,
+                    Key: fileKey,
+                    Body: file.buffer,
+                    ContentType: file.mimetype,
+                    // ACL: 'public-read', // Make the file publicly readable
+                };
 
-            // Upload file to S3
-            const uploadResult = await s3.upload(params).promise();
-            fileUrl = uploadResult.Location;
-        }
+                // Upload file to S3
+                const uploadResult = await s3.upload(params).promise();
+                fileUrl = uploadResult.Location;
+            }
 
-        // Build dynamic query
-        const updates = [];
-        const values = [];
+            // Build dynamic query
+            const updates = [];
+            const values = [];
 
-        if (name) {
-            updates.push('name = $' + (values.length + 1));
-            values.push(name);
-        }
-        if (alias_name) {
-            updates.push('alias_name = $' + (values.length + 1));
-            values.push(alias_name);
-        }
-        if (fileUrl) {
-            updates.push('image_url = $' + (values.length + 1));
-            values.push(fileUrl);
-        }
+            if (name) {
+                updates.push('name = $' + (values.length + 1));
+                values.push(name);
+            }
+            if (alias_name) {
+                updates.push('alias_name = $' + (values.length + 1));
+                values.push(alias_name);
+            }
+            if (fileUrl) {
+                updates.push('image_url = $' + (values.length + 1));
+                values.push(fileUrl);
+            }
 
-        values.push(roomId); // Add room ID for WHERE clause
+            values.push(roomId); // Add room ID for WHERE clause
 
-        const query = `
+            const query = `
             UPDATE room
             SET ${updates.join(', ')}
             WHERE id = $${values.length}
         `;
 
-        // Execute the query
-        const result = await db.query(query, values);
+            // Execute the query
+            const result = await db.query(query, values);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Room not found or no changes made' });
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Room not found or no changes made' });
+            }
+
+            res.status(200).json({ message: 'Room updated successfully' });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while updating the room' });
         }
-
-        res.status(200).json({ message: 'Room updated successfully' });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while updating the room' });
-    }
-});
+    });
 
 //Delete Room
 homeapp.delete('/app/delete/room/:id',
     // validateJwt,
     // authorizeRoles('customer'),
-     async (req, res) => {
-    try {
-        const roomId = req.params.id; // Get the room ID from the URL parameter
+    async (req, res) => {
+        try {
+            const roomId = req.params.id; // Get the room ID from the URL parameter
 
-        // Delete query with parameterized input
-        const query = 'DELETE FROM room WHERE id = $1';
+            // Delete query with parameterized input
+            const query = 'DELETE FROM room WHERE id = $1';
 
-        // Execute the query
-        const result = await db.query(query, [roomId]);
+            // Execute the query
+            const result = await db.query(query, [roomId]);
 
-        if (result.rowCount === 0) {
-            return res.status(404).json({ error: 'Room not found' }); // No room with the specified ID
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'Room not found' }); // No room with the specified ID
+            }
+
+            res.status(200).json({ message: 'Room deleted successfully' }); // Success response
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while deleting the room' });
         }
-
-        res.status(200).json({ message: 'Room deleted successfully' }); // Success response
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'An error occurred while deleting the room' });
-    }
-});
+    });
 
 // share access to customer with macAddress and securityKey
 homeapp.post('/api/access/customer/:roomid',
@@ -907,7 +907,7 @@ homeapp.post('/api/access/customer/:roomid',
         const client = await db.connect(); // Get a client from the db
         try {
             const roomid = req.params.roomid;
-            const user_id = req.user?.id||req.body.userid; // Replace with actual user ID
+            const user_id = req.user?.id || req.body.userid; // Replace with actual user ID
             const { securitykey, serialno } = req.body;
 
             await client.query('BEGIN'); // Start a transaction
@@ -1050,13 +1050,13 @@ homeapp.post('/api/access/customer/:roomid',
 
 homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
     const client = await db.connect(); // Get a client from the database pool
-    
-    
+
+
     try {
         const roomid = parseInt(req.params.roomid, 10);
         const thingid = parseInt(req.params.thingid, 10);
         const user_id = parseInt(req.user?.id || req.body.userid); // Fetch the user ID dynamically from authentication context
-        
+
         console.log("roomid:", roomid);
         console.log("thingid:", thingid);
         console.log("user_id:", user_id);
@@ -1081,7 +1081,7 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(404).json({ message: "No access found for the specified thing in the room" });
         }
-         console.log(roomid, thingid)
+        console.log(roomid, thingid)
         const deleteRoomDeviceQuery = `
             DELETE FROM room_device
             WHERE room_id = $1 AND device_id IN (
@@ -1089,7 +1089,7 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
             );
         `;
         await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
-      
+
         const deleteUserDevicesOrderQuery = `
             DELETE FROM UserDevicesorder
             WHERE roomid = $1 AND device_id IN (
@@ -1119,7 +1119,7 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
         client.release();
     }
 });
- 
+
 //reorder devices in an room
 homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
     const client = await db.connect();
@@ -1136,7 +1136,7 @@ homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
             WHERE roomid = $2 AND device_id = $3
         `;
         for (const { device_id, orderIndex } of order) {
-            await client.query(updateQuery, [orderIndex,roomid, device_id]);
+            await client.query(updateQuery, [orderIndex, roomid, device_id]);
         }
 
         await client.query('COMMIT');
@@ -1152,10 +1152,10 @@ homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
 
 //change device to other rooms
 homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
-    const { device_id,newroomid } = req.params;
+    const { device_id, newroomid } = req.params;
     // const { newroomid } = req.body;
-    
-    const new_room_id=newroomid;
+
+    const new_room_id = newroomid;
     // Validate input
     if (!new_room_id) {
         return res.status(400).json({ error: "new_room_id is required" });
@@ -1338,7 +1338,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 });
 
 //add device to favorite
-homeapp.put('/api/device/favorite/:deviceid', 
+homeapp.put('/api/device/favorite/:deviceid',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {
@@ -1368,7 +1368,7 @@ homeapp.put('/api/device/favorite/:deviceid',
 
 //diplay favorite devices
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-    const { userId } = req.params||req.user;
+    const { userId } = req.params || req.user;
 
     try {
         const devices = await db
@@ -1387,9 +1387,9 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
 
 //Scene
 // 1. Create a Scene
-homeapp.post('/app/add/scenes/:userid', upload.single('icon'),async (req, res) => {
-    const user_id =req.params.userid
-    const  createdBy=req.user?.username || req.body.createdBy
+homeapp.post('/app/add/scenes/:userid', upload.single('icon'), async (req, res) => {
+    const user_id = req.params.userid
+    const createdBy = req.user?.username || req.body.createdBy
     const { name, aliasName, type } = req.body;
     const file = req.file;
     try {
@@ -1413,7 +1413,7 @@ homeapp.post('/app/add/scenes/:userid', upload.single('icon'),async (req, res) =
         const result = await db.query(
             `INSERT INTO Scenes (name, aliasName, createdBy, icon,  type, user_id)
              VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-            [name, aliasName, createdBy, iconUrl, type,user_id]
+            [name, aliasName, createdBy, iconUrl, type, user_id]
         );
         res.status(201).json(result.rows[0]);
     } catch (error) {
@@ -1426,7 +1426,7 @@ homeapp.get('/app/display/scenes/:userid', async (req, res) => {
     try {
         const { userid } = req.params;
         const result = await db.query('SELECT * FROM Scenes WHERE user_id = $1', [userid]);
-        
+
         res.status(200).json(result.rows);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1624,12 +1624,12 @@ homeapp.delete('/api/delete/scene_devices/:id', async (req, res) => {
 
 // 1. Create a new SceneEvent
 homeapp.post('/api/scene-events', async (req, res) => {
-    const { sceneId, deviceId, action,datatime} = req.body;
+    const { sceneId, deviceId, action, datatime } = req.body;
 
     try {
         const result = await db.query(
             `INSERT INTO SceneEvent (sceneId, deviceId, action,eventTime) VALUES ($1, $2, $3,$4) RETURNING *`,
-            [sceneId, deviceId, action,datatime]
+            [sceneId, deviceId, action, datatime]
         );
         res.status(201).json({
             message: 'SceneEvent created successfully',
@@ -1726,7 +1726,7 @@ homeapp.get('/api/scene-events/scene/:sceneId', async (req, res) => {
 //     }
 // );
 
-homeapp.get('/api/display/device/rooms/:roomid', 
+homeapp.get('/api/display/device/rooms/:roomid',
     // validateJwt,
     // authorizeRoles('customer'),
     async (req, res) => {
@@ -1763,19 +1763,19 @@ homeapp.get('/api/display/device/rooms/:roomid',
 // homeapp.put('/api/update/devices/:id', async (req, res) => {
 //     const { id } = req.params; // Get device ID from the URL
 //     const { name, icon,newroomid } = req.body; // Get the updated name and icon from the request body
-  
+
 //     // Ensure at least one field is provided
 //     if (!name && !icon) {
 //       return res.status(400).json({ error: 'At least one of name or icon must be provided' });
 //     }
-  
+
 //     try {
 //       // Dynamically build the query based on available fields
 //       const fields = [];
 //       const values = [];
 //       let query = 'UPDATE Devices SET ';
 //       let paramIndex = 1;
-  
+
 //       if (name) {
 //         fields.push(`name = $${paramIndex++}`);
 //         values.push(name);
@@ -1784,27 +1784,27 @@ homeapp.get('/api/display/device/rooms/:roomid',
 //         fields.push(`icon = $${paramIndex++}`);
 //         values.push(icon);
 //       }
-  
+
 //       // Add lastModified field and WHERE condition
 //       fields.push(`lastModified = CURRENT_TIMESTAMP`);
 //       query += fields.join(', ') + ` WHERE id = $${paramIndex} RETURNING *`;
 //       values.push(id);
-  
+
 //       // Execute the update query
 //       const result = await db.query(query, values);
-  
+
 //       // Check if a device was updated
 //       if (result.rowCount === 0) {
 //         return res.status(404).json({ error: 'Device not found' });
 //       }
-  
+
 //       res.status(200).json({ message: 'Device updated successfully', device: result.rows[0] });
 //     } catch (error) {
 //       console.error('Error updating device:', error);
 //       res.status(500).json({ error: 'Internal Server Error' });
 //     }
 //   });
-  
+
 homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
     const device_id = req.params.deviceid; // Get device ID from the URL
     const { name, icon, newroomid } = req.body; // Get the fields to update from the request body
@@ -1905,106 +1905,107 @@ homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
 homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
     const deviceId = req.params.deviceId;
     const { enable } = req.body;
-  
+
     if (typeof enable !== 'boolean') {
-      return res.status(400).json({ error: "The 'enable' field must be a boolean." });
+        return res.status(400).json({ error: "The 'enable' field must be a boolean." });
     }
-  
+
     try {
-      const query = `
+        const query = `
         UPDATE Devices
         SET enable = $1, lastModified = CURRENT_TIMESTAMP
         WHERE id = $2
         RETURNING *;
       `;
-      const values = [enable, deviceId];
-      const result = await db.query(query, values);
-  
-      if (result.rowCount === 0) {
-        return res.status(404).json({ error: 'Device not found.' });
-      }
-  
-      res.json({
-        message: 'Device updated successfully.',
-        device: result.rows[0],
-      });
+        const values = [enable, deviceId];
+        const result = await db.query(query, values);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Device not found.' });
+        }
+
+        res.json({
+            message: 'Device updated successfully.',
+            device: result.rows[0],
+        });
     } catch (error) {
-      console.error('Error updating device:', error);
-      res.status(500).json({ error: 'Internal server error.' });
+        console.error('Error updating device:', error);
+        res.status(500).json({ error: 'Internal server error.' });
     }
-  });
+});
 
 homeapp.get("/api/display/user",
     validateJwt,
-    authorizeRoles('admin', 'dealer','staff','customer'),
-     async (req, res) => {
-    const userId = req.user.id ;
-    const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
-  
-    try {
-      const result = await db.query(fetchUserQuery, [userId]);
-  
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: "User not found." });
-      }
-  
-      res.status(200).json(result.rows[0]);
-    } catch (error) {
-      console.error("Error fetching user by ID:", error);
-      res.status(500).json({ error: "Failed to fetch user by ID." });
-    }
-  });
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        console.log(`display user==${req.user}`)
+        const userId = req.user.id;
+        const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
+
+        try {
+            const result = await db.query(fetchUserQuery, [userId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: "User not found." });
+            }
+
+            res.status(200).json(result.rows[0]);
+        } catch (error) {
+            console.error("Error fetching user by ID:", error);
+            res.status(500).json({ error: "Failed to fetch user by ID." });
+        }
+    });
 homeapp.post("/api/users/profile-pic",
     validateJwt,
-    authorizeRoles('admin', 'dealer','staff','customer'),
-     upload.single("profilepic"), async (req, res) => {
-    console.log(req.user)
-    const { userId } = req.user.id;
-    console.log(userId)
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
-  
-    try {
-      // Generate unique file name
-      const fileExtension = path.extname(req.file.originalname);
-      const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
-      
-      // Upload file to S3
-      const params = {
-        Bucket: process.env.S3_BUCKET_NAME,
-        Key: fileName,
-        Body: req.file.buffer,
-        ContentType: req.file.mimetype,
-        // ACL: "public-read", // Makes the file publicly accessible
-      };
-  
-      const s3Response = await s3.upload(params).promise();
-  
-      // Get the S3 URL
-      const profilePicUrl = s3Response.Location;
-  
-      // Update profile picture in the database
-      const query = `
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    upload.single("profilepic"), async (req, res) => {
+        console.log(`profilepic changeing===${req.user}`)
+        const { userId } = req.user.id;
+        console.log(userId)
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        try {
+            // Generate unique file name
+            const fileExtension = path.extname(req.file.originalname);
+            const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
+
+            // Upload file to S3
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileName,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype,
+                // ACL: "public-read", // Makes the file publicly accessible
+            };
+
+            const s3Response = await s3.upload(params).promise();
+
+            // Get the S3 URL
+            const profilePicUrl = s3Response.Location;
+
+            // Update profile picture in the database
+            const query = `
         UPDATE Users
         SET profilePic = $1, lastModified = CURRENT_TIMESTAMP
         WHERE id = $2
       `;
-      await db.query(query, [profilePicUrl, userId]);
-  
-      res.status(200).json({
-        message: "Profile picture updated successfully",
-        profilePic: profilePicUrl,
-      });
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      res.status(500).json({ error: "Failed to upload and update profile picture" });
-    }
-  });
+            await db.query(query, [profilePicUrl, userId]);
+
+            res.status(200).json({
+                message: "Profile picture updated successfully",
+                profilePic: profilePicUrl,
+            });
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            res.status(500).json({ error: "Failed to upload and update profile picture" });
+        }
+    });
 // 1. Add a new FCM token
 homeapp.post('/api/register/fcmtoken', async (req, res) => {
-    const {  fcmToken } = req.body;
-    const {userId}=req.user?.id || req.body.id
+    const { fcmToken } = req.body;
+    const { userId } = req.user?.id || req.body.id
 
     try {
         const result = await db.query(
@@ -2107,7 +2108,7 @@ homeapp.delete('/api/notifications/:notificationId', async (req, res) => {
 homeapp.post('/app/share/access', async (req, res) => {
     try {
         const { entity_id, entity_type, shared_with_user_email, access_type } = req.body;
-        const user_id = req.user?.id||req.body.userid;
+        const user_id = req.user?.id || req.body.userid;
 
         if (!entity_id || !entity_type || !shared_with_user_email || !access_type) {
             return res.status(400).json({ error: 'All fields are required' });
@@ -2133,7 +2134,7 @@ homeapp.post('/app/share/access', async (req, res) => {
 });
 
 
-homeapp.get('/app/shared/access',  async (req, res) => {
+homeapp.get('/app/shared/access', async (req, res) => {
     try {
         const { user_id, email } = req.user || req.query; // Retrieve user details from req.user or fallback to req.body
 
@@ -2190,7 +2191,7 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
             to: email,
             subject: 'You have been shared access',
             text: `You have been shared access to an entity in the Home App. Click the link below to accept or reject the request:\n\n` +
-                  `http://yourapp.com/accept-share/${shareRequestId}`
+                `http://yourapp.com/accept-share/${shareRequestId}`
         });
 
         console.log('Email sent: ' + info.response);
@@ -2231,10 +2232,10 @@ homeapp.get('/accept-share/:shareRequestId', async (req, res) => {
     }
 });
 
-homeapp.post('/app/revoke/access',async (req, res) => {
+homeapp.post('/app/revoke/access', async (req, res) => {
     try {
         const { share_id } = req.body; // The ID of the shared access record to revoke
-        const user_id = req.user?.id||req.body.userid; // The ID of the user performing the action
+        const user_id = req.user?.id || req.body.userid; // The ID of the user performing the action
 
         // Validate input
         if (!share_id) {
@@ -2275,7 +2276,7 @@ homeapp.post('/app/revoke/access',async (req, res) => {
 
 homeapp.delete('/app/shared/access/:shareId', async (req, res) => {
     try {
-        const { id: userId} = req.user||req.body; // Get user details from the authenticated user
+        const { id: userId } = req.user || req.body; // Get user details from the authenticated user
         const { shareId } = req.params; // Get the shareId from the URL parameter
 
         if (!shareId) {
@@ -2359,4 +2360,4 @@ homeapp.post('/app/update/access/status', async (req, res) => {
 });
 
 
-module.exports=homeapp;
+module.exports = homeapp;
