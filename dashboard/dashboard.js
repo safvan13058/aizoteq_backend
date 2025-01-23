@@ -20,7 +20,7 @@ dashboard.get('/api/users/count',
   validateJwt,
   authorizeRoles('admin', 'dealers'),
   async (req, res) => {
-    console.log("working count")
+    console.log(`working count${req.user}`)
     try {
       const result = await db.query('SELECT COUNT(*) AS user_count FROM Users');
       res.json({ user_count: result.rows[0].user_count });
