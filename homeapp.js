@@ -1959,8 +1959,8 @@ homeapp.get("/api/display/user",
         }
     });
 homeapp.post("/api/users/:userid/profile-pic",
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     upload.single("profilepic"), 
     async (req, res) => {
         console.log(`profilepic changeing===${req.user}`)
