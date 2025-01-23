@@ -4,7 +4,7 @@ const db = require('./middlewares/dbconnection');
 const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
-const bodyParser = require('body-parser');
+
 homeapp.use(bodyParser.json({ limit: '10mb' }));
 homeapp.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -1958,12 +1958,13 @@ homeapp.get("/api/display/user",
             res.status(500).json({ error: "Failed to fetch user by ID." });
         }
     });
-homeapp.post("/api/users/profile-pic",
+homeapp.post("/api/users/:userid/profile-pic",
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    upload.single("profilepic"), async (req, res) => {
+    upload.single("profilepic"), 
+    async (req, res) => {
         console.log(`profilepic changeing===${req.user}`)
-        const  userId  = req.user.id;
+        const  userId  = req.user.id||req.params.userid
         console.log(`change pic id${userId}`)
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
