@@ -546,64 +546,124 @@ testapp.get('/api/adminstock/search/:model',
 });
 
 // update status of adminstoke
-testapp.put("/api/update_adminstock/status/:thingId", 
-     // validateJwt,
-    // authorizeRoles("admin", "staff"), 
-    async (req, res) => {
-        console.log(req.body)
-    const  {thingId} =req.params
+// testapp.put("/api/update_adminstock/status/:thingId", 
+//      // validateJwt,
+//     // authorizeRoles("admin", "staff"), 
+//     async (req, res) => {
+//         console.log(req.body)
+//     const  {thingId} =req.params
+//     const { status } = req.body;
+//     const  fixedBy= req.user?.username ||req.body.fixedBy;
+  
+//     // Input validation
+//     if (!thingId || !status || !fixedBy) {
+//       return res.status(400).json({ error: "thingId, status, and fixedBy are required" });
+//     }
+  
+//     const client = await db.connect(); // Connect to the database
+//     try {
+//       // Start a transaction
+//       await client.query("BEGIN");
+  
+//       // Update the status in AdminStock
+//       const updateAdminStockQuery = `
+//         UPDATE AdminStock
+//         SET status = $1
+//         WHERE thingId = $2
+//       `;
+//       const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
+  
+//       if (adminStockResult.rowCount === 0) {
+//         throw new Error("No matching record found in AdminStock for the given thingId");
+//       }
+  
+//       // Update the fixed_by column in TestFailedDevices
+//       const updateTestFailedDevicesQuery = `
+//         UPDATE TestFailedDevices
+//         SET fixed_by = $1
+//         WHERE thingId = $2
+//       `;
+//       const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
+  
+//       if (testFailedDevicesResult.rowCount === 0) {
+//         throw new Error("No matching record found in TestFailedDevices for the given thingId");
+//       }
+  
+//       // Commit the transaction
+//       await client.query("COMMIT");
+  
+//       res.status(200).json({
+//         message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
+//       });
+//     } catch (err) {
+//       // Rollback the transaction in case of an error
+//       await client.query("ROLLBACK");
+//       console.error("Error:", err.message);
+//       res.status(500).json({ error: "An error occurred", details: err.message });
+//     } finally {
+//       client.release(); // Release the client back to the pool
+//     }
+//   });
+testapp.put("/api/update_adminstock/status/:macAddress", async (req, res) => {
+    const { macAddress } = req.params;
     const { status } = req.body;
-    const  fixedBy= req.user?.username ||req.body.fixedBy;
-  
+    const fixedBy = req.user?.username || req.body.fixedBy;
+
     // Input validation
-    if (!thingId || !status || !fixedBy) {
-      return res.status(400).json({ error: "thingId, status, and fixedBy are required" });
+    if (!status || !fixedBy) {
+        return res.status(400).json({ error: "status and fixedBy are required" });
     }
-  
-    const client = await db.connect(); // Connect to the database
+
+    const client = await db.connect();
     try {
-      // Start a transaction
-      await client.query("BEGIN");
-  
-      // Update the status in AdminStock
-      const updateAdminStockQuery = `
-        UPDATE AdminStock
-        SET status = $1
-        WHERE thingId = $2
-      `;
-      const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
-  
-      if (adminStockResult.rowCount === 0) {
-        throw new Error("No matching record found in AdminStock for the given thingId");
-      }
-  
-      // Update the fixed_by column in TestFailedDevices
-      const updateTestFailedDevicesQuery = `
-        UPDATE TestFailedDevices
-        SET fixed_by = $1
-        WHERE thingId = $2
-      `;
-      const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
-  
-      if (testFailedDevicesResult.rowCount === 0) {
-        throw new Error("No matching record found in TestFailedDevices for the given thingId");
-      }
-  
-      // Commit the transaction
-      await client.query("COMMIT");
-  
-      res.status(200).json({
-        message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
-      });
+        await client.query("BEGIN"); // Start transaction
+
+        // Fetch thingId based on macAddress
+        const thingQuery = `SELECT id FROM things WHERE macaddress = $1`;
+        const thingResult = await client.query(thingQuery, [macAddress]);
+        const thingId = thingResult.rows[0]?.id;
+
+        if (!thingId) {
+            await client.query("ROLLBACK"); // Rollback transaction
+            return res.status(404).json({ error: "No matching record found for the provided macAddress" });
+        }
+
+        // Update status in AdminStock
+        const updateAdminStockQuery = `
+            UPDATE AdminStock
+            SET status = $1
+            WHERE thingId = $2
+        `;
+        const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
+
+        if (adminStockResult.rowCount === 0) {
+            throw new Error("No matching record found in AdminStock for the given thingId");
+        }
+
+        // Update fixed_by in TestFailedDevices
+        const updateTestFailedDevicesQuery = `
+            UPDATE TestFailedDevices
+            SET fixed_by = $1
+            WHERE thingId = $2
+        `;
+        const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
+
+        if (testFailedDevicesResult.rowCount === 0) {
+            throw new Error("No matching record found in TestFailedDevices for the given thingId");
+        }
+
+        await client.query("COMMIT"); // Commit transaction
+        res.status(200).json({
+            message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
+        });
     } catch (err) {
-      // Rollback the transaction in case of an error
-      await client.query("ROLLBACK");
-      console.error("Error:", err.message);
-      res.status(500).json({ error: "An error occurred", details: err.message });
+        await client.query("ROLLBACK"); // Rollback transaction on error
+        console.error("Error:", err.message);
+        res.status(500).json({ error: "An error occurred", details: err.message });
     } finally {
-      client.release(); // Release the client back to the pool
+        client.release(); // Release DB client
     }
-  });
+});
 
 testapp.get('/api/recent/adminstock/activities', async (req, res) => {
     try {

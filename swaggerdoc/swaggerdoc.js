@@ -292,85 +292,198 @@ const Swaggerdoc = {
         }
       }
     },
-"/api/update_adminstock/status/{thingid}": {
-      "put": {
-        "tags": ["Test APP APIs"],
-        "summary": "Update AdminStock status and TestFailedDevices fixed_by",
-        "description": "This endpoint updates the status in AdminStock and the fixed_by field in TestFailedDevices for a given thingId.",
-        "parameters": [
-          {
-            "name": "thingid",
-            "in": "path",
-            "required": true,
-            "description": "The ID of the thing to update",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
+// "/api/update_adminstock/status/{thingid}": {
+//       "put": {
+//         "tags": ["Test APP APIs"],
+//         "summary": "Update AdminStock status and TestFailedDevices fixed_by",
+//         "description": "This endpoint updates the status in AdminStock and the fixed_by field in TestFailedDevices for a given thingId.",
+//         "parameters": [
+//           {
+//             "name": "thingid",
+//             "in": "path",
+//             "required": true,
+//             "description": "The ID of the thing to update",
+//             "schema": {
+//               "type": "integer"
+//             }
+//           }
+//         ],
+//         "requestBody": {
+//           "required": true,
+//           "content": {
+//             "application/json": {
+//               "schema": {
+//                 "type": "object",
+//                 "properties": {
+//                   "status": {
+//                     "type": "string",
+//                     "enum": ["new", "returned", "rework", "exchange"]
+//                   },
+//                   "fixedBy": {
+//                     "type": "string"
+//                   }
+//                 },
+//                 "required": ["status", "fixedBy"]
+//               }
+//             }
+//           }
+//         },
+//         "responses": {
+//           "200": {
+//             "description": "Successfully updated AdminStock status and TestFailedDevices fixed_by",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": {
+//                       "type": "string"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "400": {
+//             "description": "Bad Request - Missing required parameters",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "error": {
+//                       "type": "string"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "500": {
+//             "description": "Internal Server Error - An error occurred while updating",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "error": {
+//                       "type": "string"
+//                     },
+//                     "details": {
+//                       "type": "string"
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+//     },
+"/api/update_adminstock/status/{macAddress}": {
+        "put": {
+          "tags": ["Test APP APIs"],
+          "summary": "Update AdminStock status and TestFailedDevices fixed_by",
+          "description": "This endpoint updates the status in AdminStock and the fixed_by field in TestFailedDevices for a given macAddress.",
+          "parameters": [
+            {
+              "name": "macAddress",
+              "in": "path",
+              "required": true,
+              "description": "The MAC address of the thing to update",
               "schema": {
-                "type": "object",
-                "properties": {
-                  "status": {
-                    "type": "string",
-                    "enum": ["new", "returned", "rework", "exchange"]
-                  },
-                  "fixedBy": {
-                    "type": "string"
-                  }
-                },
-                "required": ["status", "fixedBy"]
+                "type": "string",
+                "example": "001A2B3C4D5E"
               }
             }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successfully updated AdminStock status and TestFailedDevices fixed_by",
+          ],
+          "requestBody": {
+            "required": true,
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing required parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error - An error occurred while updating",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
+                    "status": {
+                      "type": "string",
+                      "enum": ["new", "returned", "rework", "exchange"],
+                      "description": "The new status to set in AdminStock",
+                      "example": "returned"
                     },
-                    "details": {
-                      "type": "string"
+                    "fixedBy": {
+                      "type": "string",
+                      "description": "The username of the person fixing the device",
+                      "example": "john_doe"
+                    }
+                  },
+                  "required": ["status", "fixedBy"]
+                }
+              }
+            }
+          },
+          "responses": {
+            "200": {
+              "description": "Successfully updated AdminStock status and TestFailedDevices fixed_by",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "message": {
+                        "type": "string",
+                        "example": "AdminStock status and TestFailedDevices fixed_by updated successfully"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "400": {
+              "description": "Bad Request - Missing required parameters",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "status and fixedBy are required"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "404": {
+              "description": "Not Found - No matching record for the given macAddress",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "No matching record found for the provided macAddress"
+                      }
+                    }
+                  }
+                }
+              },
+            "500": {
+              "description": "Internal Server Error - An error occurred while updating",
+              "content": {
+                "application/json": {
+                  "schema": {
+                    "type": "object",
+                    "properties": {
+                      "error": {
+                        "type": "string",
+                        "example": "An error occurred"
+                      },
+                      "details": {
+                        "type": "string",
+                        "example": "No matching record found in AdminStock for the given thingId"
+                      }
                     }
                   }
                 }
@@ -380,7 +493,7 @@ const Swaggerdoc = {
         }
       }
     },
-
+    
 "/api/devices/{device_id}/change/{newroomid}": {
       "put": {
         "tags": ["device"],
