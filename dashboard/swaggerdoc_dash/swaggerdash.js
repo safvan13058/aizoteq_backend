@@ -773,7 +773,7 @@ const doc = {
         }
       }
     },
-    "/dashboard/api/display/party/{Party}": {
+    "/dashboard//{Party}": {
       "get": {
         "summary": "Retrieve account details for a Party",
         "description": "Fetch account details for a Party, optionally filtered by a search query.",

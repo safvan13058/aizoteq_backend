@@ -1570,58 +1570,58 @@ const Swaggerdoc = {
         }
       }
     },
-"/api/display/all/devices/{userId}": {
-      "get": {
-        "summary": "Display all devices with floor and room details",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer"
-            },
-            "description": "ID of the user"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of all devices with associated floor and room names",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "device_id": { "type": "integer" },
-                      "deviceId": { "type": "string" },
-                      "macAddress": { "type": "string" },
-                      "hubIndex": { "type": "string" },
-                      "createdBy": { "type": "string" },
-                      "enable": { "type": "boolean" },
-                      "status": { "type": "string" },
-                      "icon": { "type": "string" },
-                      "device_name": { "type": "string" },
-                      "device_type": { "type": "string" },
-                      "device_last_modified": { "type": "string", "format": "date-time" },
-                      "floor_name": { "type": "string" },
-                      "room_name": { "type": "string" }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "No devices found for the user"
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
+// "/api/display/all/devices/{userId}": {
+//       "get": {
+//         "summary": "Display all devices with floor and room details",
+//         "parameters": [
+//           {
+//             "name": "userId",
+//             "in": "path",
+//             "required": true,
+//             "schema": {
+//               "type": "integer"
+//             },
+//             "description": "ID of the user"
+//           }
+//         ],
+//         "responses": {
+//           "200": {
+//             "description": "List of all devices with associated floor and room names",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "array",
+//                   "items": {
+//                     "type": "object",
+//                     "properties": {
+//                       "device_id": { "type": "integer" },
+//                       "deviceId": { "type": "string" },
+//                       "macAddress": { "type": "string" },
+//                       "hubIndex": { "type": "string" },
+//                       "createdBy": { "type": "string" },
+//                       "enable": { "type": "boolean" },
+//                       "status": { "type": "string" },
+//                       "icon": { "type": "string" },
+//                       "device_name": { "type": "string" },
+//                       "device_type": { "type": "string" },
+//                       "device_last_modified": { "type": "string", "format": "date-time" },
+//                       "floor_name": { "type": "string" },
+//                       "room_name": { "type": "string" }
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "404": {
+//             "description": "No devices found for the user"
+//           },
+//           "500": {
+//             "description": "Internal Server Error"
+//           }
+//         }
+//       }
+//     },
 "/app/reorder/rooms/{floor_id}": {
       "put": {
         "tags":["Rooms"],
@@ -5112,51 +5112,132 @@ const Swaggerdoc = {
         }
     }
 },
-
 "/api/display/all/devices/{userId}": {
       "get": {
         "tags": ["device"],
-        "summary": "Get All Devices for a User",
-        "description": "Fetch all devices with their details, along with the floor and room they are located in, for a specific user.",
+        "summary": "Fetch all devices for a user",
+        "description": "Retrieve devices grouped by rooms for a specific user with optional pagination.",
         "parameters": [
           {
             "name": "userId",
             "in": "path",
             "required": true,
-            "description": "The ID of the user whose devices are being fetched.",
+            "description": "The ID of the user.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Number of devices to fetch per page. Defaults to 10.",
             "schema": {
               "type": "integer",
-              "example": 1
+              "default": 10
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of devices to skip. Defaults to 0.",
+            "schema": {
+              "type": "integer",
+              "default": 0
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "List of devices with full details.",
+            "description": "Successful response with rooms and their devices.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "device_id": { "type": "integer", "example": 1 },
-                      "deviceId": { "type": "string", "example": "ABC123" },
-                      "macAddress": { "type": "string", "example": "00:1B:44:11:3A:B7" },
-                      "hubIndex": { "type": "string", "example": "HUB01" },
-                      "createdBy": { "type": "string", "example": "admin" },
-                      "enable": { "type": "boolean", "example": true },
-                      "status": { "type": "string", "example": "new" },
-                      "icon": { "type": "string", "example": "thermostat.png" },
-                      "device_name": { "type": "string", "example": "Smart Thermostat" },
-                      "device_type": { "type": "string", "example": "Thermostat" },
-                      "device_last_modified": {
-                        "type": "string",
-                        "format": "date-time",
-                        "example": "2025-01-01T12:34:56"
-                      },
-                      "floor_name": { "type": "string", "example": "First Floor" },
-                      "room_name": { "type": "string", "example": "Living Room" }
+                  "type": "object",
+                  "properties": {
+                    "total_rooms": {
+                      "type": "integer",
+                      "description": "Total number of rooms returned."
+                    },
+                    "rooms": {
+                      "type": "array",
+                      "description": "List of rooms with their devices.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "room_name": {
+                            "type": "string",
+                            "description": "Name of the room."
+                          },
+                          "floor_name": {
+                            "type": "string",
+                            "description": "Name of the floor the room belongs to."
+                          },
+                          "floorid": {
+                            "type": "integer",
+                            "description": "ID of the floor."
+                          },
+                          "device_count": {
+                            "type": "integer",
+                            "description": "Number of devices in the room."
+                          },
+                          "devices": {
+                            "type": "array",
+                            "description": "List of devices in the room.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "device_id": {
+                                  "type": "integer",
+                                  "description": "Unique ID of the device."
+                                },
+                                "deviceId": {
+                                  "type": "string",
+                                  "description": "Device identifier."
+                                },
+                                "macAddress": {
+                                  "type": "string",
+                                  "description": "MAC address of the device."
+                                },
+                                "hubIndex": {
+                                  "type": "integer",
+                                  "description": "Hub index of the device."
+                                },
+                                "createdBy": {
+                                  "type": "integer",
+                                  "description": "ID of the user who created the device."
+                                },
+                                "enable": {
+                                  "type": "boolean",
+                                  "description": "Whether the device is enabled."
+                                },
+                                "status": {
+                                  "type": "string",
+                                  "description": "Current status of the device."
+                                },
+                                "icon": {
+                                  "type": "string",
+                                  "description": "Icon associated with the device."
+                                },
+                                "device_name": {
+                                  "type": "string",
+                                  "description": "Name of the device."
+                                },
+                                "device_type": {
+                                  "type": "string",
+                                  "description": "Type of the device."
+                                },
+                                "device_last_modified": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "description": "Timestamp of the last modification."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -5164,35 +5245,120 @@ const Swaggerdoc = {
             }
           },
           "404": {
-            "description": "No devices found for the user.",
+            "description": "No devices found for the specified user.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": { "type": "string", "example": "No devices found for this user." }
+                    "message": {
+                      "type": "string",
+                      "example": "No devices found for this user."
+                    }
                   }
                 }
               }
             }
           },
           "500": {
-            "description": "Internal Server Error.",
+            "description": "Internal server error.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "error": { "type": "string", "example": "Internal Server Error" }
+                    "error": {
+                      "type": "string",
+                      "example": "Internal Server Error"
+                    }
                   }
                 }
               }
             }
           }
-        },
-        "tags": ["Devices"]
+        }
       }
     },
+// "/api/display/all/devices/{userId}": {
+//       "get": {
+//         "tags": ["device"],
+//         "summary": "Get All Devices for a User",
+//         "description": "Fetch all devices with their details, along with the floor and room they are located in, for a specific user.",
+//         "parameters": [
+//           {
+//             "name": "userId",
+//             "in": "path",
+//             "required": true,
+//             "description": "The ID of the user whose devices are being fetched.",
+//             "schema": {
+//               "type": "integer",
+//               "example": 1
+//             }
+//           }
+//         ],
+//         "responses": {
+//           "200": {
+//             "description": "List of devices with full details.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "array",
+//                   "items": {
+//                     "type": "object",
+//                     "properties": {
+//                       "device_id": { "type": "integer", "example": 1 },
+//                       "deviceId": { "type": "string", "example": "ABC123" },
+//                       "macAddress": { "type": "string", "example": "00:1B:44:11:3A:B7" },
+//                       "hubIndex": { "type": "string", "example": "HUB01" },
+//                       "createdBy": { "type": "string", "example": "admin" },
+//                       "enable": { "type": "boolean", "example": true },
+//                       "status": { "type": "string", "example": "new" },
+//                       "icon": { "type": "string", "example": "thermostat.png" },
+//                       "device_name": { "type": "string", "example": "Smart Thermostat" },
+//                       "device_type": { "type": "string", "example": "Thermostat" },
+//                       "device_last_modified": {
+//                         "type": "string",
+//                         "format": "date-time",
+//                         "example": "2025-01-01T12:34:56"
+//                       },
+//                       "floor_name": { "type": "string", "example": "First Floor" },
+//                       "room_name": { "type": "string", "example": "Living Room" }
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "404": {
+//             "description": "No devices found for the user.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "message": { "type": "string", "example": "No devices found for this user." }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "500": {
+//             "description": "Internal Server Error.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "error": { "type": "string", "example": "Internal Server Error" }
+//                   }
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         "tags": ["Devices"]
+//       }
+//     },
 "/app/add/scenes/{userid}": {
       "post": {
         "summary": "Add a new scene",

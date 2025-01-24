@@ -1278,8 +1278,72 @@ homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
 //         res.status(500).json({ error: 'Internal Server Error' });
 //     }
 // });
+// homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
+//     const userId = req.params.userId;
+//     console.log('Fetching devices for userId:', userId);
+
+//     try {
+//         // Execute the query
+//         const result = await db.query(
+//             `
+//             SELECT DISTINCT
+//                 d.id AS device_id,
+//                 d.deviceId,
+//                 d.macAddress,
+//                 d.hubIndex,
+//                 d.createdBy,
+//                 d.enable,
+//                 d.status,
+//                 d.icon,
+//                 d.name AS device_name,
+//                 d.type AS device_type,
+//                 d.lastModified AS device_last_modified,
+//                 f.name AS floor_name,
+//                 r.name AS room_name,
+//                 r.id AS roomid,
+//                 f.id AS floorid
+//             FROM 
+//                 users u
+//             JOIN 
+//                 home h ON u.id = h.userid
+//             JOIN 
+//                 floor f ON h.id = f.home_id
+//             JOIN 
+//                 room r ON f.id = r.floor_id
+//             JOIN 
+//                 room_device rd ON r.id = rd.room_id
+//             JOIN 
+//                 devices d ON rd.device_id = d.deviceId
+//             WHERE 
+//                 u.id = $1
+//             ORDER BY 
+//                 f.name ASC,
+//                 r.name ASC;
+//             `,
+//             [userId] // Parameterized query
+//         );
+
+//         // Debug the result structure
+//         console.log('Query Result:', result);
+
+//         // Extract rows from the result object
+//         const rows = result.rows;
+
+//         if (!rows || rows.length === 0) {
+//             return res.status(404).json({ message: 'No devices found for this user.' });
+//         }
+
+//         res.status(200).json(rows);
+//     } catch (error) {
+//         console.error('Error fetching devices with full details:', { userId, error });
+//         res.status(500).json({ error: 'Internal Server Error' });
+//     }
+// });
 homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
     const userId = req.params.userId;
+    const limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
+    const offset = parseInt(req.query.offset) || 0; // Default offset to 0 if not provided
+
     console.log('Fetching devices for userId:', userId);
 
     try {
@@ -1318,9 +1382,10 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 u.id = $1
             ORDER BY 
                 f.name ASC,
-                r.name ASC;
+                r.name ASC
+            LIMIT $2 OFFSET $3;
             `,
-            [userId] // Parameterized query
+            [userId, limit, offset] // Parameterized query with limit and offset
         );
 
         // Debug the result structure
@@ -1333,7 +1398,32 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             return res.status(404).json({ message: 'No devices found for this user.' });
         }
 
-        res.status(200).json(rows);
+        // Group devices by room
+        const rooms = rows.reduce((acc, device) => {
+            const roomKey = device.roomid;
+            if (!acc[roomKey]) {
+                acc[roomKey] = {
+                    room_name: device.room_name,
+                    floor_name: device.floor_name,
+                    floorid: device.floorid,
+                    devices: [],
+                };
+            }
+            acc[roomKey].devices.push(device);
+            return acc;
+        }, {});
+
+        // Format rooms as an array with device count
+        const formattedRooms = Object.values(rooms).map((room) => ({
+            ...room,
+            device_count: room.devices.length,
+        }));
+
+        // Respond with paginated and formatted data
+        res.status(200).json({
+            total_rooms: formattedRooms.length,
+            rooms: formattedRooms,
+        });
     } catch (error) {
         console.error('Error fetching devices with full details:', { userId, error });
         res.status(500).json({ error: 'Internal Server Error' });
