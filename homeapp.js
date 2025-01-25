@@ -1513,13 +1513,12 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 
 //add device to favorite
 homeapp.put('/api/device/favorite/:deviceid',
-    // validateJwt,
-    // authorizeRoles('customer'),
+   
     async (req, res) => {
         const client = await db.connect(); // Get a client from the db
         try {
             const deviceid = req.params.deviceid;
-            const user_id = req.user.id; // Extract user ID from JWT middleware
+            const user_id = req.user?.id||req.body.userid; // Extract user ID from JWT middleware
 
             // Update the favorite status of the device for the user
             const updateFavoriteQuery = `

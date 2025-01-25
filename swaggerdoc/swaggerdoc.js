@@ -1820,8 +1820,26 @@ const Swaggerdoc = {
               "type": "string"
             },
             "description": "ID of the device"
-          }
+          },
+
         ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "userid": {
+                    "type": "string",
+                    "description": "The ID of the user marking the device as favorite (optional if handled via JWT).",
+                    "example": "34"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Device marked as favorite successfully"
