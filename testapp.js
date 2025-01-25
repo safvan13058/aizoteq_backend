@@ -152,7 +152,6 @@ testapp.post( "/app/addThing",
 
     // Handle AdminStock and Failed Devices if status is 'rework'
     if (status === 'rework') {
-
          // Validate failureReason
       if (!failureReason || typeof failureReason !== 'string' || failureReason.trim().length === 0) {
         return res.status(400).json({
@@ -216,6 +215,22 @@ testapp.post( "/app/addThing",
         }
     }
 );
+
+// API endpoint to get devices by thingId
+testapp.get('/api/devices/things/:thingId', async (req, res) => {
+  const { thingId } = req.params; // Extract thingId from the URL
+  try {
+    const result = await db.query('SELECT * FROM Devices WHERE thingId = $1', [thingId]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'No devices found for the given thingId' });
+    }
+    res.status(200).json(result.rows);
+  } catch (error) {
+    console.error('Error fetching devices:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
  //display all things     
  testapp.get('/api/display/things',
     // validateJwt,
