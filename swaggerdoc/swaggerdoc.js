@@ -4608,6 +4608,83 @@ const Swaggerdoc = {
     }
   }
 },
+"/api/devices/things/{thingId}": {
+      "get": {
+        "summary": "Get Devices by thingId",
+        "description": "Retrieve all devices associated with a specific thingId.",
+        "parameters": [
+          {
+            "name": "thingId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the thing associated with the devices.",
+            "schema": {
+              "type": "integer",
+              "example": 101
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of devices for the given thingId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "example": 1 },
+                      "thingId": { "type": "integer", "example": 101 },
+                      "deviceId": { "type": "string", "example": "device001" },
+                      "macAddress": { "type": "string", "example": "00:1A:2B:3C:4D:5E" },
+                      "hubIndex": { "type": "string", "example": "hub-01" },
+                      "createdBy": { "type": "string", "example": "admin" },
+                      "enable": { "type": "boolean", "example": true },
+                      "status": {
+                        "type": "string",
+                        "enum": ["new", "returned", "rework", "exchange"],
+                        "example": "new"
+                      },
+                      "icon": { "type": "string", "example": "icon.png" },
+                      "name": { "type": "string", "example": "Device 1" },
+                      "type": { "type": "string", "example": "Sensor" },
+                      "lastModified": { "type": "string", "format": "date-time", "example": "2025-01-01T12:00:00Z" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No devices found for the given thingId.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "No devices found for the given thingId" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string", "example": "Internal Server Error" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 // "/api/remove/access/{roomid}/{thingid}": {
 //       "delete": {
 //         "tags": ["Access"],
