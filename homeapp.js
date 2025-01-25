@@ -11,6 +11,77 @@ homeapp.use(express.urlencoded({ extended: true, limit: '10mb' }));
 homeapp.get('/homeapp', (req, res) => {
     res.send("homeapp working")
 });
+
+homeapp.get("/api/display/user",
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        console.log(`display user==${req.user}`)
+        const userId = req.user.id;
+        const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
+
+        try {
+            const result = await db.query(fetchUserQuery, [userId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: "User not found." });
+            }
+
+            res.status(200).json(result.rows[0]);
+        } catch (error) {
+            console.error("Error fetching user by ID:", error);
+            res.status(500).json({ error: "Failed to fetch user by ID." });
+        }
+    });
+homeapp.post("/api/users/profile-pic",
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    upload.single("profilepic"), 
+    async (req, res) => {
+        console.log(`Uploaded file size: ${req.file.size} bytes`);
+        // console.log(`profilepic changeing===${req.user}`)
+        const  userId  = req.user?.id||req.params.userid
+        console.log(`change pic id${userId}`)
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        try {
+            // Generate unique file name
+            const fileExtension = path.extname(req.file.originalname);
+            const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
+
+            // Upload file to S3
+            const params = {
+                Bucket: process.env.S3_BUCKET_NAME,
+                Key: fileName,
+                Body: req.file.buffer,
+                ContentType: req.file.mimetype,
+                // ACL: "public-read", // Makes the file publicly accessible
+            };
+
+            const s3Response = await s3.upload(params).promise();
+
+            // Get the S3 URL
+            const profilePicUrl = s3Response.Location;
+
+            // Update profile picture in the database
+            const query = `
+        UPDATE Users
+        SET profilePic = $1, lastModified = CURRENT_TIMESTAMP
+        WHERE id = $2
+      `;
+            await db.query(query, [profilePicUrl, userId]);
+
+            res.status(200).json({
+                message: "Profile picture updated successfully",
+                profilePic: profilePicUrl,
+            });
+        } catch (error) {
+            console.error("Error uploading file:", error);
+            res.status(500).json({ error: "Failed to upload and update profile picture" });
+        }
+    });
 //ADD home
 homeapp.post('/app/add/home/',
     // validateJwt,
@@ -925,6 +996,16 @@ homeapp.post('/api/access/customer/:roomid',
 
             const thing_id = verifyResult.rows[0].id;
             const key = verifyResult.rows[0].securitykey;
+
+            // // Check if the thing_id exists in `customerStock`
+            // const checkCustomerStockQuery = `
+            //     SELECT * FROM customerStock WHERE thingid = $1
+            // `;
+            // const customerStockResult = await client.query(checkCustomerStockQuery, [thing_id]);
+
+            // if (customerStockResult.rows.length === 0) {
+            //     return res.status(404).json({ message: "Thing not found in customer stock" });
+            // }
 
             // Insert into customer_access
             const insertAccessQuery = `
@@ -2027,76 +2108,7 @@ homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
     }
 });
 
-homeapp.get("/api/display/user",
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    async (req, res) => {
-        console.log(`display user==${req.user}`)
-        const userId = req.user.id;
-        const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
 
-        try {
-            const result = await db.query(fetchUserQuery, [userId]);
-
-            if (result.rows.length === 0) {
-                return res.status(404).json({ message: "User not found." });
-            }
-
-            res.status(200).json(result.rows[0]);
-        } catch (error) {
-            console.error("Error fetching user by ID:", error);
-            res.status(500).json({ error: "Failed to fetch user by ID." });
-        }
-    });
-homeapp.post("/api/users/profile-pic",
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    upload.single("profilepic"), 
-    async (req, res) => {
-        console.log(`Uploaded file size: ${req.file.size} bytes`);
-        // console.log(`profilepic changeing===${req.user}`)
-        const  userId  = req.user?.id||req.params.userid
-        console.log(`change pic id${userId}`)
-        if (!req.file) {
-            return res.status(400).json({ error: "No file uploaded" });
-        }
-
-        try {
-            // Generate unique file name
-            const fileExtension = path.extname(req.file.originalname);
-            const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
-
-            // Upload file to S3
-            const params = {
-                Bucket: process.env.S3_BUCKET_NAME,
-                Key: fileName,
-                Body: req.file.buffer,
-                ContentType: req.file.mimetype,
-                // ACL: "public-read", // Makes the file publicly accessible
-            };
-
-            const s3Response = await s3.upload(params).promise();
-
-            // Get the S3 URL
-            const profilePicUrl = s3Response.Location;
-
-            // Update profile picture in the database
-            const query = `
-        UPDATE Users
-        SET profilePic = $1, lastModified = CURRENT_TIMESTAMP
-        WHERE id = $2
-      `;
-            await db.query(query, [profilePicUrl, userId]);
-
-            res.status(200).json({
-                message: "Profile picture updated successfully",
-                profilePic: profilePicUrl,
-            });
-        } catch (error) {
-            console.error("Error uploading file:", error);
-            res.status(500).json({ error: "Failed to upload and update profile picture" });
-        }
-    });
 // 1. Add a new FCM token
 homeapp.post('/api/register/fcmtoken', async (req, res) => {
     const { fcmToken } = req.body;
