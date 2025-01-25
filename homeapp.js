@@ -611,7 +611,7 @@ homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
     const client = await db.connect();
     try {
         const floor_id = req.params.floor_id
-        const user_id = req.user.id || req.body.user_id
+        // const user_id = req.user.id || req.body.user_id
         const { order } = req.body; // order is an array of { room_id, orderIndex }
 
         // Validate input
