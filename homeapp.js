@@ -36,11 +36,11 @@ homeapp.get("/api/display/user",
 homeapp.post("/api/users/profile-pic",
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    upload.single("profilepic"), 
+    upload.single("profilepic"),
     async (req, res) => {
         console.log(`Uploaded file size: ${req.file.size} bytes`);
         // console.log(`profilepic changeing===${req.user}`)
-        const  userId  = req.user?.id||req.params.userid
+        const userId = req.user?.id || req.params.userid
         console.log(`change pic id${userId}`)
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
@@ -1512,32 +1512,62 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 });
 
 //add device to favorite
-homeapp.put('/api/device/favorite/:deviceid',
-   
-    async (req, res) => {
-        const client = await db.connect(); // Get a client from the db
-        try {
-            const deviceid = req.params.deviceid;
-            const user_id = req.user?.id||req.body.userid; // Extract user ID from JWT middleware
+// homeapp.put('/api/device/favorite/:deviceid',
 
-            // Update the favorite status of the device for the user
-            const updateFavoriteQuery = `
-                INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (user_id, device_id)
-                DO UPDATE SET favorite = EXCLUDED.favorite, last_modified = CURRENT_TIMESTAMP
-            `;
-            await client.query(updateFavoriteQuery, [user_id, deviceid, true]);
+//     async (req, res) => {
+//         const client = await db.connect(); // Get a client from the db
+//         try {
+//             const deviceid = req.params.deviceid;
+//             const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
 
-            res.status(200).json({ message: `Device ${deviceid} marked as favorite successfully.` });
-        } catch (error) {
-            console.error('Error updating favorite status:', error);
-            res.status(500).json({ message: 'An error occurred while updating favorite status.', error });
-        } finally {
-            client.release(); // Release the client back to the pool
-        }
+//             // Update the favorite status of the device for the user
+//             const updateFavoriteQuery = `
+//                INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+//                VALUES ($1, $2, $3)
+//                ON CONFLICT (user_id, device_id)
+//                DO NOTHING;
+    
+//                UPDATE UserFavoriteDevices
+//                SET favorite = $3, last_modified = CURRENT_TIMESTAMP
+//                 WHERE user_id = $1 AND device_id = $2;
+// `;
+//             await client.query(updateFavoriteQuery, [user_id, deviceid, true]);
+
+//             res.status(200).json({ message: `Device ${deviceid} marked as favorite successfully.` });
+//         } catch (error) {
+//             console.error('Error updating favorite status:', error);
+//             res.status(500).json({ message: 'An error occurred while updating favorite status.', error });
+//         } finally {
+//             client.release(); // Release the client back to the pool
+//         }
+//     }
+// );
+homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
+    const client = await db.connect(); // Get a client from the db
+    try {
+        const deviceid = req.params.deviceid;
+        const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
+
+        // Toggle the favorite status of the device for the user
+        const toggleFavoriteQuery = `
+            INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, device_id)
+            DO UPDATE 
+            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
+            WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
+              AND UserFavoriteDevices.favorite IS NOT NULL;
+        `;
+        await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+
+        res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
+    } catch (error) {
+        console.error('Error toggling favorite status:', error);
+        res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
+    } finally {
+        client.release(); // Release the client back to the pool
     }
-);
+});
 
 //diplay favorite devices
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
