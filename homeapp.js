@@ -1571,22 +1571,29 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 
 //diplay favorite devices
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-    const { userId } = req.params || req.user;
+    const { userId } = req.params;
+    const client = await db.connect();
 
     try {
-        const devices = await db
-            .select('d.*')
-            .from('Devices as d')
-            .join('UserFavoriteDevices as ufd', 'd.id', 'ufd.device_id')
-            .where('ufd.user_id', userId)
-            .andWhere('ufd.favorite', true);
+        const query = `
+            SELECT d.*
+            FROM Devices d
+            INNER JOIN UserFavoriteDevices ufd
+            ON d.id = ufd.device_id
+            WHERE ufd.user_id = $1
+            AND ufd.favorite = true;
+        `;
+        const result = await client.query(query, [userId]);
 
-        res.status(200).json({ success: true, data: devices });
+        res.status(200).json({ success: true, data: result.rows });
     } catch (error) {
         console.error('Error fetching favorite devices:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
+    } finally {
+        client.release();
     }
 });
+
 
 //Scene
 // 1. Create a Scene
