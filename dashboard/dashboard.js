@@ -4,7 +4,7 @@ const db = require('../middlewares/dbconnection');
 // const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
-const { s3, upload, uploads } = require('../middlewares/s3');
+const { s3, upload } = require('../middlewares/s3');
 const path = require('path');
 const multer = require("multer");
 const fs = require('fs');
@@ -2094,6 +2094,34 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+// Multer Disk Storage Configuration
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Create the directory if it doesn't exist
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const sanitizedOriginalName = file.originalname.replace(/\s+/g, "_"); // Replace spaces with underscores
+    cb(null, `${timestamp}-${sanitizedOriginalName}`);
+  },
+});
+
+// Multer Middleware for File Uploads
+const uploads = multer({
+  storage: diskStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG, and GIF formats are allowed"));
+    }
+    cb(null, true);
+  },
+});
 
 // Serve Static Files
 dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -2127,7 +2155,7 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
     }
 
     // Save local image file paths to the database
-    const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
+    const imagePaths = req.files.map((file) => `dashboard/uploads/${file.filename}`);
     const queries = imagePaths.map((filePath) =>
       db.query(
         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
