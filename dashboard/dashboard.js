@@ -2056,44 +2056,44 @@ dashboard.get('/test-image', (req, res) => {
 // Serve images from the "uploads" folder
 // dashboard.use('/uploads', express.static(path.join(__dirname,'/uploads')));
   // API to get images and features of a model by model_id
-// dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
-//   const { model_id } = req.params;
+dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+  const { model_id } = req.params;
 
-//   try {
-//     // Query to fetch features
-//     const featuresQuery = `
-//       SELECT feature 
-//       FROM model_features 
-//       WHERE model_id = $1;
-//     `;
-//     const featuresResult = await db.query(featuresQuery, [model_id]);
+  try {
+    // Query to fetch features
+    const featuresQuery = `
+      SELECT feature 
+      FROM model_features 
+      WHERE model_id = $1;
+    `;
+    const featuresResult = await db.query(featuresQuery, [model_id]);
 
-//     // Query to fetch image URLs
-//     const imagesQuery = `
-//       SELECT image_url 
-//       FROM model_features_image 
-//       WHERE model_id = $1;
-//     `;
-//     const imagesResult = await db.query(imagesQuery, [model_id]);
+    // Query to fetch image URLs
+    const imagesQuery = `
+      SELECT image_url 
+      FROM model_features_image 
+      WHERE model_id = $1;
+    `;
+    const imagesResult = await db.query(imagesQuery, [model_id]);
 
-//     // Combine results
-//     const features = featuresResult.rows.map(row => row.feature);
-//     const images = imagesResult.rows.map(row => row.image_url);
+    // Combine results
+    const features = featuresResult.rows.map(row => row.feature);
+    const images = imagesResult.rows.map(row => row.image_url);
 
-//     if (features.length === 0 && images.length === 0) {
-//       return res.status(404).json({ message: "No data found for the given model_id" });
-//     }
+    if (features.length === 0 && images.length === 0) {
+      return res.status(404).json({ message: "No data found for the given model_id" });
+    }
 
-//     res.json({
-//       model_id,
-//       features,
-//       images,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
+    res.json({
+      model_id,
+      features,
+      images,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 // Multer Disk Storage Configuration
 const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -2178,44 +2178,44 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
 
 
 // Example: Your existing API route
-dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
-  const { model_id } = req.params;
+// dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
+//   const { model_id } = req.params;
 
-  try {
-    // Query to fetch features
-    const featuresQuery = `
-      SELECT feature 
-      FROM model_features 
-      WHERE model_id = $1;
-    `;
-    const featuresResult = await db.query(featuresQuery, [model_id]);
+//   try {
+//     // Query to fetch features
+//     const featuresQuery = `
+//       SELECT feature 
+//       FROM model_features 
+//       WHERE model_id = $1;
+//     `;
+//     const featuresResult = await db.query(featuresQuery, [model_id]);
 
-    // Query to fetch image filenames (stored in 'uploads' directory)
-    const imagesQuery = `
-      SELECT image_url
-      FROM model_features_image 
-      WHERE model_id = $1;
-    `;
-    const imagesResult = await db.query(imagesQuery, [model_id]);
+//     // Query to fetch image filenames (stored in 'uploads' directory)
+//     const imagesQuery = `
+//       SELECT image_url
+//       FROM model_features_image 
+//       WHERE model_id = $1;
+//     `;
+//     const imagesResult = await db.query(imagesQuery, [model_id]);
 
-    // Combine results
-    const features = featuresResult.rows.map(row => row.feature);
-    const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
+//     // Combine results
+//     const features = featuresResult.rows.map(row => row.feature);
+//     const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
 
-    if (features.length === 0 && images.length === 0) {
-      return res.status(404).json({ message: "No data found for the given model_id" });
-    }
+//     if (features.length === 0 && images.length === 0) {
+//       return res.status(404).json({ message: "No data found for the given model_id" });
+//     }
 
-    res.json({
-      model_id,
-      features,
-      images,
-    });
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+//     res.json({
+//       model_id,
+//       features,
+//       images,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
 
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id", async (req, res) => {
