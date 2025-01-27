@@ -2105,7 +2105,7 @@ dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
 
     // Query to fetch image filenames (stored in 'uploads' directory)
     const imagesQuery = `
-      SELECT image_filename 
+      SELECT image_url
       FROM model_features_image 
       WHERE model_id = $1;
     `;
