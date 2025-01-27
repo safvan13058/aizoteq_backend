@@ -4,7 +4,7 @@ const db = require('../middlewares/dbconnection');
 // const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
-const { s3, upload } = require('../middlewares/s3');
+const { s3, upload,uploads } = require('../middlewares/s3');
 const path = require('path');
 const fs = require('fs');
 const { billing, returned } = require('./billing.js')
@@ -1903,21 +1903,7 @@ dashboard.delete('/api/delete/price_table/:id',
     }
   });
 
-  const store = multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = path.join(__dirname, "uploads");
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      cb(null, `${Date.now()}-${file.originalname}`);
-    },
-  });
-  
-  const uploads = multer({ store });
-    
+ 
 // dashboard.post("/api/upload-images/:model_id", upload.array("images", 5), async (req, res) => {
 //     const { model_id } = req.params;
   
