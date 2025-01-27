@@ -2048,6 +2048,12 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+dashboard.get('/test-image', (req, res) => {
+  res.sendFile(path.join(__dirname, 'uploads', '1737969595925-aizo1.jpg'));
+});
+// Serve images from the "uploads" folder
+dashboard.use('/uploads', express.static(path.join(__dirname, 'uploads')));
   // API to get images and features of a model by model_id
 dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
   const { model_id } = req.params;
@@ -2087,8 +2093,7 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-// Serve images from the "uploads" folder
-dashboard.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 // Example: Your existing API route
 // dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
