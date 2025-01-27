@@ -5287,95 +5287,182 @@ const Swaggerdoc = {
   }
 },
 
+// "/api/display/device/rooms/{roomid}": {
+//     get: {
+//         summary: "Fetch devices associated with a room",
+//         description: "Fetches all devices linked to the specified room by querying the `room_device` table and retrieving the device details.",
+//         tags: ["Devices", "Rooms"],
+//         parameters: [
+//             {
+//                 in: "path",
+//                 name: "roomid",
+//                 required: true,
+//                 description: "The ID of the room whose devices are to be fetched.",
+//                 schema: {
+//                     type: "integer"
+//                 }
+//             }
+//         ],
+//         responses: {
+//             200: {
+//                 description: "Devices successfully retrieved",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 devices: {
+//                                     type: "array",
+//                                     items: {
+//                                         type: "object",
+//                                         properties: {
+//                                             deviceid: {
+//                                                 type: "integer",
+//                                                 description: "The ID of the device"
+//                                             },
+//                                             // Add other device properties here
+//                                             name: {
+//                                                 type: "string",
+//                                                 description: "The name of the device"
+//                                             },
+//                                             type: {
+//                                                 type: "string",
+//                                                 description: "The type of the device"
+//                                             }
+//                                         }
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             404: {
+//                 description: "No devices found for the specified room",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "No devices found for this room."
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             },
+//             500: {
+//                 description: "Internal server error",
+//                 content: {
+//                     "application/json": {
+//                         schema: {
+//                             type: "object",
+//                             properties: {
+//                                 message: {
+//                                     type: "string",
+//                                     example: "An error occurred while fetching devices."
+//                                 },
+//                                 error: {
+//                                     type: "string",
+//                                     example: "Error details"
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+// },
 "/api/display/device/rooms/{roomid}": {
-    get: {
-        summary: "Fetch devices associated with a room",
-        description: "Fetches all devices linked to the specified room by querying the `room_device` table and retrieving the device details.",
-        tags: ["Devices", "Rooms"],
-        parameters: [
-            {
-                in: "path",
-                name: "roomid",
-                required: true,
-                description: "The ID of the room whose devices are to be fetched.",
-                schema: {
-                    type: "integer"
-                }
-            }
-        ],
-        responses: {
-            200: {
-                description: "Devices successfully retrieved",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                devices: {
-                                    type: "array",
-                                    items: {
-                                        type: "object",
-                                        properties: {
-                                            deviceid: {
-                                                type: "integer",
-                                                description: "The ID of the device"
-                                            },
-                                            // Add other device properties here
-                                            name: {
-                                                type: "string",
-                                                description: "The name of the device"
-                                            },
-                                            type: {
-                                                type: "string",
-                                                description: "The type of the device"
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            404: {
-                description: "No devices found for the specified room",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "No devices found for this room."
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            500: {
-                description: "Internal server error",
-                content: {
-                    "application/json": {
-                        schema: {
-                            type: "object",
-                            properties: {
-                                message: {
-                                    type: "string",
-                                    example: "An error occurred while fetching devices."
-                                },
-                                error: {
-                                    type: "string",
-                                    example: "Error details"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+  "get": {
+    "tags": ["device"],
+    "summary": "Get Devices for Room",
+    "description": "Fetch unique devices for a specific room, ordered by user-defined order index, and include the user's favorite status for each device.",
+    "parameters": [
+      {
+        "name": "roomid",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the room to fetch devices for.",
+        "schema": {
+          "type": "string"
         }
-    }
-},
+      }
+    ],
+    "requestBody": {
+      "required": true,
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": {
+              "userid": {
+                "type": "string",
+                "description": "The ID of the user making the request."
+              }
+            },
+            "required": ["userid"]
+          }
+        }
+      }
+    },
+    "responses": {
+      "200": {
+        "description": "A list of devices with favorite status.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "devices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "deviceid": { "type": "string" },
+                      "name": { "type": "string" },
+                      "favorite": { "type": "boolean" },
+                      "orderIndex": { "type": "integer" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "404": {
+        "description": "No devices found for the specified room.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "An error occurred while fetching devices.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "message": { "type": "string" },
+                "error": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }}},
 "/api/display/all/devices/{userId}": {
       "get": {
         "tags": ["device"],
