@@ -1595,22 +1595,76 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 // });
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
     const { userId } = req.params;
+    const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
     const client = await db.connect();
 
     try {
+        // Calculate offset for pagination
+        const offset = (page - 1) * limit;
+
         const query = `
             SELECT d.*, r.id AS room_id, r.name AS room_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
             ON d.id = ufd.device_id
+            LEFT JOIN room_device rd
+            ON d.deviceId = rd.device_id
             LEFT JOIN room r
-            ON d.room_id = r.id
+            ON rd.room_id = r.id
+            WHERE ufd.user_id = $1
+            AND ufd.favorite = true
+            LIMIT $2 OFFSET $3;
+        `;
+
+        const countQuery = `
+            SELECT COUNT(*) AS total
+            FROM Devices d
+            INNER JOIN UserFavoriteDevices ufd
+            ON d.id = ufd.device_id
+            LEFT JOIN room_device rd
+            ON d.deviceId = rd.device_id
+            LEFT JOIN room r
+            ON rd.room_id = r.id
             WHERE ufd.user_id = $1
             AND ufd.favorite = true;
         `;
-        const result = await client.query(query, [userId]);
 
-        res.status(200).json({ success: true, data: result.rows });
+        // Fetch the paginated data
+        const result = await client.query(query, [userId, limit, offset]);
+
+        // Fetch the total count
+        const countResult = await client.query(countQuery, [userId]);
+        const total = parseInt(countResult.rows[0].total, 10);
+
+        // Restructure the data to group devices by room
+        const rooms = {};
+        result.rows.forEach(row => {
+            const { room_id, room_name, ...device } = row;
+
+            if (!rooms[room_id]) {
+                rooms[room_id] = {
+                    room_id,
+                    room_name,
+                    devices: [],
+                };
+            }
+
+            rooms[room_id].devices.push(device);
+        });
+
+        // Convert the rooms object into an array
+        const roomArray = Object.values(rooms);
+
+        res.status(200).json({
+            success: true,
+            data: roomArray,
+            pagination: {
+                currentPage: parseInt(page, 10),
+                totalPages: Math.ceil(total / limit),
+                totalItems: total,
+                pageSize: parseInt(limit, 10),
+            },
+        });
     } catch (error) {
         console.error('Error fetching favorite devices:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
@@ -1618,6 +1672,8 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         client.release();
     }
 });
+
+
 
 
 //Scene
