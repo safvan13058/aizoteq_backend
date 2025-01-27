@@ -5390,25 +5390,18 @@ const Swaggerdoc = {
         "schema": {
           "type": "string"
         }
-      }
-    ],
-    "requestBody": {
-      "required": true,
-      "content": {
-        "application/json": {
-          "schema": {
-            "type": "object",
-            "properties": {
-              "userid": {
-                "type": "string",
-                "description": "The ID of the user making the request."
-              }
-            },
-            "required": ["userid"]
-          }
+      },
+      {
+        "name": "userid",
+        "in": "query",
+        "required": true,
+        "description": "The ID of the user making the request.",
+        "schema": {
+          "type": "string"
         }
       }
-    },
+    ],
+    
     "responses": {
       "200": {
         "description": "A list of devices with favorite status.",
@@ -5463,6 +5456,7 @@ const Swaggerdoc = {
         }
       }
     }}},
+    
 "/api/display/all/devices/{userId}": {
       "get": {
         "tags": ["device"],
