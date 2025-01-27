@@ -3183,7 +3183,7 @@ const Swaggerdoc = {
                             },
                         },
                         example: {
-                            name: "34",
+                          userid: "34",
                         },
                     },
                 },
