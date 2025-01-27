@@ -4,8 +4,9 @@ const db = require('../middlewares/dbconnection');
 // const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
-const { s3, upload,uploads } = require('../middlewares/s3');
+const { s3, upload } = require('../middlewares/s3');
 const path = require('path');
+const multer = require("multer");
 const fs = require('fs');
 const { billing, returned } = require('./billing.js')
 const { getThingBySerialNo, removeFromAdminStock, removeFromdealersStock, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel } = require("./functions.js");
@@ -2053,43 +2054,124 @@ dashboard.get('/test-image', (req, res) => {
   res.sendFile(path.join(__dirname, 'uploads', '1737969595925-aizo1.jpg'));
 });
 // Serve images from the "uploads" folder
-dashboard.use('/uploads', express.static(path.join(__dirname,'/uploads')));
+// dashboard.use('/uploads', express.static(path.join(__dirname,'/uploads')));
   // API to get images and features of a model by model_id
-dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+// dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+//   const { model_id } = req.params;
+
+//   try {
+//     // Query to fetch features
+//     const featuresQuery = `
+//       SELECT feature 
+//       FROM model_features 
+//       WHERE model_id = $1;
+//     `;
+//     const featuresResult = await db.query(featuresQuery, [model_id]);
+
+//     // Query to fetch image URLs
+//     const imagesQuery = `
+//       SELECT image_url 
+//       FROM model_features_image 
+//       WHERE model_id = $1;
+//     `;
+//     const imagesResult = await db.query(imagesQuery, [model_id]);
+
+//     // Combine results
+//     const features = featuresResult.rows.map(row => row.feature);
+//     const images = imagesResult.rows.map(row => row.image_url);
+
+//     if (features.length === 0 && images.length === 0) {
+//       return res.status(404).json({ message: "No data found for the given model_id" });
+//     }
+
+//     res.json({
+//       model_id,
+//       features,
+//       images,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
+// Multer Disk Storage Configuration
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true }); // Create the directory if it doesn't exist
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const sanitizedOriginalName = file.originalname.replace(/\s+/g, "_"); // Replace spaces with underscores
+    cb(null, `${timestamp}-${sanitizedOriginalName}`);
+  },
+});
+
+// Multer Middleware for File Uploads
+const uploads = multer({
+  storage: diskStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif"];
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Only JPEG, PNG, and GIF formats are allowed"));
+    }
+    cb(null, true);
+  },
+});
+
+// Serve Static Files
+dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// Image Upload Endpoint
+dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
+  console.log("Uploaded files:", req.files);
 
   try {
-    // Query to fetch features
-    const featuresQuery = `
-      SELECT feature 
-      FROM model_features 
-      WHERE model_id = $1;
-    `;
-    const featuresResult = await db.query(featuresQuery, [model_id]);
-
-    // Query to fetch image URLs
-    const imagesQuery = `
-      SELECT image_url 
-      FROM model_features_image 
-      WHERE model_id = $1;
-    `;
-    const imagesResult = await db.query(imagesQuery, [model_id]);
-
-    // Combine results
-    const features = featuresResult.rows.map(row => row.feature);
-    const images = imagesResult.rows.map(row => row.image_url);
-
-    if (features.length === 0 && images.length === 0) {
-      return res.status(404).json({ message: "No data found for the given model_id" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
 
-    res.json({
-      model_id,
-      features,
-      images,
+    // Check how many images already exist for this model_id
+    const { rows } = await db.query(
+      "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
+      [model_id]
+    );
+
+    const currentImageCount = parseInt(rows[0].image_count, 10);
+
+    if (currentImageCount >= 5) {
+      return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
+    }
+
+    // Determine how many new images can be uploaded
+    const availableSlots = 5 - currentImageCount;
+    if (req.files.length > availableSlots) {
+      return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
+    }
+
+    // Save local image file paths to the database
+    const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+    const queries = imagePaths.map((filePath) =>
+      db.query(
+        "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
+        [model_id, filePath]
+      )
+    );
+
+    console.log("Image paths to save:", imagePaths);
+    await Promise.all(queries);
+
+    res.status(200).json({
+      message: "Images uploaded successfully",
+      imagePaths,
     });
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error uploading images:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
