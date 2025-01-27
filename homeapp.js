@@ -1570,16 +1570,41 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 });
 
 //diplay favorite devices
+// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
+//     const { userId } = req.params;
+//     const client = await db.connect();
+
+//     try {
+//         const query = `
+//             SELECT d.*
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd
+//             ON d.id = ufd.device_id
+//             WHERE ufd.user_id = $1
+//             AND ufd.favorite = true;
+//         `;
+//         const result = await client.query(query, [userId]);
+
+//         res.status(200).json({ success: true, data: result.rows });
+//     } catch (error) {
+//         console.error('Error fetching favorite devices:', error);
+//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
+//     } finally {
+//         client.release();
+//     }
+// });
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
     const { userId } = req.params;
     const client = await db.connect();
 
     try {
         const query = `
-            SELECT d.*
+            SELECT d.*, r.id AS room_id, r.name AS room_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
             ON d.id = ufd.device_id
+            LEFT JOIN room r
+            ON d.room_id = r.id
             WHERE ufd.user_id = $1
             AND ufd.favorite = true;
         `;
