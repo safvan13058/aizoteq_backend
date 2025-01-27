@@ -1704,7 +1704,7 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
             FROM customer_access ca
             INNER JOIN Things t ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
             INNER JOIN Devices d ON d.thingId = t.id
-            WHERE ca.user_id = $1 AND d.deviceId = $2;
+            WHERE ca.user_id = $1 AND d.id = $2;
         `;
         
         const accessResult = await client.query(accessCheckQuery, [user_id, deviceid]);
