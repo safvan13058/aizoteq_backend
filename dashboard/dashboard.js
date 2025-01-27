@@ -1903,7 +1903,6 @@ dashboard.delete('/api/delete/price_table/:id',
     }
   });
 
- 
 // dashboard.post("/api/upload-images/:model_id", upload.array("images", 5), async (req, res) => {
 //     const { model_id } = req.params;
   
@@ -1931,6 +1930,7 @@ dashboard.delete('/api/delete/price_table/:id',
 //       res.status(500).json({ message: "Internal server error" });
 //     }
 //   });
+
 dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
   console.log("Uploaded files:", req.files);
@@ -2049,7 +2049,49 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
   }
 });
   // API to get images and features of a model by model_id
-dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+// dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+//   const { model_id } = req.params;
+
+//   try {
+//     // Query to fetch features
+//     const featuresQuery = `
+//       SELECT feature 
+//       FROM model_features 
+//       WHERE model_id = $1;
+//     `;
+//     const featuresResult = await db.query(featuresQuery, [model_id]);
+
+//     // Query to fetch image URLs
+//     const imagesQuery = `
+//       SELECT image_url 
+//       FROM model_features_image 
+//       WHERE model_id = $1;
+//     `;
+//     const imagesResult = await db.query(imagesQuery, [model_id]);
+
+//     // Combine results
+//     const features = featuresResult.rows.map(row => row.feature);
+//     const images = imagesResult.rows.map(row => row.image_url);
+
+//     if (features.length === 0 && images.length === 0) {
+//       return res.status(404).json({ message: "No data found for the given model_id" });
+//     }
+
+//     res.json({
+//       model_id,
+//       features,
+//       images,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
+// Serve images from the "uploads" folder
+dashboard.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Example: Your existing API route
+dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
   const { model_id } = req.params;
 
   try {
@@ -2061,9 +2103,9 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
     `;
     const featuresResult = await db.query(featuresQuery, [model_id]);
 
-    // Query to fetch image URLs
+    // Query to fetch image filenames (stored in 'uploads' directory)
     const imagesQuery = `
-      SELECT image_url 
+      SELECT image_filename 
       FROM model_features_image 
       WHERE model_id = $1;
     `;
@@ -2071,7 +2113,7 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
 
     // Combine results
     const features = featuresResult.rows.map(row => row.feature);
-    const images = imagesResult.rows.map(row => row.image_url);
+    const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
 
     if (features.length === 0 && images.length === 0) {
       return res.status(404).json({ message: "No data found for the given model_id" });
@@ -2087,13 +2129,14 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id", async (req, res) => {
   const featureId = parseInt(req.params.id);
 
   try {
     // Check if the feature exists
-    const featureResult = await pool.query(
+    const featureResult = await db.query(
       "SELECT * FROM model_features WHERE id = $1",
       [featureId]
     );
