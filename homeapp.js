@@ -1720,8 +1720,14 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             return res.status(403).json({ message: 'Access denied: You do not have permission to access any devices.' });
         }
 
-        // Ensure that all device IDs are strings
-        const accessibleDeviceIds = accessResult.rows.map(row => row.deviceId.toString());
+        // Ensure that all device IDs are strings and filter out undefined values
+        const accessibleDeviceIds = accessResult.rows
+            .map(row => row.deviceId ? row.deviceId.toString() : null)  // Convert to string or null if undefined
+            .filter(deviceId => deviceId !== null);  // Remove null values
+
+        if (accessibleDeviceIds.length === 0) {
+            return res.status(403).json({ message: 'Access denied: You do not have permission to favorite any devices.' });
+        }
 
         // Fetch favorite devices for the user, but only the ones they have access to
         const query = `
@@ -1796,6 +1802,7 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         client.release();
     }
 });
+
 
 
 
