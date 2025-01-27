@@ -1649,17 +1649,19 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 //         client.release();
 //     }
 // });
+
 homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
     const client = await db.connect(); // Get a client from the db
     try {
         const deviceid = req.params.deviceid;
         const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
 
-        // Check if the user has access to the device
+        // Check if the user has access to the device through Things table
         const accessCheckQuery = `
             SELECT 1 
             FROM customer_access ca
-            INNER JOIN Devices d ON ca.thing_id = d.thingId AND ca.securityKey = d.securityKey
+            INNER JOIN Things t ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
+            INNER JOIN Devices d ON d.thingId = t.id
             WHERE ca.user_id = $1 AND d.deviceId = $2;
         `;
         
@@ -1690,6 +1692,7 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
     }
 });
 
+
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
@@ -1699,46 +1702,59 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         // Calculate offset for pagination
         const offset = (page - 1) * limit;
 
+        // Check if the user has access to any devices by validating the Thing associated with the device
+        const accessCheckQuery = `
+            SELECT d.deviceId
+            FROM Devices d
+            INNER JOIN customer_access ca
+                ON ca.thing_id = d.thingId 
+                AND ca.securityKey = d.securityKey
+            WHERE ca.user_id = $1;
+        `;
+
+        const accessResult = await client.query(accessCheckQuery, [userId]);
+
+        if (accessResult.rowCount === 0) {
+            return res.status(403).json({ message: 'Access denied: You do not have permission to access any devices.' });
+        }
+
+        const accessibleDeviceIds = accessResult.rows.map(row => row.deviceId);
+
+        // Fetch favorite devices for the user, but only the ones they have access to
         const query = `
             SELECT d.*, r.id AS room_id, r.name AS room_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-                ON d.id = ufd.device_id
+                ON d.deviceId = ufd.device_id
             LEFT JOIN room_device rd
                 ON d.deviceId = rd.device_id
             LEFT JOIN room r
                 ON rd.room_id = r.id
-            INNER JOIN customer_access ca
-                ON ca.thing_id = d.thingId 
-                AND ca.securityKey = d.securityKey
             WHERE ufd.user_id = $1
                 AND ufd.favorite = true
-                AND ca.user_id = $1
-            LIMIT $2 OFFSET $3;
+                AND d.deviceId = ANY($2)
+            LIMIT $3 OFFSET $4;
         `;
 
+        // Fetch the total count of favorite devices that the user has access to
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-                ON d.id = ufd.device_id
+                ON d.deviceId = ufd.device_id
             LEFT JOIN room_device rd
                 ON d.deviceId = rd.device_id
             LEFT JOIN room r
                 ON rd.room_id = r.id
-            INNER JOIN customer_access ca
-                ON ca.thing_id = d.thingId 
-                AND ca.securityKey = d.securityKey
             WHERE ufd.user_id = $1
                 AND ufd.favorite = true
-                AND ca.user_id = $1;
+                AND d.deviceId = ANY($2);
         `;
 
-        // Fetch the paginated data
-        const result = await client.query(query, [userId, limit, offset]);
+        // Execute both queries
+        const result = await client.query(query, [userId, accessibleDeviceIds, limit, offset]);
+        const countResult = await client.query(countQuery, [userId, accessibleDeviceIds]);
 
-        // Fetch the total count
-        const countResult = await client.query(countQuery, [userId]);
         const total = parseInt(countResult.rows[0].total, 10);
 
         // Restructure the data to group devices by room
@@ -1777,6 +1793,7 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         client.release();
     }
 });
+
 
 
 //Scene
