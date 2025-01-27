@@ -1960,7 +1960,7 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
     // Save local image file paths to the database
     const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
     const queries = imagePaths.map((filePath) =>
-      pool.query(
+      db.query(
         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
         [model_id, filePath]
       )
