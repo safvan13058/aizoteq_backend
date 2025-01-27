@@ -1706,9 +1706,11 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         const accessCheckQuery = `
             SELECT d.deviceId
             FROM Devices d
+            INNER JOIN Things t
+                ON d.thingId = t.id
             INNER JOIN customer_access ca
                 ON ca.thing_id = d.thingId 
-                AND ca.securityKey = d.securityKey
+                AND ca.securityKey = t.securityKey
             WHERE ca.user_id = $1;
         `;
 
@@ -1793,6 +1795,7 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         client.release();
     }
 });
+
 
 
 
