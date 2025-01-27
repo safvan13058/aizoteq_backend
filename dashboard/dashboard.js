@@ -1965,7 +1965,9 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
         [model_id, filePath]
       )
+    
     );
+    console.log(`imagepaths:${imagePaths}`)
     await Promise.all(queries);
 
     res.status(200).json({
