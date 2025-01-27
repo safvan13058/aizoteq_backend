@@ -1702,68 +1702,38 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         // Calculate offset for pagination
         const offset = (page - 1) * limit;
 
-        // Check if the user has access to any devices by validating the Thing associated with the device
-        const accessCheckQuery = `
-            SELECT d.deviceId
-            FROM Devices d
-            INNER JOIN Things t
-                ON d.thingId = t.id
-            INNER JOIN customer_access ca
-                ON ca.thing_id = d.thingId 
-                AND ca.securityKey = t.securityKey
-            WHERE ca.user_id = $1;
-        `;
-
-        const accessResult = await client.query(accessCheckQuery, [userId]);
-
-        if (accessResult.rowCount === 0) {
-            return res.status(403).json({ message: 'Access denied: You do not have permission to access any devices.' });
-        }
-
-        // Ensure that all device IDs are strings and filter out undefined values
-        const accessibleDeviceIds = accessResult.rows
-            .map(row => row.deviceId ? row.deviceId.toString() : null)  // Convert to string or null if undefined
-            .filter(deviceId => deviceId !== null);  // Remove null values
-
-        if (accessibleDeviceIds.length === 0) {
-            return res.status(403).json({ message: 'Access denied: You do not have permission to favorite any devices.' });
-        }
-
-        // Fetch favorite devices for the user, but only the ones they have access to
         const query = `
             SELECT d.*, r.id AS room_id, r.name AS room_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-                ON d.deviceId = ufd.device_id
+            ON d.id = ufd.device_id
             LEFT JOIN room_device rd
-                ON d.deviceId = rd.device_id
+            ON d.deviceId = rd.device_id
             LEFT JOIN room r
-                ON rd.room_id = r.id
+            ON rd.room_id = r.id
             WHERE ufd.user_id = $1
-                AND ufd.favorite = true
-                AND d.deviceId = ANY($2)
-            LIMIT $3 OFFSET $4;
+            AND ufd.favorite = true
+            LIMIT $2 OFFSET $3;
         `;
 
-        // Fetch the total count of favorite devices that the user has access to
         const countQuery = `
             SELECT COUNT(*) AS total
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-                ON d.deviceId = ufd.device_id
+            ON d.id = ufd.device_id
             LEFT JOIN room_device rd
-                ON d.deviceId = rd.device_id
+            ON d.deviceId = rd.device_id
             LEFT JOIN room r
-                ON rd.room_id = r.id
+            ON rd.room_id = r.id
             WHERE ufd.user_id = $1
-                AND ufd.favorite = true
-                AND d.deviceId = ANY($2);
+            AND ufd.favorite = true;
         `;
 
-        // Execute both queries
-        const result = await client.query(query, [userId, accessibleDeviceIds, limit, offset]);
-        const countResult = await client.query(countQuery, [userId, accessibleDeviceIds]);
+        // Fetch the paginated data
+        const result = await client.query(query, [userId, limit, offset]);
 
+        // Fetch the total count
+        const countResult = await client.query(countQuery, [userId]);
         const total = parseInt(countResult.rows[0].total, 10);
 
         // Restructure the data to group devices by room
