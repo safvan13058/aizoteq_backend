@@ -1932,54 +1932,54 @@ dashboard.delete('/api/delete/price_table/:id',
 //     }
 //   });
 
-dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
-  const { model_id } = req.params;
-  console.log("Uploaded files:", req.files);
-  try {
+// dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
+//   const { model_id } = req.params;
+//   console.log("Uploaded files:", req.files);
+//   try {
 
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
-    }
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: "No files uploaded" });
+//     }
 
-    // Check how many images already exist for this model_id
-    const { rows } = await db.query(
-      "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
-      [model_id]
-    );
+//     // Check how many images already exist for this model_id
+//     const { rows } = await db.query(
+//       "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
+//       [model_id]
+//     );
 
-    const currentImageCount = parseInt(rows[0].image_count, 10);
+//     const currentImageCount = parseInt(rows[0].image_count, 10);
 
-    if (currentImageCount >= 5) {
-      return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
-    }
+//     if (currentImageCount >= 5) {
+//       return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
+//     }
 
-    // Determine how many new images can be uploaded
-    const availableSlots = 5 - currentImageCount;
-    if (req.files.length > availableSlots) {
-      return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
-    }
+//     // Determine how many new images can be uploaded
+//     const availableSlots = 5 - currentImageCount;
+//     if (req.files.length > availableSlots) {
+//       return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
+//     }
 
-    // Save local image file paths to the database
-    const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
-    const queries = imagePaths.map((filePath) =>
-      db.query(
-        "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
-        [model_id, filePath]
-      )
+//     // Save local image file paths to the database
+//     const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+//     const queries = imagePaths.map((filePath) =>
+//       db.query(
+//         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
+//         [model_id, filePath]
+//       )
     
-    );
-    console.log(`imagepaths:${imagePaths}`)
-    await Promise.all(queries);
+//     );
+//     console.log(`imagepaths:${imagePaths}`)
+//     await Promise.all(queries);
 
-    res.status(200).json({
-      message: "Images uploaded successfully",
-      imagePaths,
-    });
-  } catch (error) {
-    console.error("Error uploading images:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+//     res.status(200).json({
+//       message: "Images uploaded successfully",
+//       imagePaths,
+//     });
+//   } catch (error) {
+//     console.error("Error uploading images:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
  
 // API to add multiple features for a model
 dashboard.post("/api/add-features/:model_id", async (req, res) => {
@@ -2178,44 +2178,44 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
 
 
 // Example: Your existing API route
-// dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
-//   const { model_id } = req.params;
+dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
+  const { model_id } = req.params;
 
-//   try {
-//     // Query to fetch features
-//     const featuresQuery = `
-//       SELECT feature 
-//       FROM model_features 
-//       WHERE model_id = $1;
-//     `;
-//     const featuresResult = await db.query(featuresQuery, [model_id]);
+  try {
+    // Query to fetch features
+    const featuresQuery = `
+      SELECT feature 
+      FROM model_features 
+      WHERE model_id = $1;
+    `;
+    const featuresResult = await db.query(featuresQuery, [model_id]);
 
-//     // Query to fetch image filenames (stored in 'uploads' directory)
-//     const imagesQuery = `
-//       SELECT image_url
-//       FROM model_features_image 
-//       WHERE model_id = $1;
-//     `;
-//     const imagesResult = await db.query(imagesQuery, [model_id]);
+    // Query to fetch image filenames (stored in 'uploads' directory)
+    const imagesQuery = `
+      SELECT image_url
+      FROM model_features_image 
+      WHERE model_id = $1;
+    `;
+    const imagesResult = await db.query(imagesQuery, [model_id]);
 
-//     // Combine results
-//     const features = featuresResult.rows.map(row => row.feature);
-//     const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
+    // Combine results
+    const features = featuresResult.rows.map(row => row.feature);
+    const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
 
-//     if (features.length === 0 && images.length === 0) {
-//       return res.status(404).json({ message: "No data found for the given model_id" });
-//     }
+    if (features.length === 0 && images.length === 0) {
+      return res.status(404).json({ message: "No data found for the given model_id" });
+    }
 
-//     res.json({
-//       model_id,
-//       features,
-//       images,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
+    res.json({
+      model_id,
+      features,
+      images,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id", async (req, res) => {
