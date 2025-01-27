@@ -2055,7 +2055,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
         const client = await db.connect();
         try {
             const roomid = req.params.roomid;
-            const userId = req.user.id||req.query.userid; // Assuming user information is available in req.user
+            const userId = req.query.userid; // Assuming user information is available in req.user
 
             // Fetch unique devices for the room, ordered by orderIndex, and include favorite status
             const query = `
