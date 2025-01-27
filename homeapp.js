@@ -381,7 +381,7 @@ homeapp.post('/app/add/floor/:home_id',
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
-            const user_id=req.user.id||req.body.userid;
+            const user_id=req.user?.id||req.body.userid;
             const { index } = req.body; // Optional index from request body
 
             // Check if home_id is provided
