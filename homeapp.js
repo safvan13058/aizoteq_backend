@@ -433,7 +433,7 @@ homeapp.post('/app/add/floor/:home_id',
             const floorId = insertResult.rows[0].id;
             // Step 5: Insert the owner's details into the sharedaccess table
             const sharedAccessQuery = `
-             INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+             INSERT INTO sharedusers (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
              VALUES ($1, $2, $3, $4, $5, $6)
          `;
            
