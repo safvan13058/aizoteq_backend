@@ -1720,7 +1720,8 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             return res.status(403).json({ message: 'Access denied: You do not have permission to access any devices.' });
         }
 
-        const accessibleDeviceIds = accessResult.rows.map(row => row.deviceId);
+        // Ensure that all device IDs are strings
+        const accessibleDeviceIds = accessResult.rows.map(row => row.deviceId.toString());
 
         // Fetch favorite devices for the user, but only the ones they have access to
         const query = `
