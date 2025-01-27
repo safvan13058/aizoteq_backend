@@ -1887,6 +1887,7 @@ const Swaggerdoc = {
 //     },
 "/api/favorite-devices/{userId}": {
   "get": {
+    "tags": ["device"],
     "summary": "Get favorite devices grouped by room",
     "description": "Fetches the user's favorite devices grouped by room with pagination.",
     "parameters": [
