@@ -1519,32 +1519,32 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 //         }
 //     }
 // );
-homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
-    const client = await db.connect(); // Get a client from the db
-    try {
-        const deviceid = req.params.deviceid;
-        const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
+// homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
+//     const client = await db.connect(); // Get a client from the db
+//     try {
+//         const deviceid = req.params.deviceid;
+//         const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
 
-        // Toggle the favorite status of the device for the user
-        const toggleFavoriteQuery = `
-            INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
-            VALUES ($1, $2, $3)
-            ON CONFLICT (user_id, device_id)
-            DO UPDATE 
-            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
-            WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
-              AND UserFavoriteDevices.favorite IS NOT NULL;
-        `;
-        await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+//         // Toggle the favorite status of the device for the user
+//         const toggleFavoriteQuery = `
+//             INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+//             VALUES ($1, $2, $3)
+//             ON CONFLICT (user_id, device_id)
+//             DO UPDATE 
+//             SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
+//             WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
+//               AND UserFavoriteDevices.favorite IS NOT NULL;
+//         `;
+//         await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
 
-        res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
-    } catch (error) {
-        console.error('Error toggling favorite status:', error);
-        res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
-    } finally {
-        client.release(); // Release the client back to the pool
-    }
-});
+//         res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
+//     } catch (error) {
+//         console.error('Error toggling favorite status:', error);
+//         res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
+//     } finally {
+//         client.release(); // Release the client back to the pool
+//     }
+// });
 
 //diplay favorite devices
 // homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
@@ -1570,6 +1570,126 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 //         client.release();
 //     }
 // });
+// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
+//     const { userId } = req.params;
+//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+//     const client = await db.connect();
+
+//     try {
+//         // Calculate offset for pagination
+//         const offset = (page - 1) * limit;
+
+//         const query = `
+//             SELECT d.*, r.id AS room_id, r.name AS room_name
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd
+//             ON d.id = ufd.device_id
+//             LEFT JOIN room_device rd
+//             ON d.deviceId = rd.device_id
+//             LEFT JOIN room r
+//             ON rd.room_id = r.id
+//             WHERE ufd.user_id = $1
+//             AND ufd.favorite = true
+//             LIMIT $2 OFFSET $3;
+//         `;
+
+//         const countQuery = `
+//             SELECT COUNT(*) AS total
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd
+//             ON d.id = ufd.device_id
+//             LEFT JOIN room_device rd
+//             ON d.deviceId = rd.device_id
+//             LEFT JOIN room r
+//             ON rd.room_id = r.id
+//             WHERE ufd.user_id = $1
+//             AND ufd.favorite = true;
+//         `;
+
+//         // Fetch the paginated data
+//         const result = await client.query(query, [userId, limit, offset]);
+
+//         // Fetch the total count
+//         const countResult = await client.query(countQuery, [userId]);
+//         const total = parseInt(countResult.rows[0].total, 10);
+
+//         // Restructure the data to group devices by room
+//         const rooms = {};
+//         result.rows.forEach(row => {
+//             const { room_id, room_name, ...device } = row;
+
+//             if (!rooms[room_id]) {
+//                 rooms[room_id] = {
+//                     room_id,
+//                     room_name,
+//                     devices: [],
+//                 };
+//             }
+
+//             rooms[room_id].devices.push(device);
+//         });
+
+//         // Convert the rooms object into an array
+//         const roomArray = Object.values(rooms);
+
+//         res.status(200).json({
+//             success: true,
+//             data: roomArray,
+//             pagination: {
+//                 currentPage: parseInt(page, 10),
+//                 totalPages: Math.ceil(total / limit),
+//                 totalItems: total,
+//                 pageSize: parseInt(limit, 10),
+//             },
+//         });
+//     } catch (error) {
+//         console.error('Error fetching favorite devices:', error);
+//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
+//     } finally {
+//         client.release();
+//     }
+// });
+homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
+    const client = await db.connect(); // Get a client from the db
+    try {
+        const deviceid = req.params.deviceid;
+        const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
+
+        // Check if the user has access to the device
+        const accessCheckQuery = `
+            SELECT 1 
+            FROM customer_access ca
+            INNER JOIN Devices d ON ca.thing_id = d.thingId AND ca.securityKey = d.securityKey
+            WHERE ca.user_id = $1 AND d.deviceId = $2;
+        `;
+        
+        const accessResult = await client.query(accessCheckQuery, [user_id, deviceid]);
+
+        if (accessResult.rowCount === 0) {
+            return res.status(403).json({ message: 'Access denied: You do not have permission to favorite this device.' });
+        }
+
+        // Toggle the favorite status of the device for the user
+        const toggleFavoriteQuery = `
+            INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id, device_id)
+            DO UPDATE 
+            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
+            WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
+              AND UserFavoriteDevices.favorite IS NOT NULL;
+        `;
+        await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+
+        res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
+    } catch (error) {
+        console.error('Error toggling favorite status:', error);
+        res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
+    } finally {
+        client.release(); // Release the client back to the pool
+    }
+});
+
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
@@ -1583,13 +1703,17 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             SELECT d.*, r.id AS room_id, r.name AS room_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-            ON d.id = ufd.device_id
+                ON d.id = ufd.device_id
             LEFT JOIN room_device rd
-            ON d.deviceId = rd.device_id
+                ON d.deviceId = rd.device_id
             LEFT JOIN room r
-            ON rd.room_id = r.id
+                ON rd.room_id = r.id
+            INNER JOIN customer_access ca
+                ON ca.thing_id = d.thingId 
+                AND ca.securityKey = d.securityKey
             WHERE ufd.user_id = $1
-            AND ufd.favorite = true
+                AND ufd.favorite = true
+                AND ca.user_id = $1
             LIMIT $2 OFFSET $3;
         `;
 
@@ -1597,13 +1721,17 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             SELECT COUNT(*) AS total
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd
-            ON d.id = ufd.device_id
+                ON d.id = ufd.device_id
             LEFT JOIN room_device rd
-            ON d.deviceId = rd.device_id
+                ON d.deviceId = rd.device_id
             LEFT JOIN room r
-            ON rd.room_id = r.id
+                ON rd.room_id = r.id
+            INNER JOIN customer_access ca
+                ON ca.thing_id = d.thingId 
+                AND ca.securityKey = d.securityKey
             WHERE ufd.user_id = $1
-            AND ufd.favorite = true;
+                AND ufd.favorite = true
+                AND ca.user_id = $1;
         `;
 
         // Fetch the paginated data
