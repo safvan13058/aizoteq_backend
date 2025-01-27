@@ -1883,8 +1883,6 @@ dashboard.put('/api/update/price_table/:id',
       res.status(500).json({ error: 'Failed to update price entry' });
     }
   });
-
-
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id',
   validateJwt,
@@ -1905,6 +1903,224 @@ dashboard.delete('/api/delete/price_table/:id',
     }
   });
 
+  const store = multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(__dirname, "uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`);
+    },
+  });
+  
+  const uploads = multer({ store });
+    
+// dashboard.post("/api/upload-images/:model_id", upload.array("images", 5), async (req, res) => {
+//     const { model_id } = req.params;
+  
+//     try {
+//       if (!req.files || req.files.length === 0) {
+//         return res.status(400).json({ message: "No files uploaded" });
+//       }
+  
+//       // Save image URLs to the database
+//       const imageUrls = req.files.map((file) => file.location); // S3 public URLs
+//       const queries = imageUrls.map((url) =>
+//         pool.query(
+//           "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
+//           [model_id, url]
+//         )
+//       );
+//       await Promise.all(queries);
+  
+//       res.status(200).json({
+//         message: "Images uploaded successfully",
+//         imageUrls,
+//       });
+//     } catch (error) {
+//       console.error("Error uploading images:", error);
+//       res.status(500).json({ message: "Internal server error" });
+//     }
+//   });
+dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
+  const { model_id } = req.params;
+
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    // Check how many images already exist for this model_id
+    const { rows } = await db.query(
+      "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
+      [model_id]
+    );
+
+    const currentImageCount = parseInt(rows[0].image_count, 10);
+
+    if (currentImageCount >= 5) {
+      return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
+    }
+
+    // Determine how many new images can be uploaded
+    const availableSlots = 5 - currentImageCount;
+    if (req.files.length > availableSlots) {
+      return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
+    }
+
+    // Save local image file paths to the database
+    const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+    const queries = imagePaths.map((filePath) =>
+      pool.query(
+        "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
+        [model_id, filePath]
+      )
+    );
+    await Promise.all(queries);
+
+    res.status(200).json({
+      message: "Images uploaded successfully",
+      imagePaths,
+    });
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+ 
+// API to add multiple features for a model
+dashboard.post("/api/add-features/:model_id", async (req, res) => {
+  const { model_id } = req.params;
+  const { features } = req.body; // Expecting an array of features in the body
+
+  if (!features || !Array.isArray(features) || features.length === 0) {
+    return res.status(400).json({ message: "Invalid input. Provide an array of features." });
+  }
+
+  try {
+    // Insert features into the database
+    const queries = features.map((feature) =>
+      db.query(
+        "INSERT INTO model_features (model_id, feature) VALUES ($1, $2)",
+        [model_id, feature]
+      )
+    );
+
+    await Promise.all(queries);
+
+    res.status(201).json({
+      message: "Features added successfully",
+      model_id,
+      added_features: features,
+    });
+  } catch (error) {
+    console.error("Error adding features:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+// API to delete an image by its ID
+dashboard.delete("/api/delete-image/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    // Fetch the image_url from the database
+    const queryResult = await db.query(
+      "SELECT image_url FROM model_features_image WHERE id = $1",
+      [id]
+    );
+
+    if (queryResult.rows.length === 0) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    const imageUrl = queryResult.rows[0].image_url;
+
+    // Extract the S3 key from the image URL
+    const bucketName = "YOUR_BUCKET_NAME"; // Replace with your bucket name
+    const s3Key = imageUrl.split(`${bucketName}/`)[1];
+
+    // Delete the image from S3
+    await s3
+      .deleteObject({
+        Bucket: bucketName,
+        Key: s3Key,
+      })
+      .promise();
+
+    // Delete the database entry
+    await db.query("DELETE FROM model_features_image WHERE id = $1", [id]);
+
+    res.status(200).json({ message: "Image deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+  // API to get images and features of a model by model_id
+dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+  const { model_id } = req.params;
+
+  try {
+    // Query to fetch features
+    const featuresQuery = `
+      SELECT feature 
+      FROM model_features 
+      WHERE model_id = $1;
+    `;
+    const featuresResult = await db.query(featuresQuery, [model_id]);
+
+    // Query to fetch image URLs
+    const imagesQuery = `
+      SELECT image_url 
+      FROM model_features_image 
+      WHERE model_id = $1;
+    `;
+    const imagesResult = await db.query(imagesQuery, [model_id]);
+
+    // Combine results
+    const features = featuresResult.rows.map(row => row.feature);
+    const images = imagesResult.rows.map(row => row.image_url);
+
+    if (features.length === 0 && images.length === 0) {
+      return res.status(404).json({ message: "No data found for the given model_id" });
+    }
+
+    res.json({
+      model_id,
+      features,
+      images,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+// API endpoint to delete a feature by ID
+dashboard.delete("/delete-feature/:id", async (req, res) => {
+  const featureId = parseInt(req.params.id);
+
+  try {
+    // Check if the feature exists
+    const featureResult = await pool.query(
+      "SELECT * FROM model_features WHERE id = $1",
+      [featureId]
+    );
+
+    if (featureResult.rowCount === 0) {
+      return res.status(404).json({ error: "Feature not found" });
+    }
+
+    // Delete the feature
+    await db.query("DELETE FROM model_features WHERE id = $1", [featureId]);
+    res.status(200).json({ message: `Feature with ID ${featureId} deleted successfully.` });
+  } catch (error) {
+    console.error("Error deleting feature:", error);
+    res.status(500).json({ error: "An error occurred while deleting the feature" });
+  }
+});
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
   validateJwt,
@@ -2048,8 +2264,8 @@ dashboard.post('/open-session',
       res.status(500).json({ error: err.message });
     }
   });
-const PDFDocument = require('pdfkit');
 
+const PDFDocument = require('pdfkit');
 // 2. Close Billing Session
 dashboard.post('/close-session',
   validateJwt,
@@ -2172,7 +2388,7 @@ dashboard.post('/close-session',
       client.release();
     }
   });
-
+  
 //display daily report
 dashboard.get("/api/reports/daily",
   validateJwt,
