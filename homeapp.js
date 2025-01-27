@@ -1578,7 +1578,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             if (!acc[roomKey]) {
                 acc[roomKey] = {
                     room_name: device.room_name,
-                    roomid: device.room_id,
+                    roomid: device.roomid,
                     floor_name: device.floor_name,
                     floorid: device.floorid,
                     devices: [],
