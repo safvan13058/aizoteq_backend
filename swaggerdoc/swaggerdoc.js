@@ -3169,25 +3169,25 @@ const Swaggerdoc = {
                     },
                 },
             ],
-            // requestBody: {
-            //     required: true,
-            //     content: {
-            //         "application/json": {
-            //             schema: {
-            //                 type: "object",
-            //                 properties: {
-            //                     name: {
-            //                         type: "string",
-            //                         description: "Name of the floor",
-            //                     },
-            //                 },
-            //             },
-            //             example: {
-            //                 name: "Ground Floor",
-            //             },
-            //         },
-            //     },
-            // },
+            requestBody: {
+                required: true,
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            properties: {
+                                name: {
+                                    type: "string",
+                                    description: "user id",
+                                },
+                            },
+                        },
+                        example: {
+                            name: "34",
+                        },
+                    },
+                },
+            },
             responses: {
                 201: {
                     description: "Floor added successfully",
@@ -5456,7 +5456,7 @@ const Swaggerdoc = {
         }
       }
     }}},
-    
+
 "/api/display/all/devices/{userId}": {
       "get": {
         "tags": ["device"],
