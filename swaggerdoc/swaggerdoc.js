@@ -1850,41 +1850,209 @@ const Swaggerdoc = {
         }
       }
     },
+// "/api/favorite-devices/{userId}": {
+//       "get": {
+//         "tags": ["device"],
+//         "summary": "Retrieve favorite devices for a user",
+//         "parameters": [
+//           {
+//             "name": "userId",
+//             "in": "path",
+//             "required": true,
+//             "schema": {
+//               "type": "integer"
+//             },
+//             "description": "ID of the user"
+//           }
+//         ],
+//         "responses": {
+//           "200": {
+//             "description": "List of favorite devices",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "array",
+//                   "items": {
+//                     "type": "object"
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "500": {
+//             "description": "Error fetching favorite devices"
+//           }
+//         }
+//       }
+//     },
 "/api/favorite-devices/{userId}": {
-      "get": {
-        "tags": ["device"],
-        "summary": "Retrieve favorite devices for a user",
-        "parameters": [
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
+  "get": {
+    "summary": "Get favorite devices grouped by room",
+    "description": "Fetches the user's favorite devices grouped by room with pagination.",
+    "parameters": [
+      {
+        "name": "userId",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the user",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      {
+        "name": "page",
+        "in": "query",
+        "required": false,
+        "description": "The page number for pagination (default: 1)",
+        "schema": {
+          "type": "integer",
+          "default": 1
+        }
+      },
+      {
+        "name": "limit",
+        "in": "query",
+        "required": false,
+        "description": "The number of items per page (default: 10)",
+        "schema": {
+          "type": "integer",
+          "default": 10
+        }
+      }
+    ],
+    "responses": {
+      "200": {
+        "description": "A list of rooms, each containing its favorite devices",
+        "content": {
+          "application/json": {
             "schema": {
-              "type": "integer"
-            },
-            "description": "ID of the user"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of favorite devices",
-            "content": {
-              "application/json": {
-                "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "data": {
                   "type": "array",
                   "items": {
-                    "type": "object"
+                    "type": "object",
+                    "properties": {
+                      "room_id": {
+                        "type": "integer",
+                        "example": 101
+                      },
+                      "room_name": {
+                        "type": "string",
+                        "example": "Living Room"
+                      },
+                      "devices": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "example": 1
+                            },
+                            "deviceId": {
+                              "type": "string",
+                              "example": "abc123"
+                            },
+                            "name": {
+                              "type": "string",
+                              "example": "Smart Light"
+                            },
+                            "type": {
+                              "type": "string",
+                              "example": "light"
+                            },
+                            "status": {
+                              "type": "string",
+                              "example": "new"
+                            },
+                            "enable": {
+                              "type": "boolean",
+                              "example": true
+                            },
+                            "icon": {
+                              "type": "string",
+                              "example": "lightbulb.png"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "pagination": {
+                  "type": "object",
+                  "properties": {
+                    "currentPage": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "totalItems": {
+                      "type": "integer",
+                      "example": 50
+                    },
+                    "pageSize": {
+                      "type": "integer",
+                      "example": 10
+                    }
                   }
                 }
               }
             }
-          },
-          "500": {
-            "description": "Error fetching favorite devices"
+          }
+        }
+      },
+      "400": {
+        "description": "Invalid request (e.g., invalid user ID or query parameters)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Invalid user ID"
+                }
+              }
+            }
+          }
+        }
+      },
+      "500": {
+        "description": "Server error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": {
+                  "type": "boolean",
+                  "example": false
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Failed to fetch favorite devices"
+                }
+              }
+            }
           }
         }
       }
-    },
+    }
+  }
+},
 "/app/searchThings/{status}": {
       "get": {
         "summary": "Search things by status",
