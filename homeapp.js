@@ -1650,6 +1650,48 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 //     }
 // });
 
+// homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
+//     const client = await db.connect(); // Get a client from the db
+//     try {
+//         const deviceid = req.params.deviceid;
+//         const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
+
+//         // Check if the user has access to the device through Things table
+//         const accessCheckQuery = `
+//             SELECT 1 
+//             FROM customer_access ca
+//             INNER JOIN Things t ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
+//             INNER JOIN Devices d ON d.thingId = t.id
+//             WHERE ca.user_id = $1 AND d.deviceId = $2;
+//         `;
+        
+//         const accessResult = await client.query(accessCheckQuery, [user_id, deviceid]);
+
+//         if (accessResult.rowCount === 0) {
+//             return res.status(403).json({ message: 'Access denied: You do not have permission to favorite this device.' });
+//         }
+
+//         // Toggle the favorite status of the device for the user
+//         const toggleFavoriteQuery = `
+//             INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
+//             VALUES ($1, $2, $3)
+//             ON CONFLICT (user_id, device_id)
+//             DO UPDATE 
+//             SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
+//             WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
+//               AND UserFavoriteDevices.favorite IS NOT NULL;
+//         `;
+//         await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+
+//         res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
+//     } catch (error) {
+//         console.error('Error toggling favorite status:', error);
+//         res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
+//     } finally {
+//         client.release(); // Release the client back to the pool
+//     }
+// });
+
 homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
     const client = await db.connect(); // Get a client from the db
     try {
@@ -1677,9 +1719,7 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
             VALUES ($1, $2, $3)
             ON CONFLICT (user_id, device_id)
             DO UPDATE 
-            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
-            WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
-              AND UserFavoriteDevices.favorite IS NOT NULL;
+            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP;
         `;
         await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
 
