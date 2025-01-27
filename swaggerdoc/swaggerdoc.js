@@ -3176,7 +3176,7 @@ const Swaggerdoc = {
                         schema: {
                             type: "object",
                             properties: {
-                                name: {
+                                userid: {
                                     type: "string",
                                     description: "user id",
                                 },
