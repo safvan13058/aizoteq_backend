@@ -34,7 +34,7 @@ const cors = require('cors');
 
 
 
-
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000'];
 
