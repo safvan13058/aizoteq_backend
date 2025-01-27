@@ -1674,8 +1674,6 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
 });
 
 
-
-
 //Scene
 // 1. Create a Scene
 homeapp.post('/app/add/scenes/:userid', upload.single('icon'), async (req, res) => {
@@ -2017,6 +2015,39 @@ homeapp.get('/api/scene-events/scene/:sceneId', async (req, res) => {
 //     }
 // );
 
+// homeapp.get('/api/display/device/rooms/:roomid',
+//     // validateJwt,
+//     // authorizeRoles('customer'),
+//     async (req, res) => {
+//         const client = await db.connect();
+//         try {
+//             const roomid = req.params.roomid;
+
+//             // Fetch unique devices for the room, ordered by orderIndex
+//             const query = `
+//                 SELECT DISTINCT ON (d.id) d.*
+//                 FROM devices d
+//                 INNER JOIN room_device rd ON d.deviceid = rd.device_id
+//                 INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
+//                 WHERE rd.room_id = $1
+//                 ORDER BY d.id, udo.orderIndex ASC
+//             `;
+//             const devicesResult = await client.query(query, [roomid]);
+
+//             if (devicesResult.rows.length === 0) {
+//                 return res.status(404).json({ message: 'No devices found for this room.' });
+//             }
+
+//             // Return the ordered device data without duplicates
+//             res.status(200).json({ devices: devicesResult.rows });
+//         } catch (error) {
+//             console.error('Error fetching devices:', error);
+//             res.status(500).json({ message: 'An error occurred while fetching devices.', error });
+//         } finally {
+//             client.release();
+//         }
+//     }
+// );
 homeapp.get('/api/display/device/rooms/:roomid',
     // validateJwt,
     // authorizeRoles('customer'),
@@ -2024,23 +2055,27 @@ homeapp.get('/api/display/device/rooms/:roomid',
         const client = await db.connect();
         try {
             const roomid = req.params.roomid;
+            const userId = req.user.id; // Assuming user information is available in req.user
 
-            // Fetch unique devices for the room, ordered by orderIndex
+            // Fetch unique devices for the room, ordered by orderIndex, and include favorite status
             const query = `
-                SELECT DISTINCT ON (d.id) d.*
+                SELECT DISTINCT ON (d.id) d.*, 
+                    COALESCE(ufd.favorite, FALSE) AS favorite -- Include favorite field
                 FROM devices d
                 INNER JOIN room_device rd ON d.deviceid = rd.device_id
                 INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
+                LEFT JOIN UserFavoriteDevices ufd 
+                    ON ufd.device_id = d.id AND ufd.user_id = $2 -- Join on user_id and device_id
                 WHERE rd.room_id = $1
                 ORDER BY d.id, udo.orderIndex ASC
             `;
-            const devicesResult = await client.query(query, [roomid]);
+            const devicesResult = await client.query(query, [roomid, userId]);
 
             if (devicesResult.rows.length === 0) {
                 return res.status(404).json({ message: 'No devices found for this room.' });
             }
 
-            // Return the ordered device data without duplicates
+            // Return the ordered device data with the favorite field
             res.status(200).json({ devices: devicesResult.rows });
         } catch (error) {
             console.error('Error fetching devices:', error);
