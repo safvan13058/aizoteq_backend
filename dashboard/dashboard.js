@@ -1933,8 +1933,9 @@ dashboard.delete('/api/delete/price_table/:id',
 //   });
 dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
-
+  console.log("Uploaded files:", req.files);
   try {
+
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: "No files uploaded" });
     }
