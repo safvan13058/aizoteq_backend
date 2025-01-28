@@ -264,5 +264,8 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
 
 module.exports = client;
