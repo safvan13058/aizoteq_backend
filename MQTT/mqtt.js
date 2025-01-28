@@ -38,20 +38,20 @@ client.on("connect", () => {
 
 const iotData = new AWS.IotData({ endpoint: "an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com" });
 
-// const getDeviceStatus = async (deviceId) => {
-//   const params = {
-//     thingName: deviceId
-//   };
+const getDeviceStatus = async (deviceId) => {
+  const params = {
+    thingName: deviceId
+  };
 
-//   try {
-//     const data = await iotData.getThingShadow(params).promise();
-//     const shadow = JSON.parse(data.payload);
-//     console.log("Full Shadow Document:", JSON.stringify(shadow, null, 2));
-//     console.log(`Device ${deviceId} Status:`, shadow.state.reported);
-//   } catch (err) {
-//     console.error(`Error fetching status for device ${deviceId}:`, err);
-//   }
-// };
+  try {
+    const data = await iotData.getThingShadow(params).promise();
+    const shadow = JSON.parse(data.payload);
+    console.log("Full Shadow Document:", JSON.stringify(shadow, null, 2));
+    console.log(`Device ${deviceId} Status:`, shadow.state.reported);
+  } catch (err) {
+    console.error(`Error fetching status for device ${deviceId}:`, err);
+  }
+};
 const getDeviceShadow = async (deviceId) => {
     const params = {
       thingName: deviceId, // AWS IoT Thing Name
@@ -87,7 +87,7 @@ const getDeviceShadow = async (deviceId) => {
   };
   
 getDeviceShadow("84F703B5F560");
-// getDeviceStatus("84F703B5F560");
+getDeviceStatus("84F703B5F560");
 // Unified message handler
 client.on("message", (topic, message) => {
     console.log(`Message received on ${topic}: ${message.toString()}`);
