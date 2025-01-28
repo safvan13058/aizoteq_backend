@@ -2016,29 +2016,29 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Fetch the image_url from the database
-    const queryResult = await db.query(
-      "SELECT image_url FROM model_features_image WHERE id = $1",
-      [id]
-    );
+    // // Fetch the image_url from the database
+    // const queryResult = await db.query(
+    //   "SELECT image_url FROM model_features_image WHERE id = $1",
+    //   [id]
+    // );
 
-    if (queryResult.rows.length === 0) {
-      return res.status(404).json({ message: "Image not found" });
-    }
+    // if (queryResult.rows.length === 0) {
+    //   return res.status(404).json({ message: "Image not found" });
+    // }
 
-    const imageUrl = queryResult.rows[0].image_url;
+    // const imageUrl = queryResult.rows[0].image_url;
 
-    // Extract the S3 key from the image URL
-    const bucketName = "YOUR_BUCKET_NAME"; // Replace with your bucket name
-    const s3Key = imageUrl.split(`${bucketName}/`)[1];
+    // // Extract the S3 key from the image URL
+    // const bucketName = "YOUR_BUCKET_NAME"; // Replace with your bucket name
+    // const s3Key = imageUrl.split(`${bucketName}/`)[1];
 
-    // Delete the image from S3
-    await s3
-      .deleteObject({
-        Bucket: bucketName,
-        Key: s3Key,
-      })
-      .promise();
+    // // Delete the image from S3
+    // await s3
+    //   .deleteObject({
+    //     Bucket: bucketName,
+    //     Key: s3Key,
+    //   })
+    //   .promise();
 
     // Delete the database entry
     await db.query("DELETE FROM model_features_image WHERE id = $1", [id]);
@@ -2339,7 +2339,6 @@ dashboard.get("/api/things/features/:model", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
   validateJwt,
