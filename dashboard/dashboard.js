@@ -2189,8 +2189,8 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
 
     const currentImageCount = parseInt(rows[0].image_count, 10);
 
-    if (currentImageCount >= 5) {
-      return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
+    if (currentImageCount >= 4) {
+      return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
     }
 
     // Determine how many new images can be uploaded
@@ -2285,6 +2285,61 @@ dashboard.delete("/delete-feature/:id", async (req, res) => {
     res.status(500).json({ error: "An error occurred while deleting the feature" });
   }
 });
+
+
+dashboard.get("/api/things/features/:model", async (req, res) => {
+  const { model } = req.params;
+
+  try {
+    // Query to fetch features and their associated images for the model
+    const query = `
+      SELECT 
+        t.model AS thing_model,
+        mf.feature AS feature_description,
+        mfi.image_url AS feature_image_url
+      FROM 
+        Things t
+      JOIN 
+        price_table pt ON t.model = pt.model
+      LEFT JOIN 
+        model_features mf ON pt.id = mf.model_id
+      LEFT JOIN 
+        model_features_image mfi ON pt.id = mfi.model_id
+      WHERE 
+        t.model = $1;
+    `;
+
+    // Execute the query
+    const result = await db.query(query, [model]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No data found for the given model" });
+    }
+
+    // Transform data into arrays for features and images
+    const features = [];
+    const images = [];
+    result.rows.forEach(row => {
+      if (row.feature_description && !features.includes(row.feature_description)) {
+        features.push(row.feature_description);
+      }
+      if (row.feature_image_url && !images.includes(row.feature_image_url)) {
+        images.push(row.feature_image_url);
+      }
+    });
+
+    // Send the response
+    res.json({
+      model,
+      features,
+      images,
+    });
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
   validateJwt,
