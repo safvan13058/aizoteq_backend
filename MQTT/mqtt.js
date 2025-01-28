@@ -53,7 +53,7 @@ const logSwitchStatusChange = async (deviceId, switchId, status, brightness, use
     console.log(`log data working ${deviceId, switchId, status, brightness, userId}`)
     // Check if the device_id exists in the devices table
     const checkDeviceQuery = "SELECT COUNT(*) FROM devices WHERE deviceid = $1";
-    const result = await db.query(checkDeviceQuery, [deviceId]);
+    const result = await db.query(checkDeviceQuery, [switchId]);
 
     if (parseInt(result.rows[0].count) === 0) {
       console.log(`Device ${deviceId} not found in devices table. Skipping log.`);
