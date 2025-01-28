@@ -6,7 +6,7 @@ const AWS = require("aws-sdk");
 // MQTT Broker Connection
 const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com";
 
-
+console.log("mqtt page working")
 const fs = require("fs");
 
 const client = mqtt.connect("mqtts://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com", {
