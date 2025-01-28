@@ -12,9 +12,9 @@ const fs = require("fs");
 const client = mqtt.connect("mqtts://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com", {
   port: 8883,
   clientId: "test-client-" + Math.random().toString(16).substr(2, 8),
-  key: fs.readFileSync("certificate/6a0a97bedd386d5837744332548efa1cb7b4eec6e3583d566f53e93030807a87-private.pem.key"),
-  cert: fs.readFileSync("certificate/6a0a97bedd386d5837744332548efa1cb7b4eec6e3583d566f53e93030807a87-certificate.pem.crt"),
-  ca: fs.readFileSync("certificate/AmazonRootCA1.pem"),
+  key: fs.readFileSync("certificate/63211473333aba881532e2ff88093a2ea78dea687fa519bdf78b2dc787e6972b-private.pem.key"),
+  cert: fs.readFileSync("certificate/63211473333aba881532e2ff88093a2ea78dea687fa519bdf78b2dc787e6972b-certificate.pem.crt"),
+  ca: fs.readFileSync("certificate/AmazonRootCA1 (1).pem"),
   debug: true, // Enable MQTT debugging
 });
 client.on("connect", () => {
