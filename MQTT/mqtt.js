@@ -36,7 +36,6 @@ client.on("connect", () => {
     });
   });
 
-  const AWS = require("aws-sdk");
 const iotData = new AWS.IotData({ endpoint: "an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com" });
 
 const getDeviceStatus = async (deviceId) => {
