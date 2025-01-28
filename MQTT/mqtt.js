@@ -46,7 +46,7 @@ const getDeviceStatus = async (deviceId) => {
   try {
     const data = await iotData.getThingShadow(params).promise();
     const shadow = JSON.parse(data.payload);
-    console.log(`shadow${shadow}`)
+    console.log("Full Shadow Document:", JSON.stringify(shadow, null, 2));
     console.log(`Device ${deviceId} Status:`, shadow.state.reported);
   } catch (err) {
     console.error(`Error fetching status for device ${deviceId}:`, err);
