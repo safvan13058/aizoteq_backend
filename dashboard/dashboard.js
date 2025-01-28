@@ -2189,7 +2189,7 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
 
     const currentImageCount = parseInt(rows[0].image_count, 10);
 
-    if (currentImageCount >= 4) {
+    if (currentImageCount >= 5) {
       return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
     }
 
