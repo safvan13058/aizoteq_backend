@@ -9,6 +9,8 @@ const testapp=require('./testapp.js');
 const homeapp=require('./homeapp.js');
 const dashboard=require('./dashboard/dashboard.js')
 
+const mqttClient = require("./MQTT/mqtt.js"); // Importing mqtt.js initializes MQTT functionality
+require("dotenv").config();
 
 app.use('/',testapp)
 app.use('/',homeapp)
