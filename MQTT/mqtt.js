@@ -50,6 +50,7 @@ const iotData = new AWS.IotData({
 // Function to log switch status change into the database
 const logSwitchStatusChange = async (deviceId, switchId, status, brightness, userId) => {
   try {
+    console.log(`log data working ${deviceId, switchId, status, brightness, userId}`)
     // Check if the device_id exists in the devices table
     const checkDeviceQuery = "SELECT COUNT(*) FROM devices WHERE deviceid = $1";
     const result = await db.query(checkDeviceQuery, [deviceId]);
@@ -66,7 +67,8 @@ const logSwitchStatusChange = async (deviceId, switchId, status, brightness, use
     `;
     const timestamp = new Date().toISOString();
     const thingMac = deviceId;
-
+    console.log(`log insert working ======${deviceId, switchId, status, brightness, userId}`)
+    
     await db.query(query, [thingMac, switchId, `${status}`, userId, timestamp]);
     console.log(`Switch ${switchId} status logged: ${status}, brightness: ${brightness}`);
   } catch (error) {
