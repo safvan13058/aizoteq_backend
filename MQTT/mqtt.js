@@ -120,16 +120,24 @@ const monitorSwitchChanges = async (deviceId, userId) => {
     deviceStatus.switches.forEach((sw) => {
       console.log(`[DEBUG] Checking switch: ${sw.switchId}`); // Debug log
 
+      // Get the previous state and brightness from delta state
       const previousState = deviceStatus.deltaState[`s${sw.switchId.slice(-1)}`];
       const previousBrightness = deviceStatus.deltaState[`v${sw.switchId.slice(-1)}`];
 
       console.log(
-        `[DEBUG] Switch: ${sw.switchId}, Previous State: ${previousState}, Previous Brightness: ${previousBrightness}`
+        `[DEBUG] Switch: ${sw.switchId}, Previous State (delta): ${previousState}, Previous Brightness (delta): ${previousBrightness}`
       ); // Debug log
 
       // Ensure both states are compared correctly ("ON"/"OFF" or "1"/"0")
-      const stateChanged = sw.status !== (previousState === "1" ? "ON" : "OFF");
+      const currentState = sw.status === "ON" ? "ON" : "OFF";  // Ensuring it's "ON"/"OFF" format
+      const previousStateFormatted = previousState === "1" ? "ON" : previousState === "0" ? "OFF" : previousState; // Handling delta state
+
+      const stateChanged = currentState !== previousStateFormatted;
       const brightnessChanged = sw.brightness !== previousBrightness;
+
+      console.log(
+        `[DEBUG] Comparing states - Current State: ${currentState}, Previous State: ${previousStateFormatted}, Brightness Changed: ${brightnessChanged}`
+      ); // Debug log
 
       // Log only if there's a state or brightness change
       if (stateChanged || brightnessChanged) {
@@ -148,15 +156,14 @@ const monitorSwitchChanges = async (deviceId, userId) => {
   }
 };
 
-
 // Function to log switch status changes
 const logSwitchStatusChange = async (deviceId, switchId, status, brightness, userId) => {
   try {
-    console.log(`[DEBUG] Attempting to log change for Switch: ${switchId}`); // Debug log
+    console.log(`[DEBUG] Attempting to log change for Switch: ${switchId}, Status: ${status}, Brightness: ${brightness}`); // Debug log
     
     // Check if the device_id exists in the devices table
     const checkDeviceQuery = "SELECT COUNT(*) FROM devices WHERE deviceid = $1";
-    const result = await db.query(checkDeviceQuery, [switchId]);
+    const result = await db.query(checkDeviceQuery, [deviceId]);
 
     if (parseInt(result.rows[0].count) === 0) {
       console.log(`Device ${deviceId} not found in devices table. Skipping log.`); // Debug log
