@@ -2100,7 +2100,7 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
   try {
     // Query to fetch features and their IDs
     const featuresQuery = `
-      SELECT feature_id, feature 
+      SELECT id, feature 
       FROM model_features 
       WHERE model_id = $1;
     `;
@@ -2108,7 +2108,7 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
 
     // Query to fetch image URLs and their IDs
     const imagesQuery = `
-      SELECT image_id, image_url 
+      SELECT id, image_url 
       FROM model_features_image 
       WHERE model_id = $1;
     `;
@@ -2116,11 +2116,11 @@ dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
 
     // Combine results with IDs
     const features = featuresResult.rows.map(row => ({
-      feature_id: row.feature_id,
+      feature_id: row.id,
       feature: row.feature
     }));
     const images = imagesResult.rows.map(row => ({
-      image_id: row.image_id,
+      image_id: row.id,
       image_url: row.image_url
     }));
 
