@@ -1,11 +1,15 @@
 const mqtt = require("mqtt");
 const db = require("../middlewares/dbconnection");
 require("dotenv").config(); // For environment variables
-
+const AWS = require("aws-sdk");
 // MQTT Broker Connection
 const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com"; // Use .env or default to HiveMQ
 const client = mqtt.connect(brokerUrl);
-
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID2,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY2,
+    region: "ap-south-1", // Adjust to your region
+  });
 console.log("mqtt page working")
 // Subscribe and handle MQTT topics
 // client.on("connect", () => {
