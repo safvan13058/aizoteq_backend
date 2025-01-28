@@ -59,14 +59,85 @@ const logSwitchStatusChange = async (deviceId, switchId, status, brightness, use
 };
 // mqtt.setLogLevel('debug'); // Enable debugging logs
 // Function to fetch the device status
+// const getDeviceStatus = async (deviceId) => {
+//   const params = { thingName: deviceId };
+//   try {
+//     const data = await iotData.getThingShadow(params).promise();
+//     const shadow = JSON.parse(data.payload);
+
+//     const desired = shadow.state?.desired || {};
+//     const delta = shadow.state?.delta || {};
+
+//     const switches = [];
+//     let switchCount = 0;
+
+//     // Parse switches (keys starting with 's')
+//     for (const key in desired) {
+//       if (key.startsWith("s")) {
+//         switchCount++;
+//         const switchId = `${deviceId}_${switchCount}`;
+//         const status = desired[key] === "1" ? "ON" : "OFF";
+//         const brightness = desired[`v${switchCount}`] || 0;
+
+//         switches.push({
+//           switchId,
+//           status,
+//           brightness,
+//           deltaStatus: delta[key] === "1" ? "ON" : "OFF",
+//           deltaBrightness: delta[`v${switchCount}`] || 0,
+//         });
+//       }
+//     }
+
+//     return {
+//       deviceId,
+//       status: desired.status || "unknown",
+//       command: desired.command || "unknown",
+//       toggleState: desired.t || "OFF",
+//       switches,
+//       brightness: {
+//         on: desired.on_bright || 0,
+//         off: desired.off_bright || 0,
+//       },
+//       deviceInfo: desired.deviceInfo || [],
+//       deltaState: delta,
+//     };
+//   } catch (error) {
+//     throw new Error(`Failed to fetch device status for ${deviceId}: ${error.message}`);
+//   }
+// };
+
+// // Function to monitor and log switch changes
+// const monitorSwitchChanges = async (deviceId, userId) => {
+//   try {
+//     const deviceStatus = await getDeviceStatus(deviceId);
+
+//     deviceStatus.switches.forEach((sw) => {
+//       const previousState = deviceStatus.deltaState[`s${sw.switchId.slice(-1)}`];
+//       const previousBrightness = deviceStatus.deltaState[`v${sw.switchId.slice(-1)}`];
+
+//       if (sw.status !== previousState || sw.brightness !== previousBrightness) {
+//         logSwitchStatusChange(deviceId, sw.switchId, sw.status, sw.brightness, userId);
+//       }
+//     });
+//   } catch (error) {
+//     console.error("Error monitoring switch changes:", error);
+//   }
+// };
 const getDeviceStatus = async (deviceId) => {
   const params = { thingName: deviceId };
+  console.log(`[DEBUG] Fetching shadow for device: ${deviceId}`); // Debug log
+  
   try {
     const data = await iotData.getThingShadow(params).promise();
+    console.log(`[DEBUG] Received shadow data for device ${deviceId}:`, JSON.stringify(data)); // Debug log
+    
     const shadow = JSON.parse(data.payload);
 
     const desired = shadow.state?.desired || {};
     const delta = shadow.state?.delta || {};
+    console.log(`[DEBUG] Parsed desired state for ${deviceId}:`, desired); // Debug log
+    console.log(`[DEBUG] Parsed delta state for ${deviceId}:`, delta); // Debug log
 
     const switches = [];
     let switchCount = 0;
@@ -79,6 +150,10 @@ const getDeviceStatus = async (deviceId) => {
         const status = desired[key] === "1" ? "ON" : "OFF";
         const brightness = desired[`v${switchCount}`] || 0;
 
+        console.log(
+          `[DEBUG] Switch parsed - Switch ID: ${switchId}, Status: ${status}, Brightness: ${brightness}`
+        ); // Debug log
+
         switches.push({
           switchId,
           status,
@@ -88,6 +163,8 @@ const getDeviceStatus = async (deviceId) => {
         });
       }
     }
+
+    console.log(`[DEBUG] Switches for device ${deviceId}:`, switches); // Debug log
 
     return {
       deviceId,
@@ -103,25 +180,41 @@ const getDeviceStatus = async (deviceId) => {
       deltaState: delta,
     };
   } catch (error) {
+    console.error(`[ERROR] Failed to fetch device status for ${deviceId}:`, error.message); // Error log
     throw new Error(`Failed to fetch device status for ${deviceId}: ${error.message}`);
   }
 };
 
 // Function to monitor and log switch changes
 const monitorSwitchChanges = async (deviceId, userId) => {
+  console.log(`[DEBUG] Monitoring switch changes for device: ${deviceId}, User ID: ${userId}`); // Debug log
+  
   try {
     const deviceStatus = await getDeviceStatus(deviceId);
+    console.log(`[DEBUG] Device status for ${deviceId}:`, deviceStatus); // Debug log
 
     deviceStatus.switches.forEach((sw) => {
+      console.log(`[DEBUG] Checking switch: ${sw.switchId}`); // Debug log
+      
       const previousState = deviceStatus.deltaState[`s${sw.switchId.slice(-1)}`];
       const previousBrightness = deviceStatus.deltaState[`v${sw.switchId.slice(-1)}`];
 
+      console.log(
+        `[DEBUG] Switch: ${sw.switchId}, Previous State: ${previousState}, Previous Brightness: ${previousBrightness}`
+      ); // Debug log
+
       if (sw.status !== previousState || sw.brightness !== previousBrightness) {
+        console.log(
+          `[DEBUG] Detected change in switch ${sw.switchId} - New State: ${sw.status}, New Brightness: ${sw.brightness}`
+        ); // Debug log
+        
         logSwitchStatusChange(deviceId, sw.switchId, sw.status, sw.brightness, userId);
+      } else {
+        console.log(`[DEBUG] No change detected for switch ${sw.switchId}`); // Debug log
       }
     });
   } catch (error) {
-    console.error("Error monitoring switch changes:", error);
+    console.error(`[ERROR] Error monitoring switch changes for device ${deviceId}:`, error.message); // Error log
   }
 };
 
