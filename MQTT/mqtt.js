@@ -11,15 +11,31 @@ const fs = require("fs");
 
 const client = mqtt.connect("mqtts://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com", {
   port: 8883,
-  clientId:process.env.clientId,
+  clientId: "test-client-" + Math.random().toString(16).substr(2, 8),
   key: fs.readFileSync("certificate/6a0a97bedd386d5837744332548efa1cb7b4eec6e3583d566f53e93030807a87-private.pem.key"),
   cert: fs.readFileSync("certificate/6a0a97bedd386d5837744332548efa1cb7b4eec6e3583d566f53e93030807a87-certificate.pem.crt"),
   ca: fs.readFileSync("certificate/AmazonRootCA1.pem"),
+  debug: true, // Enable MQTT debugging
 });
-
 client.on("connect", () => {
   console.log("Connected to AWS IoT Core via MQTTS");
 });
+
+client.on("error", (err) => {
+  console.error("MQTT connection error:", err.message);
+});
+
+client.on("offline", () => {
+  console.log("MQTT client went offline");
+});
+
+client.on("close", () => {
+  console.log("MQTT connection closed");
+});
+
+// client.on("connect", () => {
+//   console.log("Connected to AWS IoT Core via MQTTS");
+// });
 
 // AWS IoT Configuration
 AWS.config.update({
@@ -244,10 +260,12 @@ client.on("message", async (topic, message) => {
   }
 });
 
-client.on("error", (err) => {
-  console.error("MQTT client connection error:", err);
+// client.on("error", (err) => {
+//   console.error("MQTT client connection error:", err);
+// });
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
-
 // Graceful Shutdown
 process.on("SIGINT", () => {
   console.log("Disconnecting MQTT client...");
@@ -264,8 +282,6 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-});
+
 
 module.exports = client;
