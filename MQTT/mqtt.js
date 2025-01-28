@@ -6,6 +6,7 @@ require("dotenv").config(); // For environment variables
 const brokerUrl = process.env.MQTT_BROKER_URL || "mqtt://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com"; // Use .env or default to HiveMQ
 const client = mqtt.connect(brokerUrl);
 
+console.log("mqtt page working")
 // Subscribe and handle MQTT topics
 // client.on("connect", () => {
 //     console.log("Connected to MQTT broker");
@@ -48,7 +49,7 @@ const getDeviceStatus = async (deviceId) => {
   }
 };
 
-getDeviceStatus("device123");
+getDeviceStatus("84F703B5F560_1");
 // Unified message handler
 client.on("message", (topic, message) => {
     console.log(`Message received on ${topic}: ${message.toString()}`);
