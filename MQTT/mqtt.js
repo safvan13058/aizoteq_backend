@@ -127,10 +127,11 @@ const monitorSwitchChanges = async (deviceId, userId) => {
         `[DEBUG] Switch: ${sw.switchId}, Previous State: ${previousState}, Previous Brightness: ${previousBrightness}`
       ); // Debug log
 
-      // Check for changes in state or brightness
+      // Ensure both states are compared correctly ("ON"/"OFF" or "1"/"0")
       const stateChanged = sw.status !== (previousState === "1" ? "ON" : "OFF");
       const brightnessChanged = sw.brightness !== previousBrightness;
 
+      // Log only if there's a state or brightness change
       if (stateChanged || brightnessChanged) {
         console.log(
           `[DEBUG] Detected change in switch ${sw.switchId} - New State: ${sw.status}, New Brightness: ${sw.brightness}`
@@ -146,6 +147,7 @@ const monitorSwitchChanges = async (deviceId, userId) => {
     console.error(`[ERROR] Error monitoring switch changes for device ${deviceId}:`, error.message); // Error log
   }
 };
+
 
 // Function to log switch status changes
 const logSwitchStatusChange = async (deviceId, switchId, status, brightness, userId) => {
