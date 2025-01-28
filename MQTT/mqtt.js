@@ -52,7 +52,7 @@ const getDeviceStatus = async (deviceId) => {
   }
 };
 
-getDeviceStatus("84F703B5F560_1");
+getDeviceStatus("84F703B5F560");
 // Unified message handler
 client.on("message", (topic, message) => {
     console.log(`Message received on ${topic}: ${message.toString()}`);
