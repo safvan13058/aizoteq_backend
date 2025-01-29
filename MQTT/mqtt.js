@@ -161,8 +161,13 @@ async function handleDeviceStatus(deviceId, status) {
     console.log(`Logging status for device ${deviceId}`);
     console.log(`eventData===${eventData}`);
 
-    // ✅ Ensure we use `await` to properly handle the query
-    await db.query(query, [deviceId, "status_update", eventData, timestamp]);
+    // ✅ Use a fresh connection to avoid closed pool issues
+    const client = await db.connect();
+    try {
+      await client.query(query, [deviceId, "status_update", eventData, timestamp]);
+    } finally {
+      client.release(); // ✅ Always release the client back to the pool
+    }
 
     console.log(`Status logged for device ${deviceId} at ${timestamp}`);
 
@@ -172,6 +177,7 @@ async function handleDeviceStatus(deviceId, status) {
     console.error("Device status logging error:", err);
   }
 }
+
 
 client.on("message", (topic, message) => {
   try {
