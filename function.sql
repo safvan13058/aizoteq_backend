@@ -32,6 +32,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
 CREATE OR REPLACE FUNCTION log_reorder_notification()
 RETURNS TRIGGER AS $$
 BEGIN
