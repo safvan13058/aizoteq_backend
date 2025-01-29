@@ -69,18 +69,19 @@ const wifidata = async (req, res) => {
       const params = { thingName: thingmac };
       const data = await iotData.getThingShadow(params).promise();
       const shadow = JSON.parse(data.payload);
-       
+      
       console.log(`shadow===${JSON.stringify(shadow, null, 2)}`);
       
       // Extract Wi-Fi and Device Info
       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
-      const deviceState = shadow.state?.desired?.deviceState || [];
-      
+      const deviceState = shadow.state?.desired?.deviceState || []
+      const connection = shadow.state?.desired?.status || [];
       // Check if RSSI exists or if it's missing
       const rssi = deviceInfo[0] || "Unknown"; // Default to "Unknown" if RSSI is not available
       const wifiData = {
-          signalStrength: rssi === "Unknown" ? rssi : `${rssi} dBm`, // If no RSSI, show "Unknown"
-          quality: categorizeWifiStrength(rssi),  // Categorize Wi-Fi signal quality
+        connection: connection,
+        signalStrength: rssi === "Unknown" ? rssi : `${rssi} dBm`, // If no RSSI, show "Unknown"
+        quality: categorizeWifiStrength(rssi),  // Categorize Wi-Fi signal quality
           manufacturer: deviceInfo[1] || "Unknown",    // Manufacturer name
           ipAddress: deviceInfo[2] || "Unknown",       // Local IP address (e.g., "192.168.1.24")
           firmwareVersion: deviceInfo[3] || "Unknown", // Firmware version
