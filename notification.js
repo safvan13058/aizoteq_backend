@@ -1,6 +1,6 @@
 const client=require('./middlewares/dbconnection')
 const axios = require('axios');
-
+const nodemailer = require("nodemailer");
 // const client = new Client({
 //     connectionString: 'postgresql://your_username:your_password@localhost:5432/your_database'
 // });
