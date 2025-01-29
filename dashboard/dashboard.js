@@ -3511,7 +3511,7 @@ dashboard.get("/audit-logs/:deviceId", async (req, res) => {
   try {
     await db.connect();
     const query = `
-      SELECT event_data, timestamp, method
+      SELECT event_data, timestamp
       FROM audit_logs
       WHERE thing_mac = $1
       ORDER BY timestamp ASC;
