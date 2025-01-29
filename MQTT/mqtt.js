@@ -71,6 +71,7 @@ client.on("message", (topic, message) => {
       const deviceInfo = deviceState.deviceInfo || [];
       const rssi = deviceInfo[0] || "Unknown";
 
+      // Processing Wi-Fi Data
       const wifiData = {
           signalStrength: `${rssi} dBm`,
           quality: categorizeWifiStrength(rssi),
@@ -83,7 +84,6 @@ client.on("message", (topic, message) => {
       };
 
       let switches = [];
-      // ✅ FIX: Ensure deviceState.deviceState exists and is an array before iterating
       if (Array.isArray(deviceState.deviceState)) {
           for (let i = 0; i < deviceState.deviceState.length; i += 3) {
               switches.push({
@@ -92,11 +92,9 @@ client.on("message", (topic, message) => {
                   brightness: deviceState.deviceState[i + 2] || "0"
               });
           }
-      } else {
-          console.warn(`⚠️ deviceState.deviceState is missing or not an array for ${thingmac}`);
       }
 
-      // Store latest live data
+      // Storing latest data
       deviceLiveData[thingmac] = {
           thingmac,
           wifiData,
@@ -106,10 +104,14 @@ client.on("message", (topic, message) => {
 
       console.log(`📡 Updated Live Data for ${thingmac}:`, deviceLiveData[thingmac]);
 
+      // Log device status into database (audit logs)
+      handleDeviceStatus(thingmac, deviceState);
+
   } catch (error) {
       console.error("❌ Error processing MQTT message:", error);
   }
 });
+
 
 // API to Fetch Latest Live Data
 const wifidata = async (req, res) => {
@@ -334,18 +336,18 @@ async function handleDeviceStatus(deviceId, status) {
 }
 
 
-client.on("message", (topic, message) => {
-  try {
-    const payload = JSON.parse(message.toString());
-    const status = payload.state || {};
-    const deviceId = status.desired?.id || topic.split("/")[2];
+// client.on("message", (topic, message) => {
+//   try {
+//     const payload = JSON.parse(message.toString());
+//     const status = payload.state || {};
+//     const deviceId = status.desired?.id || topic.split("/")[2];
 
-    console.log(`Received data for device ${deviceId}`);
-    handleDeviceStatus(deviceId, status);
-  } catch (error) {
-    console.error("Error parsing message:", error);
-  }
-});
+//     console.log(`Received data for device ${deviceId}`);
+//     handleDeviceStatus(deviceId, status);
+//   } catch (error) {
+//     console.error("Error parsing message:", error);
+//   }
+// });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
