@@ -435,6 +435,7 @@ testapp.get('/api/searchThings/working/:status', async (req, res) => {
                 t.createdby,
                 t.batchId,
                 t.model,
+                t.macaddress,
                 t.securityKey,
                 t.serialno,
                 a.status AS admin_stock_status,
