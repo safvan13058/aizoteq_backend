@@ -216,13 +216,12 @@ let isDbClosed = false; // Track if the database is already closed
 
 process.on("SIGINT", async () => {
   console.log("Disconnecting MQTT client...");
-  client.end();
+  // client.end();
   console.log("MQTT client disconnected.");
 
   if (!isDbClosed) {
     console.log("Closing database connection...");
-    try {
-      await db.end(); // ✅ Close DB pool only once
+    try { // ✅ Close DB pool only once
       isDbClosed = true; // ✅ Mark DB as closed
       console.log("Database connection closed.");
     } catch (err) {
