@@ -102,7 +102,7 @@ client.on("message", (topic, message) => {
           timestamp: new Date().toISOString()
       };
 
-      console.log(`📡 Updated Live Data for ${thingmac}:`, deviceLiveData[thingmac]);
+      // console.log(`📡 Updated Live Data for ${thingmac}:`, deviceLiveData[thingmac]);
 
       // Log device status into database (audit logs)
       handleDeviceStatus(thingmac, deviceState);
@@ -202,7 +202,7 @@ const wifidata= async (req, res) => {
       const responseData = {
                   thingmac,
                   wifiData,
-                  switches,
+                  // switches,
                   timestamp: new Date().toISOString()
               };
         
