@@ -33,6 +33,7 @@ async function sendEmail(to, subject, text) {
     console.error('Error sending email:', error);
   }
 }
+sendEmail('safvan13473@gmail.com', 'Test Email', 'Hello from Node.js');
 
 // Listen for PostgreSQL notifications on 'reorder_notification' channel
 client.query('LISTEN reorder_notification');
