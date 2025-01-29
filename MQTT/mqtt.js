@@ -233,10 +233,12 @@ const wifidata = async (req, res) => {
       // Extract Wi-Fi and Device Info
       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
       const deviceState = shadow.state?.desired?.deviceState || [];
+      const connection = shadow.state?.desired?.status || [];
       
       // Check if RSSI exists or if it's missing
       const rssi = deviceInfo[0] || "Unknown"; // Default to "Unknown" if RSSI is not available
       const wifiData = {
+          connection :connection,
           signalStrength: rssi === "Unknown" ? rssi : `${rssi} dBm`, // If no RSSI, show "Unknown"
           quality: categorizeWifiStrength(rssi),  // Categorize Wi-Fi signal quality
           manufacturer: deviceInfo[1] || "Unknown",    // Manufacturer name
