@@ -3235,10 +3235,10 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
       FROM audit_logs
       WHERE thing_mac = $1
       ORDER BY timestamp ASC
-      LIMIT $2 OFFSET $3;
+     ;
     `;
-
-    const dbResult = await db.query(query, [thingmac, limit, offset]);
+    // LIMIT $2 OFFSET $3
+    const dbResult = await db.query(query, [thingmac]);
 
     let events = [];
 
