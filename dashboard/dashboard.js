@@ -3508,17 +3508,22 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 //   }
 // });
 dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
-  const {thingmac } = req.params;
+  const { thingmac } = req.params;
+  const { page = 1, pageSize = 10 } = req.query; // Default to page 1 and 10 items per page
 
   try {
+    const offset = (page - 1) * pageSize; // Calculate the offset based on the page number and page size
+    const limit = pageSize; // Limit based on the page size
+
     const query = `
       SELECT event_data, timestamp
       FROM audit_logs
       WHERE thing_mac = $1
-      ORDER BY timestamp ASC;
+      ORDER BY timestamp ASC
+      LIMIT $2 OFFSET $3;
     `;
 
-    const dbResult = await db.query(query, [thingmac]);
+    const dbResult = await db.query(query, [thingmac, limit, offset]);
 
     let events = [];
 
@@ -3575,15 +3580,21 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
     });
 
     // ✅ Sort by full timestamp, not just time string
-    events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+    events.sort((a, b) => new Date(a.time) - new Date(b.time));
 
-    // ✅ Return the events as JSON
-    return res.json(events);
+    // ✅ Return the events as JSON, including pagination metadata
+    return res.json({
+      page,
+      pageSize,
+      total: dbResult.rowCount, // You could modify this part to return total records count if needed
+      events,
+    });
   } catch (err) {
     console.error("Database query error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 dashboard.get("/api/device/wifi/status/:thingmac",wifidata);
 module.exports = dashboard;
