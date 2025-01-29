@@ -3522,7 +3522,7 @@ dashboard.get("/audit-logs/:deviceId", async (req, res) => {
     let events = [];
 
     dbResult.rows.forEach((row) => {
-      const eventData = JSON.parse(row.event_data);
+      const eventData = typeof row.event_data === 'string' ? JSON.parse(row.event_data) : row.event_data;
       const timestamp = new Date(row.timestamp).toLocaleTimeString();
       const method = eventData.status?.desired?.u || "Unknown"; // Extract method from 'u' field in event_data
 
