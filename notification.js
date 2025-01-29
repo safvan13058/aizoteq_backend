@@ -6,7 +6,8 @@ const nodemailer = require("nodemailer");
 // });
 
 client.connect();
-
+// Listen for notifications on 'reorder_notification'
+client.query('LISTEN reorder_notification');
 // Listen for PostgreSQL notifications
 // client.query('LISTEN stock_reorder_channel');
 
