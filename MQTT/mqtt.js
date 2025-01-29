@@ -83,12 +83,17 @@ client.on("message", (topic, message) => {
       };
 
       let switches = [];
-      for (let i = 0; i < deviceState.deviceState.length; i += 3) {
-          switches.push({
-              switchId: deviceState.deviceState[i],
-              state: deviceState.deviceState[i + 1] === "1" ? "ON" : "OFF",
-              brightness: deviceState.deviceState[i + 2] || "0"
-          });
+      // ✅ FIX: Ensure deviceState.deviceState exists and is an array before iterating
+      if (Array.isArray(deviceState.deviceState)) {
+          for (let i = 0; i < deviceState.deviceState.length; i += 3) {
+              switches.push({
+                  switchId: deviceState.deviceState[i],
+                  state: deviceState.deviceState[i + 1] === "1" ? "ON" : "OFF",
+                  brightness: deviceState.deviceState[i + 2] || "0"
+              });
+          }
+      } else {
+          console.warn(`⚠️ deviceState.deviceState is missing or not an array for ${thingmac}`);
       }
 
       // Store latest live data
@@ -105,6 +110,7 @@ client.on("message", (topic, message) => {
       console.error("❌ Error processing MQTT message:", error);
   }
 });
+
 // API to Fetch Latest Live Data
 const wifidata = async (req, res) => {
   const { thingmac } = req.params;
