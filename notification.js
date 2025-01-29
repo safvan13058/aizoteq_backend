@@ -1,6 +1,7 @@
 const { Client } = require('pg'); // Import PostgreSQL client
 const axios = require('axios');
 const nodemailer = require("nodemailer");
+const fs = require('fs');
 // const client = new Client({
 //     connectionString: 'postgresql://your_username:your_password@localhost:5432/your_database'
 // });
