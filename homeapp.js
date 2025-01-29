@@ -508,7 +508,7 @@ homeapp.put('/app/reorder/floor/:floor_id', async (req, res) => {
 
     try {
         // Start a transaction
-        const client = await pool.connect();
+        const client = await db.connect();
         await client.query('BEGIN');
 
         // Get the current floor_index for the specified floor
