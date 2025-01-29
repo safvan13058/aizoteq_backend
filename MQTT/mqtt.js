@@ -54,57 +54,6 @@ client.on("connect", () => {
     }
   });
 });
-// function handleDeviceStatus(deviceId, status) {
-//   const timestamp = new Date(); // Capture current timestamp
-//   const query = `
-//     INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
-//     VALUES ($1, $2, $3, $4)
-//   `;
-  
-//   const eventData = {
-//     status, // Full status message (e.g., switch statuses)
-//   };
-//   console.log(`events===${eventData}`)
-//   console.log(`events===${JSON.stringify(eventData, null, 2)}`)
-//   db.query(
-//     query,
-//     [deviceId, "status_update", JSON.stringify(eventData), timestamp],
-//     (err) => {
-//       if (err) {
-//         console.error("Device status logging error:", err);
-//       } else {
-//         console.log(`Status logged for device ${deviceId} at ${timestamp}`);
-//       }
-//     }
-//   );
-// }
-// client.on("message", (topic, message) => {
-//   // console.log(`Message received on ${topic}: ${message.toString()}`);
-
-//   if (topic === "$aws/things/84F703B5F560/shadow/update/accepted") {
-//     try {
-//       // const deviceId = topic.split("/")[2];
-//       const payload = JSON.parse(message.toString());
-//       const status = payload.state || {};
-
-//       // Ensure deviceInfo exists before accessing
-//       const deviceId = status.desired?.id || topic.split("/")[2];
-      
-//       console.log(`device_id===${topic.split("/")[2]}`)
-//       console.log(`data======${JSON.stringify(status, null, 2)}`);
-//       if (status.deviceInfo && Array.isArray(status.deviceInfo) && status.deviceInfo.length > 10) {
-//         deviceId = status.deviceInfo[10] || "Unknown"; // Adjust index if needed
-//       }
-
-//       console.log(`Extracted Device ID: ${deviceId}`);
-//       handleDeviceStatus(deviceId, status);
-//     } catch (error) {
-//       console.error("Error parsing message:", error);
-//     }
-//   } else {
-//     console.warn("Unhandled topic type:", topic);
-//   }
-// });
 
 const processedMessages = new Set(); // Cache to store processed messages
 
@@ -129,7 +78,7 @@ function handleDeviceStatus(deviceId, status) {
   `;
 
   console.log(`Logging status for device ${deviceId}`);
-
+  console.log(`eventData===${eventData}`)
   db.query(query, [deviceId, "status_update", eventData, timestamp], (err) => {
     if (err) {
       console.error("Device status logging error:", err);
