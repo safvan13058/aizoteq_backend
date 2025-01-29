@@ -64,7 +64,8 @@ const wifidata= async (req, res) => {
       const params = { thingName:thingmac };
       const data = await iotData.getThingShadow(params).promise();
       const shadow = JSON.parse(data.payload);
-
+       
+      console.log(`shadow===${shadow}`)
       // Extract Wi-Fi and Device Info
       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
       const deviceState = shadow.state?.desired?.deviceState || [];
@@ -79,7 +80,7 @@ const wifidata= async (req, res) => {
           wifiSSID: deviceInfo[7],        // Wi-Fi SSID
           wifiChannel: deviceInfo[9]      // Wi-Fi Channel
       };
-
+      console.log(`wifi data ${wifiData}`)
       // Parsing Switch Data
       let switches = [];
       for (let i = 0; i < deviceState.length; i += 3) {
