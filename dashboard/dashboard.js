@@ -233,8 +233,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
   async (req, res) => {
     const { serialno, name, phone, party } = req.query;
     const { stock, status } = req.params;
-    // const userrole = req.user.role;
     const userrole = "admin";
+    // const userrole = req.user.role;
     
     try {
       let stockTable = '';
@@ -277,17 +277,19 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           s.status AS stock_status,
           s.addedAt,
           s.addedby,
-          u.name AS user_name,
-          u.phone AS user_phone,
           tf.failureReason,
           tf.fixed_by,
           tf.loggedAt
         FROM Things t
         LEFT JOIN ${stockTable} s ON t.id = s.thingId
-        LEFT JOIN ${userTable} u ON s.user_id = u.id
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        WHERE s.status = $1
       `;
+      
+      if (userTable) {
+        query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
+      }
+      
+      query += `LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+        WHERE s.status = $1`;
       
       if (userrole === 'dealer') {
         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
@@ -303,11 +305,11 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         query += ` AND t.serialno ILIKE $${params.length + 1}`;
         params.push(`%${serialno}%`);
       }
-      if (name) {
+      if (name && userTable) {
         query += ` AND u.name ILIKE $${params.length + 1}`;
         params.push(`%${name}%`);
       }
-      if (phone) {
+      if (phone && userTable) {
         query += ` AND u.phone ILIKE $${params.length + 1}`;
         params.push(`%${phone}%`);
       }
@@ -3218,7 +3220,6 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
-
 
 
 // --------------audit_log------------------
