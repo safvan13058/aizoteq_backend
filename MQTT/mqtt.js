@@ -62,6 +62,64 @@ const categorizeWifiStrength = (rssi) => {
   if (signal >= -75) return "Moderate ⚠️";
   return "Poor ❌"; 
 };
+const wifidata = async (req, res) => {
+  const { thingmac } = req.params;
+
+  try {
+      const params = { thingName: thingmac };
+      const data = await iotData.getThingShadow(params).promise();
+      const shadow = JSON.parse(data.payload);
+       
+      console.log(`shadow===${JSON.stringify(shadow, null, 2)}`);
+      
+      // Extract Wi-Fi and Device Info
+      const deviceInfo = shadow.state?.desired?.deviceInfo || [];
+      const deviceState = shadow.state?.desired?.deviceState || [];
+      
+      // Check if RSSI exists or if it's missing
+      const rssi = deviceInfo[0] || "Unknown"; // Default to "Unknown" if RSSI is not available
+      const wifiData = {
+          signalStrength: rssi === "Unknown" ? rssi : `${rssi} dBm`, // If no RSSI, show "Unknown"
+          quality: categorizeWifiStrength(rssi),  // Categorize Wi-Fi signal quality
+          manufacturer: deviceInfo[1] || "Unknown",    // Manufacturer name
+          ipAddress: deviceInfo[2] || "Unknown",       // Local IP address (e.g., "192.168.1.24")
+          firmwareVersion: deviceInfo[3] || "Unknown", // Firmware version
+          deviceType: deviceInfo[5] || "Unknown",      // Device model name
+          wifiSSID: deviceInfo[7] || "Unknown",        // Wi-Fi SSID
+          wifiChannel: deviceInfo[9] || "Unknown"      // Wi-Fi Channel
+      };
+
+      // console.log(`Wi-Fi data: ${JSON.stringify(wifiData, null, 2)}`);
+      
+      // Parsing Switch Data
+      let switches = [];
+      if (Array.isArray(deviceState)) {
+          for (let i = 0; i < deviceState.length; i += 3) {
+              switches.push({
+                  switchId: deviceState[i],
+                  state: deviceState[i + 1] === "1" ? "ON" : "OFF",
+                  brightness: deviceState[i + 2] || "0"
+              });
+          }
+      }
+
+      const responseData = {
+          thingmac,
+          wifiData,
+          switches, // Include switches data if needed
+          timestamp: new Date().toISOString()
+      };
+        
+      // Update stored data
+      deviceLiveData[thingmac] = responseData;
+      
+      res.json(responseData);
+          
+  } catch (error) {
+      console.error(`Error fetching data for ${thingmac}:`, error);
+      res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
+  }
+};
 // Process Incoming MQTT Messages
 client.on("message", (topic, message) => {
   try {
