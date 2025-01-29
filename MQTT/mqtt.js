@@ -54,7 +54,7 @@ client.on("connect", () => {
     }
   });
 });
-
+const deviceLiveData = {}; // Store real-time device data
 const categorizeWifiStrength = (rssi) => {
   const signal = parseInt(rssi, 10); // Convert string to number
 
