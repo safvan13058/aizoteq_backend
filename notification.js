@@ -5,10 +5,10 @@ const nodemailer = require("nodemailer");
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
-const serviceAccount = require('./certificate/aizoteq-c0002-cd5bca74ffa4.json'); // Replace with your Firebase JSON file
+// const serviceAccount = require('./certificate/aizoteq-c0002-cd5bca74ffa4.json'); // Replace with your Firebase JSON file
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-});
+    credential: admin.credential.cert(JSON.parse(fs.readFileSync('./certificate/aizoteq-c0002-cd5bca74ffa4.json')))
+  });
 
 // Configure PostgreSQL client for LISTEN/NOTIFY
 const client = new Client({
