@@ -212,7 +212,7 @@ const wifidata= async (req, res) => {
       res.json({
           thingmac,
           wifiData,
-          switches,
+          // switches,
           timestamp: new Date().toISOString()
       });
           
