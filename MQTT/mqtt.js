@@ -33,10 +33,6 @@ client.on("close", () => {
   console.log("MQTT connection closed");
 });
 
-// client.on("connect", () => {
-//   console.log("Connected to AWS IoT Core via MQTTS");
-// });
-
 // AWS IoT Configuration
 AWS.config.update({
   accessKeyId: process.env.AWS_ACCESS_KEY_ID2,
@@ -46,147 +42,6 @@ AWS.config.update({
 const iotData = new AWS.IotData({
   endpoint: "an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.com", // Replace with your IoT endpoint
 });
-
-const getDeviceStatus = async (deviceId) => {
-  const params = { thingName: deviceId };
-  console.log(`[DEBUG] Fetching shadow for device: ${deviceId}`); // Debug log
-  
-  try {
-    const data = await iotData.getThingShadow(params).promise();
-    console.log(`[DEBUG] Received shadow data for device ${deviceId}:`, JSON.stringify(data)); // Debug log
-    
-    const shadow = JSON.parse(data.payload);
-
-    const desired = shadow.state?.desired || {};
-    const delta = shadow.state?.delta || {};
-    console.log(`[DEBUG] Parsed desired state for ${deviceId}:`, desired); // Debug log
-    console.log(`[DEBUG] Parsed delta state for ${deviceId}:`, delta); // Debug log
-
-    const switches = [];
-    let switchCount = 0;
-
-    // Parse switches (keys starting with 's')
-    for (const key in desired) {
-      if (key.startsWith("s")) {
-        switchCount++;
-        const switchId = `${deviceId}_${switchCount}`;
-        const status = desired[key] === "1" ? "ON" : "OFF";
-        const brightness = desired[`v${switchCount}`] || 0;
-
-        console.log(
-          `[DEBUG] Switch parsed - Switch ID: ${switchId}, Status: ${status}, Brightness: ${brightness}`
-        ); // Debug log
-
-        switches.push({
-          switchId,
-          status,
-          brightness,
-          deltaStatus: delta[key] === "1" ? "ON" : "OFF",
-          deltaBrightness: delta[`v${switchCount}`] || 0,
-        });
-      }
-    }
-
-    console.log(`[DEBUG] Switches for device ${deviceId}:`, switches); // Debug log
-
-    return {
-      deviceId,
-      status: desired.status || "unknown",
-      command: desired.command || "unknown",
-      toggleState: desired.t || "OFF",
-      switches,
-      brightness: {
-        on: desired.on_bright || 0,
-        off: desired.off_bright || 0,
-      },
-      deviceInfo: desired.deviceInfo || [],
-      deltaState: delta,
-    };
-  } catch (error) {
-    console.error(`[ERROR] Failed to fetch device status for ${deviceId}:`, error.message); // Error log
-    throw new Error(`Failed to fetch device status for ${deviceId}: ${error.message}`);
-  }
-};
-
-// Function to monitor and log switch changes
-const monitorSwitchChanges = async (deviceId, userId) => {
-  console.log(`[DEBUG] Monitoring switch changes for device: ${deviceId}, User ID: ${userId}`); // Debug log
-  
-  try {
-    const deviceStatus = await getDeviceStatus(deviceId);
-    console.log(`[DEBUG] Device status for ${deviceId}:`, deviceStatus); // Debug log
-
-    // Loop through each switch to check for changes
-    deviceStatus.switches.forEach((sw) => {
-      console.log(`[DEBUG] Checking switch: ${sw.switchId}`); // Debug log
-
-      // Get the previous state and brightness from delta state
-      const previousState = deviceStatus.deltaState[`s${sw.switchId.slice(-1)}`];
-      const previousBrightness = deviceStatus.deltaState[`v${sw.switchId.slice(-1)}`];
-
-      console.log(
-        `[DEBUG] Switch: ${sw.switchId}, Previous State (delta): ${previousState}, Previous Brightness (delta): ${previousBrightness}`
-      ); // Debug log
-
-      // Ensure both states are compared correctly ("ON"/"OFF" or "1"/"0")
-      const currentState = sw.status === "ON" ? "ON" : "OFF";  // Ensuring it's "ON"/"OFF" format
-      const previousStateFormatted = previousState === "1" ? "ON" : previousState === "0" ? "OFF" : previousState; // Handling delta state
-
-      const stateChanged = currentState !== previousStateFormatted;
-      const brightnessChanged = sw.brightness !== previousBrightness;
-
-      console.log(
-        `[DEBUG] Comparing states - Current State: ${currentState}, Previous State: ${previousStateFormatted}, Brightness Changed: ${brightnessChanged}`
-      ); // Debug log
-
-      // Log only if there's a state or brightness change
-      if (stateChanged || brightnessChanged) {
-        console.log(
-          `[DEBUG] Detected change in switch ${sw.switchId} - New State: ${sw.status}, New Brightness: ${sw.brightness}`
-        ); // Debug log
-
-        // Log the change
-        logSwitchStatusChange(deviceId, sw.switchId, sw.status, sw.brightness, userId);
-      } else {
-        console.log(`[DEBUG] No change detected for switch ${sw.switchId}`); // Debug log
-      }
-    });
-  } catch (error) {
-    console.error(`[ERROR] Error monitoring switch changes for device ${deviceId}:`, error.message); // Error log
-  }
-};
-
-// Function to log switch status changes
-const logSwitchStatusChange = async (deviceId, switchId, status, brightness, userId) => {
-  try {
-    console.log(`[DEBUG] Attempting to log change for Switch: ${switchId}, Status: ${status}, Brightness: ${brightness}`); // Debug log
-    
-    // Check if the device_id exists in the devices table
-    const checkDeviceQuery = "SELECT COUNT(*) FROM devices WHERE deviceid = $1";
-    const result = await db.query(checkDeviceQuery, [switchId]);
-
-    if (parseInt(result.rows[0].count) === 0) {
-      console.log(`Device ${deviceId} not found in devices table. Skipping log.`); // Debug log
-      return; // Skip logging if device_id doesn't exist
-    }
-
-    // Log the switch status change
-    const query = `
-      INSERT INTO audit_logs (thing_mac, device_id, action, user_id, timestamp)
-      VALUES ($1, $2, $3, $4, $5)
-    `;
-    const timestamp = new Date().toISOString();
-    const thingMac = deviceId;
-
-    await db.query(query, [thingMac, switchId, `${status}`, userId, timestamp]);
-    console.log(`Switch ${switchId} status logged: ${status}, brightness: ${brightness}`); // Debug log
-  } catch (error) {
-    console.error("Error logging switch status:", error);
-  }
-};
-
-
-// MQTT Connection and Subscription
 client.on("connect", () => {
   console.log("Connected to MQTT broker");
 
@@ -199,22 +54,59 @@ client.on("connect", () => {
     }
   });
 });
+function handleDeviceStatus(deviceId, status) {
+  const timestamp = new Date(); // Capture current timestamp
+  const query = `
+    INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
+    VALUES ($1, $2, $3, $4)
+  `;
+  
+  const eventData = {
+    status, // Full status message (e.g., switch statuses)
+  };
+  console.log(`events===${eventData}`)
+  console.log(`events===${JSON.stringify(eventData, null, 2)}`)
+  db.query(
+    query,
+    [deviceId, "status_update", JSON.stringify(eventData), timestamp],
+    (err) => {
+      if (err) {
+        console.error("Device status logging error:", err);
+      } else {
+        console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+      }
+    }
+  );
+}
+client.on("message", (topic, message) => {
+  // console.log(`Message received on ${topic}: ${message.toString()}`);
 
-client.on("message", async (topic, message) => {
-  try {
-    console.log(`Received message on topic: ${topic}`);
-    console.log(`Message: ${message.toString()}`);
+  if (topic === "$aws/things/84F703B5F560/shadow/update/accepted") {
+    try {
+      // const deviceId = topic.split("/")[2];
+      const payload = JSON.parse(message.toString());
+      const status = payload.state || {};
 
-    const deviceId = topic.split("/")[2];
-    await monitorSwitchChanges(deviceId, 1); // Assuming userId = 1
-  } catch (error) {
-    console.error("Error processing message:", error);
+      // Ensure deviceInfo exists before accessing
+      const deviceId = status.desired?.id || topic.split("/")[2];
+      
+      console.log(`device_id===${topic.split("/")[2]}`)
+      console.log(`data======${JSON.stringify(status, null, 2)}`);
+      if (status.deviceInfo && Array.isArray(status.deviceInfo) && status.deviceInfo.length > 10) {
+        deviceId = status.deviceInfo[10] || "Unknown"; // Adjust index if needed
+      }
+
+      console.log(`Extracted Device ID: ${deviceId}`);
+      handleDeviceStatus(deviceId, status);
+    } catch (error) {
+      console.error("Error parsing message:", error);
+    }
+  } else {
+    console.warn("Unhandled topic type:", topic);
   }
 });
 
-// client.on("error", (err) => {
-//   console.error("MQTT client connection error:", err);
-// });
+
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
