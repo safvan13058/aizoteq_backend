@@ -104,38 +104,73 @@ async function getAuditLogs(deviceId) {
 
 const processedMessages = new Set(); // Cache to store processed messages
 
-function handleDeviceStatus(deviceId, status) {
-  const timestamp = new Date();
-  const eventData = JSON.stringify({ status });
+// function handleDeviceStatus(deviceId, status) {
+//   const timestamp = new Date();
+//   const eventData = JSON.stringify({ status });
 
-  // Create a unique key for deduplication (deviceId + event data + timestamp minute)
-  const uniqueKey = `${deviceId}-${eventData}-${timestamp.getMinutes()}`;
+//   // Create a unique key for deduplication (deviceId + event data + timestamp minute)
+//   const uniqueKey = `${deviceId}-${eventData}-${timestamp.getMinutes()}`;
 
-  // Prevent duplicate insertions
-  if (processedMessages.has(uniqueKey)) {
-    console.log(`Skipping duplicate entry for device ${deviceId}`);
-    return;
-  }
+//   // Prevent duplicate insertions
+//   if (processedMessages.has(uniqueKey)) {
+//     console.log(`Skipping duplicate entry for device ${deviceId}`);
+//     return;
+//   }
 
-  processedMessages.add(uniqueKey); // Mark message as processed
+//   processedMessages.add(uniqueKey); // Mark message as processed
 
-  const query = `
-    INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
-    VALUES ($1, $2, $3, $4)
-  `;
+//   const query = `
+//     INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
+//     VALUES ($1, $2, $3, $4)
+//   `;
 
-  console.log(`Logging status for device ${deviceId}`);
-  console.log(`eventData===${eventData}`)
-  db.query(query, [deviceId, "status_update", eventData, timestamp], (err) => {
-    if (err) {
-      console.error("Device status logging error:", err);
-    } else {
-      console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+//   console.log(`Logging status for device ${deviceId}`);
+//   console.log(`eventData===${eventData}`)
+//   db.query(query, [deviceId, "status_update", eventData, timestamp], (err) => {
+//     if (err) {
+//       console.error("Device status logging error:", err);
+//     } else {
+//       console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+//     }
+//   });
+
+//   // Clear cache periodically to avoid memory issues (every 5 mins)
+//   setTimeout(() => processedMessages.delete(uniqueKey), 300000);
+// }
+async function handleDeviceStatus(deviceId, status) {
+  try {
+    const timestamp = new Date();
+    const eventData = JSON.stringify({ status });
+
+    // Create a unique key for deduplication (deviceId + event data + timestamp minute)
+    const uniqueKey = `${deviceId}-${eventData}-${timestamp.getMinutes()}`;
+
+    // Prevent duplicate insertions
+    if (processedMessages.has(uniqueKey)) {
+      console.log(`Skipping duplicate entry for device ${deviceId}`);
+      return;
     }
-  });
 
-  // Clear cache periodically to avoid memory issues (every 5 mins)
-  setTimeout(() => processedMessages.delete(uniqueKey), 300000);
+    processedMessages.add(uniqueKey); // Mark message as processed
+
+    const query = `
+      INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
+      VALUES ($1, $2, $3, $4)
+    `;
+
+    console.log(`Logging status for device ${deviceId}`);
+    console.log(`eventData===${eventData}`);
+
+    // ✅ Ensure we use `await` to properly handle the query
+    await db.query(query, [deviceId, "status_update", eventData, timestamp]);
+
+    console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+
+    // ✅ Use a timeout to clear old processed messages (avoid memory issues)
+    setTimeout(() => processedMessages.delete(uniqueKey), 300000);
+  } catch (err) {
+    console.error("Device status logging error:", err);
+  }
 }
 
 client.on("message", (topic, message) => {
@@ -155,21 +190,43 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 // Graceful Shutdown
-process.on("SIGINT", () => {
+// process.on("SIGINT", () => {
+//   console.log("Disconnecting MQTT client...");
+//   client.end();
+//   console.log("MQTT client disconnected.");
+
+//   console.log("Closing database connection...");
+//   db.end((err) => {
+//     if (err) {
+//       console.error("Error closing database connection:", err);
+//     } else {
+//       console.log("Database connection closed.");
+//     }
+//     process.exit(0);
+//   });
+// });
+
+let isDbClosed = false; // Track if the database is already closed
+
+process.on("SIGINT", async () => {
   console.log("Disconnecting MQTT client...");
   client.end();
   console.log("MQTT client disconnected.");
 
-  console.log("Closing database connection...");
-  db.end((err) => {
-    if (err) {
-      console.error("Error closing database connection:", err);
-    } else {
+  if (!isDbClosed) {
+    console.log("Closing database connection...");
+    try {
+      await db.end(); // ✅ Close DB pool only once
+      isDbClosed = true; // ✅ Mark DB as closed
       console.log("Database connection closed.");
+    } catch (err) {
+      console.error("Error closing database connection:", err);
     }
-    process.exit(0);
-  });
-});
+  } else {
+    console.log("Database connection was already closed.");
+  }
 
+  process.exit(0);
+});
 
 module.exports = client;
