@@ -266,7 +266,7 @@ const wifidata = async (req, res) => {
       const responseData = {
           thingmac,
           wifiData,
-          // switches, // Include switches data if needed
+          switches, // Include switches data if needed
           timestamp: new Date().toISOString()
       };
         
