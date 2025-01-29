@@ -55,6 +55,57 @@ client.on("connect", () => {
   });
 });
 
+async function getAuditLogs(deviceId) {
+  try {
+    await db.connect();
+    const query = `
+      SELECT event_data, timestamp
+      FROM audit_logs
+      WHERE thing_mac = $1
+      ORDER BY timestamp ASC;
+    `;
+
+    const res = await db.query(query, [deviceId]);
+    
+    let switchLogs = {};
+
+    res.rows.forEach((row) => {
+      const eventData = JSON.parse(row.event_data);
+      const timestamp = new Date(row.timestamp).toLocaleTimeString();
+      
+      if (eventData.status && eventData.status.desired) {
+        Object.entries(eventData.status.desired).forEach(([key, value]) => {
+          if (key.startsWith("s") && key.length === 2) { 
+            const switchNumber = key.substring(1); // Extract switch number
+            const switchState = value === "1" ? "ON" : "OFF";
+
+            if (!switchLogs[switchNumber]) {
+              switchLogs[switchNumber] = [];
+            }
+
+            switchLogs[switchNumber].push({ state: switchState, time: timestamp });
+          }
+        });
+      }
+    });
+
+    console.log("\nSwitch Status History:\n");
+    console.log("Switch | Status | Time");
+    console.log("-------------------------");
+    
+    Object.entries(switchLogs).forEach(([switchNum, logs]) => {
+      logs.forEach(log => {
+        console.log(`   ${switchNum}   |  ${log.state}  |  ${log.time}`);
+      });
+    });
+
+  } catch (err) {
+    console.error("Database query error:", err);
+  } finally {
+    await client.end();
+  }
+}
+
 const processedMessages = new Set(); // Cache to store processed messages
 
 function handleDeviceStatus(deviceId, status) {
