@@ -55,6 +55,53 @@ client.on("connect", () => {
   });
 });
 
+
+// API to Fetch Live Device Data
+const wifidata= async (req, res) => {
+  const { thingmac } = req.params;
+
+  try {
+      const params = { thingName:thingmac };
+      const data = await iotData.getThingShadow(params).promise();
+      const shadow = JSON.parse(data.payload);
+
+      // Extract Wi-Fi and Device Info
+      const deviceInfo = shadow.state?.desired?.deviceInfo || [];
+      const deviceState = shadow.state?.desired?.deviceState || [];
+
+      // Parsing Wi-Fi details
+      const wifiData = {
+          signalStrength: deviceInfo[0],  // RSSI (e.g., "-65 dBm")
+          manufacturer: deviceInfo[1],    // Manufacturer name
+          ipAddress: deviceInfo[2],       // Local IP (e.g., "192.168.1.24")
+          firmwareVersion: deviceInfo[3], // Firmware version
+          deviceType: deviceInfo[5],      // Model name
+          wifiSSID: deviceInfo[7],        // Wi-Fi SSID
+          wifiChannel: deviceInfo[9]      // Wi-Fi Channel
+      };
+
+      // Parsing Switch Data
+      let switches = [];
+      for (let i = 0; i < deviceState.length; i += 3) {
+          switches.push({
+              switchId: deviceState[i],
+              state: deviceState[i + 1] === "1" ? "ON" : "OFF",
+              brightness: deviceState[i + 2]
+          });
+      }
+
+      res.json({
+          deviceId,
+          wifiData,
+          switches,
+          timestamp: new Date().toISOString()
+      });
+
+  } catch (error) {
+      res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
+  }
+};
+
 async function getAuditLogs(deviceId) {
   try {
     const query = `
@@ -234,4 +281,4 @@ process.on("SIGINT", async () => {
   process.exit(0);
 });
 
-module.exports = client;
+module.exports = {client,wifidata};

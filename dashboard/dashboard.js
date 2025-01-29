@@ -10,6 +10,8 @@ const multer = require("multer");
 const fs = require('fs');
 const { billing, returned } = require('./billing.js')
 const { getThingBySerialNo, removeFromAdminStock, removeFromdealersStock, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel } = require("./functions.js");
+const {wifidata}=require('../MQTT/mqtt.js')
+
 dashboard.get('/', (req, res) => {
   res.send('dashboard working ')
 })
@@ -3583,4 +3585,5 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   }
 });
 
+dashboard.get("/api/device/wifi/status/:thingmac",wifidata);
 module.exports = dashboard;
