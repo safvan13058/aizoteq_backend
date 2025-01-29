@@ -55,7 +55,13 @@ client.on("connect", () => {
   });
 });
 
+const categorizeWifiStrength = (rssi) => {
+  const signal = parseInt(rssi, 10); // Convert string to number
 
+  if (signal >= -65) return "Good ✅";
+  if (signal >= -75) return "Moderate ⚠️";
+  return "Poor ❌"; 
+};
 // API to Fetch Live Device Data
 const wifidata= async (req, res) => {
   const { thingmac } = req.params;
@@ -69,10 +75,11 @@ const wifidata= async (req, res) => {
       // Extract Wi-Fi and Device Info
       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
       const deviceState = shadow.state?.desired?.deviceState || [];
-
+      const rssi = deviceInfo[0]; // RSSI value (e.g., "-65")
       // Parsing Wi-Fi details
       const wifiData = {
-          signalStrength: deviceInfo[0],  // RSSI (e.g., "-65 dBm")
+          signalStrength: `${rssi} dBm`,
+          quality: categorizeWifiStrength(rssi),  // RSSI (e.g., "-65 dBm")
           manufacturer: deviceInfo[1],    // Manufacturer name
           ipAddress: deviceInfo[2],       // Local IP (e.g., "192.168.1.24")
           firmwareVersion: deviceInfo[3], // Firmware version
