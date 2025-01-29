@@ -92,7 +92,7 @@ const wifidata= async (req, res) => {
       }
 
       res.json({
-          deviceId,
+          thingmac,
           wifiData,
           switches,
           timestamp: new Date().toISOString()
