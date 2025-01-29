@@ -1,9 +1,25 @@
-const client=require('./middlewares/dbconnection')
+const { Client } = require('pg'); // Import PostgreSQL client
 const axios = require('axios');
 const nodemailer = require("nodemailer");
 // const client = new Client({
 //     connectionString: 'postgresql://your_username:your_password@localhost:5432/your_database'
 // });
+
+// Persistent client for LISTEN/NOTIFY
+const client = new Client({
+    host: 'database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com', // AWS RDS or Aurora endpoint
+    user: 'postgres',                      // Your database username
+    password: 'Aizo12345',                 // Your database password
+    database: 'postgres',                  // Your database name
+    port: 5432,                            // Default PostgreSQL port
+    max: 10,                               // Maximum number of connections in the pool
+    // idleTimeoutMillis: 30000,           // Close idle connections after 30 seconds
+    // connectionTimeoutMillis: 2000,      // Timeout if connection cannot be established
+    ssl: {
+        rejectUnauthorized: true,          // Ensures the server certificate is verified
+        ca: fs.readFileSync('\global-bundle.pem').toString() // Optional CA cert for RDS/Aurora
+    }
+});
 require('dotenv').config(); // Load environment variables from .env file
 // Connect to PostgreSQL
 client.connect();
