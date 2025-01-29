@@ -3365,4 +3365,220 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
   }
 });
 
+
+
+// --------------audit_log------------------
+// dashboard.get('/api/display/auditlog/:thingmac'),async(req,res)=>{
+   
+//   const mac=req.params.thingmac;
+//   try {
+//     await client.connect();
+//     const query = `
+//       SELECT event_data, timestamp
+//       FROM audit_logs
+//       WHERE thing_mac = $1
+//       ORDER BY timestamp ASC;
+//     `;
+
+//     const res = await client.query(query, [deviceId]);
+    
+//     let switchLogs = {};
+//     let connectionStatus = null;
+//     let lastDisconnectTime = null;
+
+//     console.log("\nEvent History:\n");
+//     console.log("Switch | Status       | Time");
+//     console.log("-----------------------------");
+
+//     res.rows.forEach((row) => {
+//       const eventData = JSON.parse(row.event_data);
+//       const timestamp = new Date(row.timestamp).toLocaleTimeString();
+      
+//       // Handle device connection & disconnection
+//       if (
+//         eventData.status &&
+//         eventData.status.desired &&
+//         eventData.status.desired.command === "device_update"
+//       ) {
+//         if (eventData.status.desired.status === "disconnected") {
+//           console.log(`       | DISCONNECTED | ${timestamp}`);
+//           connectionStatus = "disconnected";
+//           lastDisconnectTime = timestamp;
+//         }
+//       }
+
+//       // Detect reconnection (if any switch event comes after disconnection)
+//       if (connectionStatus === "disconnected" && eventData.status?.desired) {
+//         console.log(`       | CONNECTED    | ${timestamp}`);
+//         connectionStatus = "connected";
+//       }
+
+//       // Handle switch status updates
+//       if (eventData.status && eventData.status.desired) {
+//         Object.entries(eventData.status.desired).forEach(([key, value]) => {
+//           if (key.startsWith("s") && key.length === 2) { 
+//             const switchNumber = key.substring(1);
+//             const switchState = value === "1" ? "ON" : "OFF";
+
+//             console.log(`   ${switchNumber}   | ${switchState}      | ${timestamp}`);
+//           }
+//         });
+//       }
+//     });
+
+//   } catch (err) {
+//     console.error("Database query error:", err);
+//   } finally {
+//     await client.end();
+//   }
+// }
+// API Route to Get Audit Logs
+dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
+  const { thingmac} = req.params;
+
+
+
+  try {
+    await client.connect();
+    const query = `
+      SELECT event_data, timestamp, method
+      FROM audit_logs
+      WHERE thing_mac = $1
+      ORDER BY timestamp ASC;
+    `;
+
+    const dbResult = await client.query(query, [thingmac]);
+
+    let response = {
+      deviceId: deviceId,
+      connectionEvents: [],
+      switchLogs: {}
+    };
+
+    dbResult.rows.forEach((row) => {
+      const eventData = JSON.parse(row.event_data);
+      const timestamp = new Date(row.timestamp).toLocaleTimeString();
+      const method = eventData.status?.desired?.u || "Unknown"; // Extract method from 'u' field in event_data
+
+      if (eventData.status && eventData.status.desired) {
+        Object.entries(eventData.status.desired).forEach(([key, value]) => {
+          if (key.startsWith("s") && key.length === 2) { 
+            const switchNumber = key.substring(1);
+            const switchState = value === "1" ? "ON" : "OFF";
+
+            if (!response.switchLogs[switchNumber]) {
+              response.switchLogs[switchNumber] = [];
+            }
+
+            response.switchLogs[switchNumber].push({
+              state: switchState,
+              time: timestamp,
+              method: method
+            });
+          }
+        });
+      }
+
+      // Handling connection/disconnection events
+      if (eventData.status?.desired?.command === "device_update") {
+        if (eventData.status.desired.status === "disconnected") {
+          response.connectionEvents.push({
+            event: "DISCONNECTED",
+            time: timestamp,
+            method: method
+          });
+        } else if (eventData.status.desired.status === "connected") {
+          response.connectionEvents.push({
+            event: "CONNECTED",
+            time: timestamp,
+            method: method
+          });
+        }
+      }
+    });
+
+    res.json(response);
+  } catch (err) {
+    console.error("Database query error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  } finally {
+    await client.end();
+  }
+});
+dashboard.get("/audit-logs/:deviceId", async (req, res) => {
+  const { deviceId } = req.params;
+
+  try {
+    await db.connect();
+    const query = `
+      SELECT event_data, timestamp, method
+      FROM audit_logs
+      WHERE thing_mac = $1
+      ORDER BY timestamp ASC;
+    `;
+
+    const dbResult = await db.query(query, [deviceId]);
+
+    let events = [];
+
+    dbResult.rows.forEach((row) => {
+      const eventData = JSON.parse(row.event_data);
+      const timestamp = new Date(row.timestamp).toLocaleTimeString();
+      const method = eventData.status?.desired?.u || "Unknown"; // Extract method from 'u' field in event_data
+
+      // Handling connection/disconnection events
+      if (eventData.status?.desired?.command === "device_update") {
+        if (eventData.status.desired.status === "disconnected") {
+          events.push({
+            event: "DISCONNECTED",
+            time: timestamp,
+            method: method,
+            type: "Connection"
+          });
+        } else if (eventData.status.desired.status === "connected") {
+          events.push({
+            event: "CONNECTED",
+            time: timestamp,
+            method: method,
+            type: "Connection"
+          });
+        }
+      }
+
+      // Handling switch logs
+      if (eventData.status && eventData.status.desired) {
+        Object.entries(eventData.status.desired).forEach(([key, value]) => {
+          if (key.startsWith("s") && key.length === 2) { 
+            const switchNumber = key.substring(1);
+            const switchState = value === "1" ? "ON" : "OFF";
+
+            events.push({
+              switch: switchNumber,
+              state: switchState,
+              time: timestamp,
+              method: method,
+              type: "Switch"
+            });
+          }
+        });
+      }
+    });
+
+    // Sort events by timestamp
+    events.sort((a, b) => {
+      const timeA = new Date(`1970-01-01T${a.time}Z`).getTime();
+      const timeB = new Date(`1970-01-01T${b.time}Z`).getTime();
+      return timeA - timeB;
+    });
+
+    // Return the events as JSON
+    res.json(events);
+
+  } catch (err) {
+    console.error("Database query error:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  } finally {
+    await db.end();
+  }
+});
 module.exports = dashboard;
