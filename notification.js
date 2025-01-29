@@ -55,13 +55,14 @@ async function sendPushNotification(title, body) {
       topic: "stock_alerts", // Topic-based notification
       notification: { title, body },
     };
-
     const response = await admin.messaging().send(message);
     console.log("📱 Push notification sent:", response);
   } catch (error) {
     console.error("Error sending push notification:", error);
   }
 }
+
+
 
 // Listen for PostgreSQL notifications
 client.query('LISTEN reorder_notification');
