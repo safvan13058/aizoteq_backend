@@ -54,58 +54,106 @@ client.on("connect", () => {
     }
   });
 });
+// function handleDeviceStatus(deviceId, status) {
+//   const timestamp = new Date(); // Capture current timestamp
+//   const query = `
+//     INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
+//     VALUES ($1, $2, $3, $4)
+//   `;
+  
+//   const eventData = {
+//     status, // Full status message (e.g., switch statuses)
+//   };
+//   console.log(`events===${eventData}`)
+//   console.log(`events===${JSON.stringify(eventData, null, 2)}`)
+//   db.query(
+//     query,
+//     [deviceId, "status_update", JSON.stringify(eventData), timestamp],
+//     (err) => {
+//       if (err) {
+//         console.error("Device status logging error:", err);
+//       } else {
+//         console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+//       }
+//     }
+//   );
+// }
+// client.on("message", (topic, message) => {
+//   // console.log(`Message received on ${topic}: ${message.toString()}`);
+
+//   if (topic === "$aws/things/84F703B5F560/shadow/update/accepted") {
+//     try {
+//       // const deviceId = topic.split("/")[2];
+//       const payload = JSON.parse(message.toString());
+//       const status = payload.state || {};
+
+//       // Ensure deviceInfo exists before accessing
+//       const deviceId = status.desired?.id || topic.split("/")[2];
+      
+//       console.log(`device_id===${topic.split("/")[2]}`)
+//       console.log(`data======${JSON.stringify(status, null, 2)}`);
+//       if (status.deviceInfo && Array.isArray(status.deviceInfo) && status.deviceInfo.length > 10) {
+//         deviceId = status.deviceInfo[10] || "Unknown"; // Adjust index if needed
+//       }
+
+//       console.log(`Extracted Device ID: ${deviceId}`);
+//       handleDeviceStatus(deviceId, status);
+//     } catch (error) {
+//       console.error("Error parsing message:", error);
+//     }
+//   } else {
+//     console.warn("Unhandled topic type:", topic);
+//   }
+// });
+
+const processedMessages = new Set(); // Cache to store processed messages
+
 function handleDeviceStatus(deviceId, status) {
-  const timestamp = new Date(); // Capture current timestamp
+  const timestamp = new Date();
+  const eventData = JSON.stringify({ status });
+
+  // Create a unique key for deduplication (deviceId + event data + timestamp minute)
+  const uniqueKey = `${deviceId}-${eventData}-${timestamp.getMinutes()}`;
+
+  // Prevent duplicate insertions
+  if (processedMessages.has(uniqueKey)) {
+    console.log(`Skipping duplicate entry for device ${deviceId}`);
+    return;
+  }
+
+  processedMessages.add(uniqueKey); // Mark message as processed
+
   const query = `
     INSERT INTO audit_logs (thing_mac, action, event_data, timestamp)
     VALUES ($1, $2, $3, $4)
   `;
-  
-  const eventData = {
-    status, // Full status message (e.g., switch statuses)
-  };
-  console.log(`events===${eventData}`)
-  console.log(`events===${JSON.stringify(eventData, null, 2)}`)
-  db.query(
-    query,
-    [deviceId, "status_update", JSON.stringify(eventData), timestamp],
-    (err) => {
-      if (err) {
-        console.error("Device status logging error:", err);
-      } else {
-        console.log(`Status logged for device ${deviceId} at ${timestamp}`);
-      }
+
+  console.log(`Logging status for device ${deviceId}`);
+
+  db.query(query, [deviceId, "status_update", eventData, timestamp], (err) => {
+    if (err) {
+      console.error("Device status logging error:", err);
+    } else {
+      console.log(`Status logged for device ${deviceId} at ${timestamp}`);
     }
-  );
+  });
+
+  // Clear cache periodically to avoid memory issues (every 5 mins)
+  setTimeout(() => processedMessages.delete(uniqueKey), 300000);
 }
+
 client.on("message", (topic, message) => {
-  // console.log(`Message received on ${topic}: ${message.toString()}`);
+  try {
+    const payload = JSON.parse(message.toString());
+    const status = payload.state || {};
+    const deviceId = status.desired?.id || topic.split("/")[2];
 
-  if (topic === "$aws/things/84F703B5F560/shadow/update/accepted") {
-    try {
-      // const deviceId = topic.split("/")[2];
-      const payload = JSON.parse(message.toString());
-      const status = payload.state || {};
-
-      // Ensure deviceInfo exists before accessing
-      const deviceId = status.desired?.id || topic.split("/")[2];
-      
-      console.log(`device_id===${topic.split("/")[2]}`)
-      console.log(`data======${JSON.stringify(status, null, 2)}`);
-      if (status.deviceInfo && Array.isArray(status.deviceInfo) && status.deviceInfo.length > 10) {
-        deviceId = status.deviceInfo[10] || "Unknown"; // Adjust index if needed
-      }
-
-      console.log(`Extracted Device ID: ${deviceId}`);
-      handleDeviceStatus(deviceId, status);
-    } catch (error) {
-      console.error("Error parsing message:", error);
-    }
-  } else {
-    console.warn("Unhandled topic type:", topic);
+    console.log(`Received data for device ${deviceId}`);
+    handleDeviceStatus(deviceId, status);
+  } catch (error) {
+    console.error("Error parsing message:", error);
   }
 });
-
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
