@@ -43,6 +43,7 @@ console.log('Listening for stock reorder notifications...');
 client.on('notification', async (msg) => {
   if (msg.channel === 'reorder_notification') {
     try {
+        console.log(`notifiy===${msg.channel}`)
       // Parse notification payload (component and reference number)
       const [component, referenceNo] = msg.payload.split('|');
       const subject = 'Reorder Alert';
