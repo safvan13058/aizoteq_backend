@@ -747,7 +747,7 @@ homeapp.post('/app/add/room/:floor_id',
             await db.query(userRoomOrderQuery, userRoomOrderValues);
             // Insert query for sharedaccess table
             const sharedAccessQuery = `
-         INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+         INSERT INTO shareduser (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
          VALUES ($1, $2, $3, $4, $5, $6)
      `;
 
