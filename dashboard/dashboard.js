@@ -10,7 +10,7 @@ const multer = require("multer");
 const fs = require('fs');
 const { billing, returned } = require('./billing.js')
 const { getThingBySerialNo, removeFromAdminStock, removeFromdealersStock, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel } = require("./functions.js");
-const {wifidata}=require('../MQTT/mqtt.js')
+const { wifidata } = require('../MQTT/mqtt.js')
 
 dashboard.get('/', (req, res) => {
   res.send('dashboard working ')
@@ -65,17 +65,283 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+// dashboard.get('/api/searchThings/working/:stock/status/:status',  
+//   validateJwt,
+//   authorizeRoles('admin', 'dealer'),
+//   async (req, res) => {
+//     const { serialno, name, phone,party } = req.query;
+//     const { stock,status} = req.params;
+//     const userrole = req.user.role;
+    
+//     try {
+//       if(userrole==="admin"){
+//       let stockTable = 'AdminStock';
+//       let userTable = '';
+//       let userColumn = '';
+//       if(stock==="sold"){
+//       if (party === 'dealer') {
+//         stockTable = 'dealersStock';
+//         userTable = 'dealers_details';
+//         userColumn = 'dealer_id';
+//       } else if (party === 'customer') {
+//         stockTable = 'customersStock';
+//         userTable = 'customers_details';
+//         userColumn = 'customer_id';
+//       } else if (party === 'onlineCustomer') {
+//         stockTable = 'onlineCustomerStock';
+//         userTable = 'onlinecustomer_details';
+//         userColumn = 'online_customer_id';
+//       }
+//     }
+      
+//       let query = `
+//         SELECT 
+//           t.id AS thing_id,
+//           t.thingName,
+//           t.createdby,
+//           t.batchId,
+//           t.model,
+//           t.securityKey,
+//           t.serialno,
+//           s.status AS stock_status,
+//           s.addedAt,
+//           s.addedby,
+//           u.name AS user_name,
+//           u.phone AS user_phone,
+//           tf.failureReason,
+//           tf.fixed_by,
+//           tf.loggedAt
+//         FROM Things t
+//         LEFT JOIN ${stockTable} s ON t.id = s.thingId
+//         LEFT JOIN ${userTable} u ON s.user_id = u.id
+//         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+//         WHERE s.status = $1
+//       `;
+      
+//       const params = [status];
+      
+//       if (serialno) {
+//         query += ` AND t.serialno ILIKE $${params.length + 1}`;
+//         params.push(`%${serialno}%`);
+//       }
+//       if (name) {
+//         query += ` AND u.name ILIKE $${params.length + 1}`;
+//         params.push(`%${name}%`);
+//       }
+//       if (phone) {
+//         query += ` AND u.phone ILIKE $${params.length + 1}`;
+//         params.push(`%${phone}%`);
+//       }
+      
+//       console.log('Executing query:', query);
+//       console.log('Query parameters:', params);
+      
+//       const result = await db.query(query, params);
+      
+//       if (result.rows.length === 0) {
+//         return res.status(404).json({ message: 'No matching records found' });
+//       }
+      
+//       res.json(result.rows);
+//     }
+//     else if(userrole==="dealer"){
+
+      
+//        let stockTable = 'dealersStock';
+//        let userTable = 'dealers_details';
+//        let userColumn = 'dealer_id';
+      
+//       if(stock==="sold"){
+//       if (party === 'customer') {
+//         stockTable = 'customersStock';
+//         userTable = 'customers_details';
+//         userColumn = 'customer_id';
+//       } 
+//     }
+//       let query = `
+//         SELECT 
+//           t.id AS thing_id,
+//           t.thingName,
+//           t.createdby,
+//           t.batchId,
+//           t.model,
+//           t.securityKey,
+//           t.serialno,
+//           s.status AS stock_status,
+//           s.addedAt,
+//           s.addedby,
+//           u.name AS user_name,
+//           u.phone AS user_phone,
+//           tf.failureReason,
+//           tf.fixed_by,
+//           tf.loggedAt
+//         FROM Things t
+//         LEFT JOIN ${stockTable} s ON t.id = s.thingId
+//         LEFT JOIN ${userTable} u ON s.user_id = u.id
+//         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+//         WHERE s.status = $1
+//       `;
+      
+//       const params = [status];
+      
+
+//   // If user is a dealer, fetch their ID and add to query
+//   if (userrole === 'dealer') {
+//     const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+//     const dealerResult = await db.query(dealerQuery, [req.user.email]);
+//     if (dealerResult.rows.length === 0) {
+//       return res.status(404).json({ message: 'Dealer not found' });
+//     }
+//     query += ` AND s.user_id = $2`;
+//     params.push(dealerResult.rows[0].id);
+//   }
+
+//   // Add serialno filter if provided
+//   if (serialno) {
+//     query += ` AND t.serialno ILIKE $${params.length + 1}`;
+//     params.push(`%${serialno}%`);
+//   }
+
+//   // Log for debugging
+//   console.log('Executing query:', query);
+//   console.log('Query parameters:', params);
+
+//   // Execute the query
+//   const result = await db.query(query, params);
+
+//   // Handle no results
+//   if (result.rows.length === 0) {
+//     return res.status(404).json({ message: 'No matching records found' });
+//   }
+
+//   // Return results
+//   res.json(result.rows);
+//     }
+//     } catch (err) {
+//       console.error('Error executing query:', err);
+//       res.status(500).json({
+//         error: 'Internal Server Error',
+//         details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+//       });
+//     }
+//   }
+// );
+
+dashboard.get('/api/searchThings/working/:stock/status/:status',
+  // validateJwt,
+  // authorizeRoles('admin', 'dealer'),
+  async (req, res) => {
+    const { serialno, name, phone, party } = req.query;
+    const { stock, status } = req.params;
+    // const userrole = req.user.role;
+    const userrole = "admin";
+    
+    try {
+      let stockTable = '';
+      let userTable = '';
+      const params = [status];
+      
+      if (userrole === 'admin') {
+        stockTable = 'AdminStock';
+        if (stock === 'sold') {
+          if (party === 'dealer') {
+            stockTable = 'dealersStock';
+            userTable = 'dealers_details';
+          } else if (party === 'customer') {
+            stockTable = 'customersStock';
+            userTable = 'customers_details';
+          } else if (party === 'onlineCustomer') {
+            stockTable = 'onlineCustomerStock';
+            userTable = 'onlinecustomer_details';
+          }
+        }
+      } else if (userrole === 'dealer') {
+        stockTable = 'dealersStock';
+        userTable = 'dealers_details';
+        
+        if (stock === 'sold' && party === 'customer') {
+          stockTable = 'customersStock';
+          userTable = 'customers_details';
+        }
+      }
+      
+      let query = `
+        SELECT 
+          t.id AS thing_id,
+          t.thingName,
+          t.createdby,
+          t.batchId,
+          t.model,
+          t.securityKey,
+          t.serialno,
+          s.status AS stock_status,
+          s.addedAt,
+          s.addedby,
+          u.name AS user_name,
+          u.phone AS user_phone,
+          tf.failureReason,
+          tf.fixed_by,
+          tf.loggedAt
+        FROM Things t
+        LEFT JOIN ${stockTable} s ON t.id = s.thingId
+        LEFT JOIN ${userTable} u ON s.user_id = u.id
+        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+        WHERE s.status = $1
+      `;
+      
+      if (userrole === 'dealer') {
+        const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+        const dealerResult = await db.query(dealerQuery, [req.user.email]);
+        if (dealerResult.rows.length === 0) {
+          return res.status(404).json({ message: 'Dealer not found' });
+        }
+        query += ` AND s.user_id = $2`;
+        params.push(dealerResult.rows[0].id);
+      }
+      
+      if (serialno) {
+        query += ` AND t.serialno ILIKE $${params.length + 1}`;
+        params.push(`%${serialno}%`);
+      }
+      if (name) {
+        query += ` AND u.name ILIKE $${params.length + 1}`;
+        params.push(`%${name}%`);
+      }
+      if (phone) {
+        query += ` AND u.phone ILIKE $${params.length + 1}`;
+        params.push(`%${phone}%`);
+      }
+      
+      console.log('Executing query:', query);
+      console.log('Query parameters:', params);
+      
+      const result = await db.query(query, params);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No matching records found' });
+      }
+      
+      res.json(result.rows);
+    } catch (err) {
+      console.error('Error executing query:', err);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+      });
+    }
+  }
+);
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,
   authorizeRoles('admin', 'dealers'),
-   async (req, res) => {
-  const { serialno } = req.query;
-  const { status } = req.params;
-  const userrole = req.user.role;
-   
-  console.log(`working ${userrole}`)
-  try {
+  async (req, res) => {
+    const { serialno } = req.query;
+    const { status } = req.params;
+    const userrole = req.user.role;
+
+    console.log(`working ${userrole}`)
+    try {
       // Define base query and parameters
       let query = `
           SELECT 
@@ -101,19 +367,19 @@ dashboard.get('/api/searchThings/working/:status',
 
       // If user is a dealer, fetch their ID and add to query
       if (userrole === 'dealer') {
-          const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
-          const dealerResult = await db.query(dealerQuery, [req.user.email]);
-          if (dealerResult.rows.length === 0) {
-              return res.status(404).json({ message: 'Dealer not found' });
-          }
-          query += ` AND a.user_id = $2`;
-          params.push(dealerResult.rows[0].id);
+        const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+        const dealerResult = await db.query(dealerQuery, [req.user.email]);
+        if (dealerResult.rows.length === 0) {
+          return res.status(404).json({ message: 'Dealer not found' });
+        }
+        query += ` AND a.user_id = $2`;
+        params.push(dealerResult.rows[0].id);
       }
 
       // Add serialno filter if provided
       if (serialno) {
-          query += ` AND t.serialno ILIKE $${params.length + 1}`;
-          params.push(`%${serialno}%`);
+        query += ` AND t.serialno ILIKE $${params.length + 1}`;
+        params.push(`%${serialno}%`);
       }
 
       // Log for debugging
@@ -125,20 +391,20 @@ dashboard.get('/api/searchThings/working/:status',
 
       // Handle no results
       if (result.rows.length === 0) {
-          return res.status(404).json({ message: 'No matching records found' });
+        return res.status(404).json({ message: 'No matching records found' });
       }
 
       // Return results
       res.json(result.rows);
-  } catch (err) {
+    } catch (err) {
       // Log error and return response
       console.error('Error executing query:', err);
       res.status(500).json({
-          error: 'Internal Server Error',
-          details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'production' ? undefined : err.message,
       });
-  }
-});
+    }
+  });
 
 //api for user graph
 // dashboard.get("/api/users/graph", async (req, res) => {
@@ -348,237 +614,6 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
-// dashboard.post("/api/billing/return/:status", async (req, res) => {
-//     const { serial_numbers, returned_by } = req.body;
-//     const { status } = req.params;
-
-//     // Ensure serial_numbers is present and has at least one item
-//     if (!serial_numbers || serial_numbers.length === 0) {
-//       return res.status(400).json({ error: "At least one serial number is required" });
-//     }
-
-//     const client = await db.connect();
-
-//     try {
-//       await client.query("BEGIN");
-
-//       let totalReturnAmount = 0;
-//       const receiptItems = []; // To store item details for the billing receipt
-//       let data;
-//       let source;
-//       let sourceType;
-//       let itemResult;
-//       // Process each serial number
-//       for (let serial_no of serial_numbers) {
-//         // Locate the item in the relevant stock tables using serial_no
-//         const itemQuery = await client.query(
-//           `
-//           SELECT 'dealersStock' AS source, id, user_id, thing_id
-//           FROM dealersStock
-//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-
-//           UNION ALL
-
-//           SELECT 'customersStock' AS source, id, user_id, thing_id
-//           FROM customersStock
-//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-
-//           UNION ALL
-
-//           SELECT 'onlinecustomerStock' AS source, id, user_id, thing_id
-//           FROM onlinecustomerStock
-//           WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
-//           `,
-//           [serial_no]
-//         );
-
-//         // Check if the item is found
-//         if (itemQuery.rows.length === 0) {
-//           throw new Error(`Item with serial number ${serial_no} not found or already returned`);
-//         }
-//          itemResult = await client.query(
-//           `SELECT * FROM billing_items WHERE serial_no = $1 LIMIT 1`,
-//           [serial_no]
-//         );
-
-
-//         if (itemResult.rows.length > 0) {
-//           const retailPrice = itemResult.rows[0].retail_price;
-//           console.log('Retail Price:',itemResult.rows[0] );
-//         } else {
-//           console.log('No item found with the provided serial number');
-//         }
-//         const retail_price = itemResult.rows[0].retail_price;
-//         const { source, id: stockId, user_id, thing_id } = itemQuery.rows[0];
-//         sourceType = source ? source.replace("Stock", "") : null;
-//         // Remove item from its source stock table
-//         await client.query(`DELETE FROM ${source} WHERE id = $1`, [stockId]);
-
-//         // Add item to AdminStock with status "returned"
-
-//         await client.query(
-//           `
-//           INSERT INTO AdminStock (thingId, addedBy, status)
-//           VALUES ($1, $2, $3)
-//           `,
-//           [thing_id, returned_by, status]
-//         );
-
-//         let table;
-//         if (source === "onlinecustomerStock") {
-//           table = "onlinecustomer_details";
-//         }
-//         if (source === "customersStock") {
-//           table = "customers_details";
-//         }
-//         if (source === "dealersStock") {
-//           table = "dealers_details";
-//         }
-
-//         // Fetch the user data from the respective table
-//         const dataQuery = await client.query(`SELECT * FROM ${table} WHERE id = $1`, [user_id]);
-//         data = dataQuery.rows[0];
-//         console.log(data)
-//         if (!data) {
-//           throw new Error(`User with ID ${user_id} not found`);
-//         }
-
-//         // Update the balance in the relevant customer/dealer table
-//        // Update the balance and refund_amount in the relevant customer/dealer table
-//       let balanceUpdateQuery = '';
-//       let balanceUpdateValues = [];
-
-//       if (status === "return") {
-//         // Refund scenario
-//         balanceUpdateQuery = `
-//           UPDATE ${table}
-//           SET balance = balance - $1, refund_amount = refund_amount + $2
-//           WHERE id = $3
-//           RETURNING balance, refund_amount;
-//         `;
-//         balanceUpdateValues = [retail_price, retail_price, user_id];
-//       } else if (status === "exchange") {
-//         // Exchange scenario
-//         const priceDifference = new_item_price - retail_price;
-
-//         if (priceDifference > 0) {
-//           // Customer needs to pay extra
-//           balanceUpdateQuery = `
-//             UPDATE ${table}
-//             SET balance = balance + $1
-//             WHERE id = $2
-//             RETURNING balance;
-//           `;
-//           balanceUpdateValues = [priceDifference, user_id];
-//         } else {
-//           // Customer receives a refund
-//           balanceUpdateQuery = `
-//             UPDATE ${table}
-//             SET balance = balance - $1, refund_amount = refund_amount + $2
-//             WHERE id = $3
-//             RETURNING balance, refund_amount;
-//           `;
-//           balanceUpdateValues = [-priceDifference, -priceDifference, user_id];
-//         }
-//       }
-
-//       // Execute the balance update
-//       const balanceResult = await client.query(balanceUpdateQuery, balanceUpdateValues);
-//       const updatedBalance = balanceResult.rows[0].balance;
-
-//       // Update total return amount (only for returns)
-//       if (status === "returned") {
-//         totalReturnAmount += retail_price;
-//       }
-
-
-//         // Store item details for the billing receipt
-//         receiptItems.push({
-//           serial_no,
-//           retail_price: -retail_price, // Negative value for return
-//         });
-
-//         // Update warranty table if applicable
-//         await client.query(
-//           `
-//           DELETE FROM thing_warranty
-//           WHERE serial_no = $1
-//           `,
-//           [serial_no]
-//         );
-//       }
-
-//       // Generate the next receipt number
-//       const lastReceiptQuery = await client.query(
-//         `SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`
-//       );
-//       const receiptNo =
-//         lastReceiptQuery.rows.length > 0 ? parseInt(lastReceiptQuery.rows[0].receipt_no) + 1 : 1000;
-//         console.log(data);
-//         console.log(data.name);
-//       // Insert return record into `billing_receipt`
-//       const billingReceiptResult = await client.query(
-//         `
-//         INSERT INTO billing_receipt (
-//           receipt_no, name, phone, dealer_or_customer, total_amount, balance, billing_createdby,
-//           dealers_id, customers_id, onlinecustomer_id, type,billing_address, datetime
-//         ) VALUES (
-//           $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,$12, CURRENT_TIMESTAMP
-//         ) RETURNING id, receipt_no
-//         `,
-//         [
-//           receiptNo,
-//           data.name, // Name of the person performing the return
-//           data.phone, // Phone number (optional, can be updated if required)
-//           sourceType, // Source type (dealers, customers, or onlinecustomers)
-//           -totalReturnAmount, // Return amount as a negative value
-//           updatedBalance, // Balance for this return
-//           returned_by, // User who processed the return
-//           source === "dealersStock" ? user_id : null,
-//           source === "customersStock" ? user_id : null,
-//           source === "onlinecustomerStock" ? user_id : null,
-//           status ,// The status passed in the request params
-//           data.address
-//         ]
-//       );
-
-//       const { id: billingReceiptId } = billingReceiptResult.rows[0];
-
-//       // Insert returned item details into `billing_items`
-//       for (let item of receiptItems) {
-//         await client.query(
-//           `
-//           INSERT INTO billing_items (
-//             receipt_no, type, model, serial_no, mrp, retail_price
-//           ) VALUES ($1, $2, $3, $4, $5, $6)
-//           `,
-//           [
-//             receiptNo,
-//             status, // The status passed in the request params
-//             itemResult.rows[0].model, // Model (optional, can be retrieved if needed)
-//             item.serial_no,
-//             0, // MRP (optional)
-//             item.retail_price, // Refund amount
-//           ]
-//         );
-//       }
-
-//       await client.query("COMMIT");
-
-//       // Respond with success details
-//       return res.status(200).json({
-//         message: "Items successfully returned and added to AdminStock",
-//         total_return_amount: totalReturnAmount,
-//         receipt_no: receiptNo,
-//       });
-//     } catch (error) {
-//       await client.query("ROLLBACK");
-//       console.error("Error processing return:", error);
-//       return res.status(500).json({ error: "Internal server error" });
-//     } finally {
-//       client.release();
-//     }
-//   });
 
 dashboard.post('/api/pay-balance', async (req, res) => {
   try {
@@ -1221,7 +1256,7 @@ dashboard.get("/api/billing/search", async (req, res) => {
 });
 
 dashboard.get("/api/things/receipt/:serial_no", async (req, res) => {
-  
+
   const { serial_no } = req.params;
 
   if (!serial_no) {
@@ -1456,7 +1491,7 @@ dashboard.get('/warranties', async (req, res) => {
 // API to insert data into the dealers_details table
 dashboard.post('/api/create/account/for/:Party',
   validateJwt,
-  authorizeRoles('admin','dealer'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { table } = req.params.Party;
     const { name, address, email, phone, alt_phone } = req.body;
@@ -1532,67 +1567,67 @@ dashboard.get('/api/display/party/:Party',
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
-  // dashboard.get('/api/display/party/:Party',
-  //   // validateJwt,
-  //   // authorizeRoles('admin', 'dealer'),
-  //   async (req, res) => {
-  //     const { Party } = req.params; // Get the table name from route parameters
-  //     const { query } = req.query; // Get search query from query parameters (optional)
-  
-  //     // Validate the Party parameter
-  //     const validParties = ['onlinecustomer', 'customers', 'dealers'];
-  //     if (!validParties.includes(Party)) {
-  //       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
-  //     }
-  
-  //     try {
-  //       let sql, values, tableName;
-  
-  //       if (req.user.role === "admin") {
-  //         // Admin-specific logic
-  //         tableName = `${Party}_details`;
-  //         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
-  //         values = [req.user.id];
-  
-  //         if (query) {
-  //           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
-  //           values.push(`%${query}%`); // Case-insensitive matching
-  //         }
-  //       } else if (req.user.role === "dealer") {
-  //         // Dealer-specific logic
-  //         tableName = `customers_details`;
-  //         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
-  //         values = [req.user.id];
-  
-  //         if (query) {
-  //           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
-  //           values.push(`%${query}%`); // Case-insensitive matching
-  //         }
-  //       } else {
-  //         return res.status(403).json({ error: 'Unauthorized access.' });
-  //       }
-  
-  //       // Execute query
-  //       const client = await db.connect();
-  //       const result = await client.query(sql, values);
-  //       client.release();
-  
-  //       // Respond with the fetched data
-  //       res.status(200).json({
-  //         message: `Data retrieved successfully from ${tableName}.`,
-  //         data: result.rows,
-  //       });
-  //     } catch (error) {
-  //       console.error('Error fetching data:', error);
-  //       res.status(500).json({ error: 'An error occurred while fetching data.' });
-  //     }
-  //   }
-  // );
-  
+// dashboard.get('/api/display/party/:Party',
+//   // validateJwt,
+//   // authorizeRoles('admin', 'dealer'),
+//   async (req, res) => {
+//     const { Party } = req.params; // Get the table name from route parameters
+//     const { query } = req.query; // Get search query from query parameters (optional)
+
+//     // Validate the Party parameter
+//     const validParties = ['onlinecustomer', 'customers', 'dealers'];
+//     if (!validParties.includes(Party)) {
+//       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
+//     }
+
+//     try {
+//       let sql, values, tableName;
+
+//       if (req.user.role === "admin") {
+//         // Admin-specific logic
+//         tableName = `${Party}_details`;
+//         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
+//         values = [req.user.id];
+
+//         if (query) {
+//           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
+//           values.push(`%${query}%`); // Case-insensitive matching
+//         }
+//       } else if (req.user.role === "dealer") {
+//         // Dealer-specific logic
+//         tableName = `customers_details`;
+//         sql = `SELECT * FROM ${tableName} WHERE addedby=$1`;
+//         values = [req.user.id];
+
+//         if (query) {
+//           sql += ` AND (name ILIKE $2 OR address ILIKE $2 OR phone ILIKE $2)`;
+//           values.push(`%${query}%`); // Case-insensitive matching
+//         }
+//       } else {
+//         return res.status(403).json({ error: 'Unauthorized access.' });
+//       }
+
+//       // Execute query
+//       const client = await db.connect();
+//       const result = await client.query(sql, values);
+//       client.release();
+
+//       // Respond with the fetched data
+//       res.status(200).json({
+//         message: `Data retrieved successfully from ${tableName}.`,
+//         data: result.rows,
+//       });
+//     } catch (error) {
+//       console.error('Error fetching data:', error);
+//       res.status(500).json({ error: 'An error occurred while fetching data.' });
+//     }
+//   }
+// );
+
 //delete account 
 dashboard.delete('/api/delete/account/for/:Party/:id',
   validateJwt,
-  authorizeRoles('admin','dealer'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { Party, id } = req.params;
 
@@ -1753,7 +1788,7 @@ dashboard.post('/api/create/price_table',
 // Read all entries from the price_table
 dashboard.get('/api/display/prices-table',
   validateJwt,
-  authorizeRoles('admin','dealer'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     console.log(`working pricetable ${req.user} `)
     const { search } = req.query; // Get the search query from the request
@@ -1906,83 +1941,6 @@ dashboard.delete('/api/delete/price_table/:id',
     }
   });
 
-// dashboard.post("/api/upload-images/:model_id", upload.array("images", 5), async (req, res) => {
-//     const { model_id } = req.params;
-  
-//     try {
-//       if (!req.files || req.files.length === 0) {
-//         return res.status(400).json({ message: "No files uploaded" });
-//       }
-  
-//       // Save image URLs to the database
-//       const imageUrls = req.files.map((file) => file.location); // S3 public URLs
-//       const queries = imageUrls.map((url) =>
-//         pool.query(
-//           "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
-//           [model_id, url]
-//         )
-//       );
-//       await Promise.all(queries);
-  
-//       res.status(200).json({
-//         message: "Images uploaded successfully",
-//         imageUrls,
-//       });
-//     } catch (error) {
-//       console.error("Error uploading images:", error);
-//       res.status(500).json({ message: "Internal server error" });
-//     }
-//   });
-
-// dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
-//   const { model_id } = req.params;
-//   console.log("Uploaded files:", req.files);
-//   try {
-
-//     if (!req.files || req.files.length === 0) {
-//       return res.status(400).json({ message: "No files uploaded" });
-//     }
-
-//     // Check how many images already exist for this model_id
-//     const { rows } = await db.query(
-//       "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
-//       [model_id]
-//     );
-
-//     const currentImageCount = parseInt(rows[0].image_count, 10);
-
-//     if (currentImageCount >= 5) {
-//       return res.status(400).json({ message: "Maximum of 5 images allowed per model." });
-//     }
-
-//     // Determine how many new images can be uploaded
-//     const availableSlots = 5 - currentImageCount;
-//     if (req.files.length > availableSlots) {
-//       return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
-//     }
-
-//     // Save local image file paths to the database
-//     const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
-//     const queries = imagePaths.map((filePath) =>
-//       db.query(
-//         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
-//         [model_id, filePath]
-//       )
-    
-//     );
-//     console.log(`imagepaths:${imagePaths}`)
-//     await Promise.all(queries);
-
-//     res.status(200).json({
-//       message: "Images uploaded successfully",
-//       imagePaths,
-//     });
-//   } catch (error) {
-//     console.error("Error uploading images:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
- 
 // API to add multiple features for a model
 dashboard.post("/api/add-features/:model_id", async (req, res) => {
   const { model_id } = req.params;
@@ -2018,30 +1976,6 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    // // Fetch the image_url from the database
-    // const queryResult = await db.query(
-    //   "SELECT image_url FROM model_features_image WHERE id = $1",
-    //   [id]
-    // );
-
-    // if (queryResult.rows.length === 0) {
-    //   return res.status(404).json({ message: "Image not found" });
-    // }
-
-    // const imageUrl = queryResult.rows[0].image_url;
-
-    // // Extract the S3 key from the image URL
-    // const bucketName = "YOUR_BUCKET_NAME"; // Replace with your bucket name
-    // const s3Key = imageUrl.split(`${bucketName}/`)[1];
-
-    // // Delete the image from S3
-    // await s3
-    //   .deleteObject({
-    //     Bucket: bucketName,
-    //     Key: s3Key,
-    //   })
-    //   .promise();
-
     // Delete the database entry
     await db.query("DELETE FROM model_features_image WHERE id = $1", [id]);
 
@@ -2055,47 +1989,6 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
 dashboard.get('/test-image', (req, res) => {
   res.sendFile(path.join(__dirname, 'uploads', '1737969595925-aizo1.jpg'));
 });
-// Serve images from the "uploads" folder
-// dashboard.use('/uploads', express.static(path.join(__dirname,'/uploads')));
-  // API to get images and features of a model by model_id
-// dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
-//   const { model_id } = req.params;
-
-//   try {
-//     // Query to fetch features
-//     const featuresQuery = `
-//       SELECT feature 
-//       FROM model_features 
-//       WHERE model_id = $1;
-//     `;
-//     const featuresResult = await db.query(featuresQuery, [model_id]);
-
-//     // Query to fetch image URLs
-//     const imagesQuery = `
-//       SELECT image_url 
-//       FROM model_features_image 
-//       WHERE model_id = $1;
-//     `;
-//     const imagesResult = await db.query(imagesQuery, [model_id]);
-
-//     // Combine results
-//     const features = featuresResult.rows.map(row => row.feature);
-//     const images = imagesResult.rows.map(row => row.image_url);
-
-//     if (features.length === 0 && images.length === 0) {
-//       return res.status(404).json({ message: "No data found for the given model_id" });
-//     }
-
-//     res.json({
-//       model_id,
-//       features,
-//       images,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
 dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
   const { model_id } = req.params;
 
@@ -2222,47 +2115,6 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
-
-// Example: Your existing API route
-// dashboard.get('/api/display/model/features/:model_id', async (req, res) => {
-//   const { model_id } = req.params;
-
-//   try {
-//     // Query to fetch features
-//     const featuresQuery = `
-//       SELECT feature 
-//       FROM model_features 
-//       WHERE model_id = $1;
-//     `;
-//     const featuresResult = await db.query(featuresQuery, [model_id]);
-
-//     // Query to fetch image filenames (stored in 'uploads' directory)
-//     const imagesQuery = `
-//       SELECT image_url
-//       FROM model_features_image 
-//       WHERE model_id = $1;
-//     `;
-//     const imagesResult = await db.query(imagesQuery, [model_id]);
-
-//     // Combine results
-//     const features = featuresResult.rows.map(row => row.feature);
-//     const images = imagesResult.rows.map(row => `/uploads/${row.image_filename}`); // Construct the full URL
-
-//     if (features.length === 0 && images.length === 0) {
-//       return res.status(404).json({ message: "No data found for the given model_id" });
-//     }
-
-//     res.json({
-//       model_id,
-//       features,
-//       images,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching data:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
 
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id", async (req, res) => {
@@ -2608,7 +2460,7 @@ dashboard.post('/close-session',
       client.release();
     }
   });
-  
+
 //display daily report
 dashboard.get("/api/reports/daily",
   validateJwt,
@@ -3141,10 +2993,10 @@ dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
     });
   }
 });
-
 // API to get stock things details by email and optional status
 // API to get stock things details by email, status, and serialno
 // Route: Fetch dealersStock with thing details
+
 dashboard.get('/api/dealersstock/:status', async (req, res) => {
   const { serialno } = req.query;
   const { status } = req.params;
@@ -3271,10 +3123,10 @@ dashboard.get('/api/display/dealersstock/:status', async (req, res) => {
 
 // API endpoint to insert dealer data
 dashboard.post('/api/add-dealer/:user_id', async (req, res) => {
-  const { user_id } = req.params; 
+  const { user_id } = req.params;
   const { company_name, GSTIN, logo } = req.body;
 
-  if (!company_name ) {
+  if (!company_name) {
     return res.status(400).json({ error: 'Company name are required' });
   }
 
@@ -3370,146 +3222,9 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 
 
 // --------------audit_log------------------
-// dashboard.get('/api/display/auditlog/:thingmac'),async(req,res)=>{
-   
-//   const mac=req.params.thingmac;
-//   try {
-//     await client.connect();
-//     const query = `
-//       SELECT event_data, timestamp
-//       FROM audit_logs
-//       WHERE thing_mac = $1
-//       ORDER BY timestamp ASC;
-//     `;
-
-//     const res = await client.query(query, [deviceId]);
-    
-//     let switchLogs = {};
-//     let connectionStatus = null;
-//     let lastDisconnectTime = null;
-
-//     console.log("\nEvent History:\n");
-//     console.log("Switch | Status       | Time");
-//     console.log("-----------------------------");
-
-//     res.rows.forEach((row) => {
-//       const eventData = JSON.parse(row.event_data);
-//       const timestamp = new Date(row.timestamp).toLocaleTimeString();
-      
-//       // Handle device connection & disconnection
-//       if (
-//         eventData.status &&
-//         eventData.status.desired &&
-//         eventData.status.desired.command === "device_update"
-//       ) {
-//         if (eventData.status.desired.status === "disconnected") {
-//           console.log(`       | DISCONNECTED | ${timestamp}`);
-//           connectionStatus = "disconnected";
-//           lastDisconnectTime = timestamp;
-//         }
-//       }
-
-//       // Detect reconnection (if any switch event comes after disconnection)
-//       if (connectionStatus === "disconnected" && eventData.status?.desired) {
-//         console.log(`       | CONNECTED    | ${timestamp}`);
-//         connectionStatus = "connected";
-//       }
-
-//       // Handle switch status updates
-//       if (eventData.status && eventData.status.desired) {
-//         Object.entries(eventData.status.desired).forEach(([key, value]) => {
-//           if (key.startsWith("s") && key.length === 2) { 
-//             const switchNumber = key.substring(1);
-//             const switchState = value === "1" ? "ON" : "OFF";
-
-//             console.log(`   ${switchNumber}   | ${switchState}      | ${timestamp}`);
-//           }
-//         });
-//       }
-//     });
-
-//   } catch (err) {
-//     console.error("Database query error:", err);
-//   } finally {
-//     await client.end();
-//   }
-// }
-// API Route to Get Audit Logs
-// dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
-//   const { thingmac} = req.params;
-
-
-
-//   try {
-//     await client.connect();
-//     const query = `
-//       SELECT event_data, timestamp, method
-//       FROM audit_logs
-//       WHERE thing_mac = $1
-//       ORDER BY timestamp ASC;
-//     `;
-
-//     const dbResult = await client.query(query, [thingmac]);
-
-//     let response = {
-//       deviceId: deviceId,
-//       connectionEvents: [],
-//       switchLogs: {}
-//     };
-
-//     dbResult.rows.forEach((row) => {
-//       const eventData = JSON.parse(row.event_data);
-//       const timestamp = new Date(row.timestamp).toLocaleTimeString();
-//       const method = eventData.status?.desired?.u || "Unknown"; // Extract method from 'u' field in event_data
-
-//       if (eventData.status && eventData.status.desired) {
-//         Object.entries(eventData.status.desired).forEach(([key, value]) => {
-//           if (key.startsWith("s") && key.length === 2) { 
-//             const switchNumber = key.substring(1);
-//             const switchState = value === "1" ? "ON" : "OFF";
-
-//             if (!response.switchLogs[switchNumber]) {
-//               response.switchLogs[switchNumber] = [];
-//             }
-
-//             response.switchLogs[switchNumber].push({
-//               state: switchState,
-//               time: timestamp,
-//               method: method
-//             });
-//           }
-//         });
-//       }
-
-//       // Handling connection/disconnection events
-//       if (eventData.status?.desired?.command === "device_update") {
-//         if (eventData.status.desired.status === "disconnected") {
-//           response.connectionEvents.push({
-//             event: "DISCONNECTED",
-//             time: timestamp,
-//             method: method
-//           });
-//         } else if (eventData.status.desired.status === "connected") {
-//           response.connectionEvents.push({
-//             event: "CONNECTED",
-//             time: timestamp,
-//             method: method
-//           });
-//         }
-//       }
-//     });
-
-//     res.json(response);
-//   } catch (err) {
-//     console.error("Database query error:", err);
-//     res.status(500).json({ error: "Internal Server Error" });
-//   } finally {
-//     await client.end();
-//   }
-// });
 dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   const { thingmac } = req.params;
-  const { page = 1, pageSize = 10 } = req.query; // Default to page 1 and 10 items per page
+  const { page , pageSize} = req.query; // Default to page 1 and 10 items per page
 
   try {
     const offset = (page - 1) * pageSize; // Calculate the offset based on the page number and page size
@@ -3595,6 +3310,5 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   }
 });
 
-
-dashboard.get("/api/device/wifi/status/:thingmac",wifidata);
+dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
 module.exports = dashboard;
