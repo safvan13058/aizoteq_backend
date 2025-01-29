@@ -114,103 +114,112 @@ client.on("message", (topic, message) => {
 
 
 // API to Fetch Latest Live Data
-const wifidata = async (req, res) => {
-  const { thingmac } = req.params;
-
-  if (deviceLiveData[thingmac]) {
-      return res.json(deviceLiveData[thingmac]); // Return live MQTT data
-  }
-
-  try {
-      const params = { thingName: thingmac };
-      const data = await iotData.getThingShadow(params).promise();
-      const shadow = JSON.parse(data.payload);
-      const deviceState = shadow.state?.desired || {};
-      const deviceInfo = deviceState.deviceInfo || [];
-      const rssi = deviceInfo[0] || "Unknown";
-
-      const wifiData = {
-          signalStrength: `${rssi} dBm`,
-          quality: categorizeWifiStrength(rssi),
-          manufacturer: deviceInfo[1] || "Unknown",
-          ipAddress: deviceInfo[2] || "Unknown",
-          firmwareVersion: deviceInfo[3] || "Unknown",
-          deviceType: deviceInfo[5] || "Unknown",
-          wifiSSID: deviceInfo[7] || "Unknown",
-          wifiChannel: deviceInfo[9] || "Unknown"
-      };
-
-      let switches = [];
-      for (let i = 0; i < deviceState.deviceState.length; i += 3) {
-          switches.push({
-              switchId: deviceState.deviceState[i],
-              state: deviceState.deviceState[i + 1] === "1" ? "ON" : "OFF",
-              brightness: deviceState.deviceState[i + 2] || "0"
-          });
-      }
-
-      const responseData = {
-          thingmac,
-          wifiData,
-          switches,
-          timestamp: new Date().toISOString()
-      };
-
-      // Update stored data
-      deviceLiveData[thingmac] = responseData;
-
-      res.json(responseData);
-  } catch (error) {
-      res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
-  }
-};
-// API to Fetch Live Device Data
-// const wifidata= async (req, res) => {
+// const wifidata = async (req, res) => {
 //   const { thingmac } = req.params;
 
+//   if (deviceLiveData[thingmac]) {
+//       return res.json(deviceLiveData[thingmac]); // Return live MQTT data
+//   }
+
 //   try {
-//       const params = { thingName:thingmac };
+//       const params = { thingName: thingmac };
 //       const data = await iotData.getThingShadow(params).promise();
 //       const shadow = JSON.parse(data.payload);
-       
-//       console.log(`shadow===${shadow}`)
-//       // Extract Wi-Fi and Device Info
-//       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
-//       const deviceState = shadow.state?.desired?.deviceState || [];
-//       const rssi = deviceInfo[0]; // RSSI value (e.g., "-65")
-//       // Parsing Wi-Fi details
+//       const deviceState = shadow.state?.desired || {};
+//       const deviceInfo = deviceState.deviceInfo || [];
+//       const rssi = deviceInfo[0] || "Unknown";
+
 //       const wifiData = {
 //           signalStrength: `${rssi} dBm`,
-//           quality: categorizeWifiStrength(rssi),  // RSSI (e.g., "-65 dBm")
-//           manufacturer: deviceInfo[1],    // Manufacturer name
-//           ipAddress: deviceInfo[2],       // Local IP (e.g., "192.168.1.24")
-//           firmwareVersion: deviceInfo[3], // Firmware version
-//           deviceType: deviceInfo[5],      // Model name
-//           wifiSSID: deviceInfo[7],        // Wi-Fi SSID
-//           wifiChannel: deviceInfo[9]      // Wi-Fi Channel
+//           quality: categorizeWifiStrength(rssi),
+//           manufacturer: deviceInfo[1] || "Unknown",
+//           ipAddress: deviceInfo[2] || "Unknown",
+//           firmwareVersion: deviceInfo[3] || "Unknown",
+//           deviceType: deviceInfo[5] || "Unknown",
+//           wifiSSID: deviceInfo[7] || "Unknown",
+//           wifiChannel: deviceInfo[9] || "Unknown"
 //       };
-//       console.log(`wifi data ${wifiData}`)
-//       // Parsing Switch Data
+
 //       let switches = [];
-//       for (let i = 0; i < deviceState.length; i += 3) {
+//       for (let i = 0; i < deviceState.deviceState.length; i += 3) {
 //           switches.push({
-//               switchId: deviceState[i],
-//               state: deviceState[i + 1] === "1" ? "ON" : "OFF",
-//               brightness: deviceState[i + 2]
+//               switchId: deviceState.deviceState[i],
+//               state: deviceState.deviceState[i + 1] === "1" ? "ON" : "OFF",
+//               brightness: deviceState.deviceState[i + 2] || "0"
 //           });
 //       }
 
-//       res.json({
+//       const responseData = {
 //           thingmac,
 //           wifiData,
 //           switches,
 //           timestamp: new Date().toISOString()
-//       });
+//       };
 
+//       // Update stored data
+//       deviceLiveData[thingmac] = responseData;
+
+//       res.json(responseData);
 //   } catch (error) {
 //       res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
 //   }
 // };
+// API to Fetch Live Device Data
+const wifidata= async (req, res) => {
+  const { thingmac } = req.params;
+
+  try {
+      const params = { thingName:thingmac };
+      const data = await iotData.getThingShadow(params).promise();
+      const shadow = JSON.parse(data.payload);
+       
+      console.log(`shadow===${shadow}`)
+      // Extract Wi-Fi and Device Info
+      const deviceInfo = shadow.state?.desired?.deviceInfo || [];
+      const deviceState = shadow.state?.desired?.deviceState || [];
+      const rssi = deviceInfo[0]; // RSSI value (e.g., "-65")
+      // Parsing Wi-Fi details
+      const wifiData = {
+          signalStrength: `${rssi} dBm`,
+          quality: categorizeWifiStrength(rssi),  // RSSI (e.g., "-65 dBm")
+          manufacturer: deviceInfo[1],    // Manufacturer name
+          ipAddress: deviceInfo[2],       // Local IP (e.g., "192.168.1.24")
+          firmwareVersion: deviceInfo[3], // Firmware version
+          deviceType: deviceInfo[5],      // Model name
+          wifiSSID: deviceInfo[7],        // Wi-Fi SSID
+          wifiChannel: deviceInfo[9]      // Wi-Fi Channel
+      };
+      console.log(`wifi data ${wifiData}`)
+      // Parsing Switch Data
+      let switches = [];
+      for (let i = 0; i < deviceState.length; i += 3) {
+          switches.push({
+              switchId: deviceState[i],
+              state: deviceState[i + 1] === "1" ? "ON" : "OFF",
+              brightness: deviceState[i + 2]
+          });
+      }
+      const responseData = {
+                  thingmac,
+                  wifiData,
+                  switches,
+                  timestamp: new Date().toISOString()
+              };
+        
+              // Update stored data
+              deviceLiveData[thingmac] = responseData;
+        
+      res.json({
+          thingmac,
+          wifiData,
+          switches,
+          timestamp: new Date().toISOString()
+      });
+          
+  } catch (error) {
+      res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
+  }
+};
 
 async function getAuditLogs(deviceId) {
   try {
