@@ -5,7 +5,6 @@ const nodemailer = require("nodemailer");
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin SDK
-var admin = require("firebase-admin");
 
 const serviceAccount = {
     type: "service_account",
