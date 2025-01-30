@@ -392,15 +392,15 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       t.securityKey,
       t.serialno,
       s.status AS stock_status,
-      ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'} AS added_date,  -- Conditional column selection
-       ${stockTable === 'AdminStock' ? 's.addedby' : 's.added_by'} AS added_date,  -- Conditional column selection
+      COALESCE( ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'}) AS added_date,  -- Conditional column selection
+       COALESCE( ${stockTable === 'AdminStock' ? 's.addedby' : 's.added_by'})AS added_date,  -- Conditional column selection
       tf.failureReason,
       tf.fixed_by,
       tf.loggedAt
     FROM Things t
     LEFT JOIN ${stockTable} s ON t.id = s.thingId
 `;
-      } else if (stockTable === "AdminStock") {
+  } else if (stockTable === "AdminStock") {
         query = `
   SELECT 
     t.id AS thing_id,
