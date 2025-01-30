@@ -21,6 +21,8 @@ app.use('/dashboard',dashboard);
 
 // Serve static files (important for service workers & Firebase SDK)
 app.use(express.static(path.join(__dirname, 'notifications')));
+app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Route to serve the HTML file
 app.get('/notification', (req, res) => {
