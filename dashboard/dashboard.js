@@ -411,8 +411,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     t.securityKey,
     t.serialno,
     s.status AS stock_status,
-    s.addedAt, AS added_date,  -- Handle column naming differences
-    s.addedBy, AS added_by,    -- Ensure consistency for added_by
+    s.addedAt AS added_date,  -- Handle column naming differences
+    s.addedBy AS added_by,    -- Ensure consistency for added_by
     tf.failureReason,
     tf.fixed_by,
     tf.loggedAt
@@ -424,10 +424,10 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
 
 
       if (userTable) {
-        query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
+        query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
 
-      query += `LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+      query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
         WHERE s.status = $1`;
 
       if (userrole === 'dealer') {
