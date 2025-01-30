@@ -334,192 +334,6 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //   }
 // );
 
-// dashboard.get('/api/searchThings/working/:stock/status/:status',
-//   // validateJwt,
-//   // authorizeRoles('admin', 'dealer'),
-//   async (req, res) => {
-//     const { searchTerm, party } = req.query; // Extract `party`
-//     const { stock, status } = req.params;
-//     // const userrole = req.user.role;
-//     const userrole = "admin";
-
-//     try {
-//       let stockTable = '';
-//       let userTable = '';
-//       const params = [status];
-
-//       if (userrole === 'admin') {
-//         stockTable = 'AdminStock ';
-//         if (stock === 'sold') {
-//           console.log(`soldworking===${stock}`)
-//           if (party === 'dealer') {
-//             console.log(`partyworking===${stock, party}`)
-//             stockTable = 'dealersStock';
-//             userTable = 'dealers_details';
-//           } else if (party === 'customer') {
-//             console.log(`partyworking===${stock, party}`)
-//             stockTable = 'customersStock';
-//             userTable = 'customers_details';
-//           } else if (party === 'onlineCustomer') {
-//             console.log(`partyworking===${stock, party}`)
-//             stockTable = 'onlineCustomerStock';
-//             userTable = 'onlinecustomer_details';
-//           }
-
-//         } else if (stock !== 'sold') {
-//           let query = `
-//           SELECT 
-//               t.id AS thing_id,
-//               t.thingName,
-//               t.createdby,
-//               t.batchId,
-//               t.model,
-//               t.securityKey,
-//               t.serialno,
-//               a.status AS stock_status,
-//               a.addedAt,
-//               a.addedby,
-//               tf.failureReason,
-//               tf.fixed_by,
-//               tf.loggedAt
-//           FROM Things t
-//           LEFT JOIN ${userrole === 'admin' ? 'AdminStock' : 'dealersStock'} a ON t.id = a.thingId
-//           LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-//           WHERE a.status = $1
-//       `;
-//       const params = [status];
-
-//       // If user is a dealer, fetch their ID and add to query
-//       if (userrole === 'dealer') {
-//         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
-//         const dealerResult = await db.query(dealerQuery, [req.user.email]);
-//         if (dealerResult.rows.length === 0) {
-//           return res.status(404).json({ message: 'Dealer not found' });
-//         }
-//         query += ` AND a.user_id = $2`;
-//         params.push(dealerResult.rows[0].id);
-//       }
-
-//       // Add serialno filter if provided
-//       if (serialno) {
-//         query += ` AND t.serialno ILIKE $${params.length + 1}`;
-//         params.push(`%${serialno}%`);
-//       }
-
-//       // Log for debugging
-//       console.log('Executing query:', query);
-//       console.log('Query parameters:', params);
-
-//       // Execute the query
-//       const result = await db.query(query, params);
-//        // Handle no results
-//       if (result.rows.length === 0) {
-//         return res.status(404).json({ message: 'No matching records found' });
-//       }
-
-//       // Return results
-//       res.json(result.rows);
-//         }
-
-//       } else if (userrole === 'dealer') {
-//         stockTable = 'dealersStock';
-//         userTable = 'dealers_details';
-
-//         if (stock === 'sold' && party === 'customer') {
-//           stockTable = 'customersStock';
-//           userTable = 'customers_details';
-//         }
-//       }
-//       let query = ''
-//       if (stockTable.trim() !== "AdminStock") {
-//         console.log(`tableworking===${stockTable}`)
-//         query = `
-//           SELECT 
-//       t.id AS thing_id,
-//       t.thingName,
-//       t.createdby,
-//       t.batchId,
-//       t.model,
-//       t.securityKey,
-//       t.serialno,
-//       s.status AS stock_status,
-//       COALESCE(s.addedAt, s.added_at) AS added_date,  -- Handle column naming differences
-//       COALESCE(s.addedBy, s.added_by) AS added_by,
-//       tf.failureReason,
-//       tf.fixed_by,
-//       tf.loggedAt
-//     FROM Things t
-//     LEFT JOIN ${stockTable} s ON t.id = s.thingId
-// `;
-//       } else if (stockTable === "AdminStock") {
-//         query = `SELECT 
-//     t.id AS thing_id,
-//     t.thingName,
-//     t.createdby,
-//     t.batchId,
-//     t.model,
-//     t.securityKey,
-//     t.serialno,
-//     s.status AS stock_status,
-//     s.addedAt AS added_date,  -- Handle column naming differences
-//     s.addedBy AS added_by,    -- Ensure consistency for added_by
-//     tf.failureReason,
-//     tf.fixed_by,
-//     tf.loggedAt
-//   FROM Things t
-//   LEFT JOIN ${stockTable} s ON t.id = s.thingId
-// `;
-//       }
-
-
-
-//       if (userTable) {
-//         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
-//       }
-
-//       query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-//         WHERE s.status = $1`;
-
-//       if (userrole === 'dealer') {
-//         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
-//         const dealerResult = await db.query(dealerQuery, [req.user.email]);
-//         if (dealerResult.rows.length === 0) {
-//           return res.status(404).json({ message: 'Dealer not found' });
-//         }
-//         query += ` AND s.user_id = $2`;
-//         params.push(dealerResult.rows[0].id);
-//       }
-
-//       if (searchTerm) {
-//         query += ` AND (
-//           t.serialno ILIKE $${params.length + 1} 
-//           OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
-//           OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
-//         )`;
-//         params.push(`%${searchTerm}%`);
-//       }
-
-//       console.log('Executing query:', query);
-//       console.log('Query parameters:', params);
-
-//       const result = await db.query(query, params);
-
-//       if (result.rows.length === 0) {
-//         return res.status(404).json({ message: 'No matching records found' });
-//       }
-
-//       res.json(result.rows);
-//     } catch (err) {
-//       console.error('Error executing query:', err);
-//       res.status(500).json({
-//         error: 'Internal Server Error',
-//         details: process.env.NODE_ENV === 'production' ? undefined : err.message,
-//       });
-//     }
-//   }
-// );
-
-
 dashboard.get('/api/searchThings/working/:stock/status/:status',
   // validateJwt,
   // authorizeRoles('admin', 'dealer'),
@@ -535,23 +349,78 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       const params = [status];
 
       if (userrole === 'admin') {
-        stockTable = 'AdminStock';
+        stockTable = 'AdminStock ';
         if (stock === 'sold') {
-          console.log(`soldworking===${stock}`);
+          console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
-            console.log(`partyworking===${stock}, ${party}`);
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'dealersStock';
             userTable = 'dealers_details';
           } else if (party === 'customer') {
-            console.log(`partyworking===${stock}, ${party}`);
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'customersStock';
             userTable = 'customers_details';
           } else if (party === 'onlineCustomer') {
-            console.log(`partyworking===${stock}, ${party}`);
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'onlineCustomerStock';
             userTable = 'onlinecustomer_details';
           }
+
+        } else if (stock !== 'sold') {
+          let query = `
+          SELECT 
+              t.id AS thing_id,
+              t.thingName,
+              t.createdby,
+              t.batchId,
+              t.model,
+              t.securityKey,
+              t.serialno,
+              a.status AS stock_status,
+              a.addedAt,
+              a.addedby,
+              tf.failureReason,
+              tf.fixed_by,
+              tf.loggedAt
+          FROM Things t
+          LEFT JOIN ${userrole === 'admin' ? 'AdminStock' : 'dealersStock'} a ON t.id = a.thingId
+          LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+          WHERE a.status = $1
+      `;
+      const params = [status];
+
+      // If user is a dealer, fetch their ID and add to query
+      if (userrole === 'dealer') {
+        const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+        const dealerResult = await db.query(dealerQuery, [req.user.email]);
+        if (dealerResult.rows.length === 0) {
+          return res.status(404).json({ message: 'Dealer not found' });
         }
+        query += ` AND a.user_id = $2`;
+        params.push(dealerResult.rows[0].id);
+      }
+
+      // Add serialno filter if provided
+      if (serialno) {
+        query += ` AND t.serialno ILIKE $${params.length + 1}`;
+        params.push(`%${serialno}%`);
+      }
+
+      // Log for debugging
+      console.log('Executing query:', query);
+      console.log('Query parameters:', params);
+
+      // Execute the query
+      const result = await db.query(query, params);
+       // Handle no results
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No matching records found' });
+      }
+
+      // Return results
+      res.json(result.rows);
+        }
+
       } else if (userrole === 'dealer') {
         stockTable = 'dealersStock';
         userTable = 'dealers_details';
@@ -561,47 +430,66 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           userTable = 'customers_details';
         }
       }
+      let query = ''
+      if (stockTable.trim() !== "AdminStock") {
+        console.log(`tableworking===${stockTable}`)
+        query = `
+          SELECT 
+      t.id AS thing_id,
+      t.thingName,
+      t.createdby,
+      t.batchId,
+      t.model,
+      t.securityKey,
+      t.serialno,
+      s.status AS stock_status,
+      s.added_at AS added_date,  -- Handle column naming differences
+      s.added_by AS added_by,
+      tf.failureReason,
+      tf.fixed_by,
+      tf.loggedAt
+    FROM Things t
+    LEFT JOIN ${stockTable} s ON t.id = s.thingId
+`;
+      } else if (stockTable === "AdminStock") {
+        query = `SELECT 
+    t.id AS thing_id,
+    t.thingName,
+    t.createdby,
+    t.batchId,
+    t.model,
+    t.securityKey,
+    t.serialno,
+    s.status AS stock_status,
+    s.addedAt AS added_date,  -- Handle column naming differences
+    s.addedBy AS added_by,    -- Ensure consistency for added_by
+    tf.failureReason,
+    tf.fixed_by,
+    tf.loggedAt
+  FROM Things t
+  LEFT JOIN ${stockTable} s ON t.id = s.thingId
+`;
+      }
 
-      // Construct the query dynamically based on stockTable
-      let query = `
-        SELECT 
-          t.id AS thing_id,
-          t.thingName,
-          t.createdby,
-          t.batchId,
-          t.model,
-          t.securityKey,
-          t.serialno,
-          s.status AS stock_status,
-          COALESCE(s.addedAt, s.added_at) AS added_date,  -- Handle different column names
-          COALESCE(s.addedBy, s.added_by) AS added_by,
-          tf.failureReason,
-          tf.fixed_by,
-          tf.loggedAt
-        FROM Things t
-        LEFT JOIN ${stockTable} s ON t.id = s.thingId
-      `;
+
 
       if (userTable) {
         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
 
-      query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId WHERE s.status = $1`;
+      query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+        WHERE s.status = $1`;
 
-      // If user is a dealer, restrict results to their stock
       if (userrole === 'dealer') {
         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
         const dealerResult = await db.query(dealerQuery, [req.user.email]);
-
         if (dealerResult.rows.length === 0) {
           return res.status(404).json({ message: 'Dealer not found' });
         }
-
         query += ` AND s.user_id = $2`;
         params.push(dealerResult.rows[0].id);
       }
 
-      // Search filter
       if (searchTerm) {
         query += ` AND (
           t.serialno ILIKE $${params.length + 1} 
@@ -611,18 +499,15 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         params.push(`%${searchTerm}%`);
       }
 
-      // Debug logs
       console.log('Executing query:', query);
       console.log('Query parameters:', params);
 
-      // Execute the query
       const result = await db.query(query, params);
 
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'No matching records found' });
       }
 
-      // Return results
       res.json(result.rows);
     } catch (err) {
       console.error('Error executing query:', err);
@@ -633,6 +518,121 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     }
   }
 );
+
+
+// dashboard.get('/api/searchThings/working/:stock/status/:status',
+//   // validateJwt,
+//   // authorizeRoles('admin', 'dealer'),
+//   async (req, res) => {
+//     const { searchTerm, party } = req.query; // Extract `party`
+//     const { stock, status } = req.params;
+//     // const userrole = req.user.role;
+//     const userrole = "admin";
+
+//     try {
+//       let stockTable = '';
+//       let userTable = '';
+//       const params = [status];
+
+//       if (userrole === 'admin') {
+//         stockTable = 'AdminStock';
+//         if (stock === 'sold') {
+//           console.log(`soldworking===${stock}`);
+//           if (party === 'dealer') {
+//             console.log(`partyworking===${stock}, ${party}`);
+//             stockTable = 'dealersStock';
+//             userTable = 'dealers_details';
+//           } else if (party === 'customer') {
+//             console.log(`partyworking===${stock}, ${party}`);
+//             stockTable = 'customersStock';
+//             userTable = 'customers_details';
+//           } else if (party === 'onlineCustomer') {
+//             console.log(`partyworking===${stock}, ${party}`);
+//             stockTable = 'onlineCustomerStock';
+//             userTable = 'onlinecustomer_details';
+//           }
+//         }
+//       } else if (userrole === 'dealer') {
+//         stockTable = 'dealersStock';
+//         userTable = 'dealers_details';
+
+//         if (stock === 'sold' && party === 'customer') {
+//           stockTable = 'customersStock';
+//           userTable = 'customers_details';
+//         }
+//       }
+
+//       // Construct the query dynamically based on stockTable
+//       let query = `
+//         SELECT 
+//           t.id AS thing_id,
+//           t.thingName,
+//           t.createdby,
+//           t.batchId,
+//           t.model,
+//           t.securityKey,
+//           t.serialno,
+//           s.status AS stock_status,
+//           COALESCE(s.addedAt, s.added_at) AS added_date,  -- Handle different column names
+//           COALESCE(s.addedBy, s.added_by) AS added_by,
+//           tf.failureReason,
+//           tf.fixed_by,
+//           tf.loggedAt
+//         FROM Things t
+//         LEFT JOIN ${stockTable} s ON t.id = s.thingId
+//       `;
+
+//       if (userTable) {
+//         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
+//       }
+
+//       query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId WHERE s.status = $1`;
+
+//       // If user is a dealer, restrict results to their stock
+//       if (userrole === 'dealer') {
+//         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+//         const dealerResult = await db.query(dealerQuery, [req.user.email]);
+
+//         if (dealerResult.rows.length === 0) {
+//           return res.status(404).json({ message: 'Dealer not found' });
+//         }
+
+//         query += ` AND s.user_id = $2`;
+//         params.push(dealerResult.rows[0].id);
+//       }
+
+//       // Search filter
+//       if (searchTerm) {
+//         query += ` AND (
+//           t.serialno ILIKE $${params.length + 1} 
+//           OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
+//           OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
+//         )`;
+//         params.push(`%${searchTerm}%`);
+//       }
+
+//       // Debug logs
+//       console.log('Executing query:', query);
+//       console.log('Query parameters:', params);
+
+//       // Execute the query
+//       const result = await db.query(query, params);
+
+//       if (result.rows.length === 0) {
+//         return res.status(404).json({ message: 'No matching records found' });
+//       }
+
+//       // Return results
+//       res.json(result.rows);
+//     } catch (err) {
+//       console.error('Error executing query:', err);
+//       res.status(500).json({
+//         error: 'Internal Server Error',
+//         details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+//       });
+//     }
+//   }
+// );
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,
