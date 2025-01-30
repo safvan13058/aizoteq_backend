@@ -78,15 +78,19 @@ async function handleSignup(req, res, role) {
         // await db.query(query, values);
 
         req.session.username = userName; // Store username in session
-
+        
+   
         console.log(req.session.username)
         console.log(req.session)
+        console.log(req.session)
 
-
+        req.session.jwtsub =jwtsub;
+        req.session.role =role;
         res.status(201).json({ 
             message: 'User signed up successfully',
             userSub: jwtsub,
             role:role,
+           
         });
     } catch (err) {
         console.error('Cognito sign-up error:', err.message, err.code);
@@ -138,7 +142,7 @@ signup.get('/get-session', (req, res) => {
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
     const {username, otp, fullName, jwtsub, role } = req.body;
- 
+    console.log(`otp${req.body}`)
     console.log(`get otp${otp}`)
     console.log(req.session.username)
     console.log(req.session)
@@ -158,8 +162,8 @@ signup.post('/verify-otp', async (req, res) => {
     try {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2, $3,$4)';
-        const values = [username, jwtsub, role,fullName];
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2,$3,$4)';
+        const values = [username, jwtsub||req.session.jwtsub, role||req.session.role,fullName];
 
         await db.query(query, values);
         console.log("workings")
