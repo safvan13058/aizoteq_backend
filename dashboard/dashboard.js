@@ -364,7 +364,12 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
             stockTable = 'onlineCustomerStock';
             userTable = 'onlinecustomer_details';
           }
+          
+        }else if(!stock === 'sold'){
+          stockTable = 'AdminStock ';
+          userTable = '';
         }
+        
       } else if (userrole === 'dealer') {
         stockTable = 'dealersStock';
         userTable = 'dealers_details';
