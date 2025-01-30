@@ -382,6 +382,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       }
       let query = ''
       if (stockTable !== "AdminStock") {
+        console.log(`tableworking===${stockTable}`)
         query = `
           SELECT 
       t.id AS thing_id,
