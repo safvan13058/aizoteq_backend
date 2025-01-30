@@ -348,7 +348,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       const params = [status];
 
       if (userrole === 'admin') {
-        stockTable = 'AdminStock';
+        stockTable = 'AdminStock ';
         if (stock === 'sold') {
           if (party === 'dealer') {
             stockTable = 'dealersStock';
@@ -372,23 +372,23 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       }
       
       let query = `
-        SELECT 
-          t.id AS thing_id,
-          t.thingName,
-          t.createdby,
-          t.batchId,
-          t.model,
-          t.securityKey,
-          t.serialno,
-          s.status AS stock_status,
-          s.addedAt,
-          s.addedby,
-          tf.failureReason,
-          tf.fixed_by,
-          tf.loggedAt
-        FROM Things t
-        LEFT JOIN ${stockTable} s ON t.id = s.thingId
-      `;
+     SELECT 
+       t.id AS thing_id,
+       t.thingName,
+       t.createdby,
+       t.batchId,
+       t.model,
+       t.securityKey,
+       t.serialno,
+       s.status AS stock_status,
+       COALESCE(s.added_at, s.addedAt) AS added_date, -- Handle different column names
+       s.addedby,
+       tf.failureReason,
+       tf.fixed_by,
+       tf.loggedAt
+     FROM Things t
+     LEFT JOIN ${stockTable} s ON t.id = s.thingId
+`;
 
       if (userTable) {
         query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
