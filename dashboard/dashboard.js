@@ -350,13 +350,17 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       if (userrole === 'admin') {
         stockTable = 'AdminStock ';
         if (stock === 'sold') {
+          console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
+            console.log(`partyworking===${stock,party}`)
             stockTable = 'dealersStock';
             userTable = 'dealers_details';
           } else if (party === 'customer') {
+            console.log(`partyworking===${stock,party}`)
             stockTable = 'customersStock';
             userTable = 'customers_details';
           } else if (party === 'onlineCustomer') {
+            console.log(`partyworking===${stock,party}`)
             stockTable = 'onlineCustomerStock';
             userTable = 'onlinecustomer_details';
           }
