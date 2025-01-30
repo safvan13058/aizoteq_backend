@@ -72,7 +72,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //     const { serialno, name, phone,party } = req.query;
 //     const { stock,status} = req.params;
 //     const userrole = req.user.role;
-    
+
 //     try {
 //       if(userrole==="admin"){
 //       let stockTable = 'AdminStock';
@@ -93,7 +93,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         userColumn = 'online_customer_id';
 //       }
 //     }
-      
+
 //       let query = `
 //         SELECT 
 //           t.id AS thing_id,
@@ -117,9 +117,9 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
 //         WHERE s.status = $1
 //       `;
-      
+
 //       const params = [status];
-      
+
 //       if (serialno) {
 //         query += ` AND t.serialno ILIKE $${params.length + 1}`;
 //         params.push(`%${serialno}%`);
@@ -132,25 +132,25 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         query += ` AND u.phone ILIKE $${params.length + 1}`;
 //         params.push(`%${phone}%`);
 //       }
-      
+
 //       console.log('Executing query:', query);
 //       console.log('Query parameters:', params);
-      
+
 //       const result = await db.query(query, params);
-      
+
 //       if (result.rows.length === 0) {
 //         return res.status(404).json({ message: 'No matching records found' });
 //       }
-      
+
 //       res.json(result.rows);
 //     }
 //     else if(userrole==="dealer"){
 
-      
+
 //        let stockTable = 'dealersStock';
 //        let userTable = 'dealers_details';
 //        let userColumn = 'dealer_id';
-      
+
 //       if(stock==="sold"){
 //       if (party === 'customer') {
 //         stockTable = 'customersStock';
@@ -181,9 +181,9 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
 //         WHERE s.status = $1
 //       `;
-      
+
 //       const params = [status];
-      
+
 
 //   // If user is a dealer, fetch their ID and add to query
 //   if (userrole === 'dealer') {
@@ -235,12 +235,12 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //     const { stock, status } = req.params;
 //     // const userrole = "admin";
 //     const userrole = req.user.role;
-    
+
 //     try {
 //       let stockTable = '';
 //       let userTable = '';
 //       const params = [status];
-      
+
 //       if (userrole === 'admin') {
 //         stockTable = 'AdminStock';
 //         if (stock === 'sold') {
@@ -258,13 +258,13 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //       } else if (userrole === 'dealer') {
 //         stockTable = 'dealersStock';
 //         userTable = 'dealers_details';
-        
+
 //         if (stock === 'sold' && party === 'customer') {
 //           stockTable = 'customersStock';
 //           userTable = 'customers_details';
 //         }
 //       }
-      
+
 //       let query = `
 //         SELECT 
 //           t.id AS thing_id,
@@ -283,14 +283,14 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         FROM Things t
 //         LEFT JOIN ${stockTable} s ON t.id = s.thingId
 //       `;
-      
+
 //       if (userTable) {
 //         query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
 //       }
-      
+
 //       query += `LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
 //         WHERE s.status = $1`;
-      
+
 //       if (userrole === 'dealer') {
 //         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
 //         const dealerResult = await db.query(dealerQuery, [req.user.email]);
@@ -300,7 +300,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         query += ` AND s.user_id = $2`;
 //         params.push(dealerResult.rows[0].id);
 //       }
-      
+
 //       if (serialno) {
 //         query += ` AND t.serialno ILIKE $${params.length + 1}`;
 //         params.push(`%${serialno}%`);
@@ -313,16 +313,16 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //         query += ` AND u.phone ILIKE $${params.length + 1}`;
 //         params.push(`%${phone}%`);
 //       }
-      
+
 //       console.log('Executing query:', query);
 //       console.log('Query parameters:', params);
-      
+
 //       const result = await db.query(query, params);
-      
+
 //       if (result.rows.length === 0) {
 //         return res.status(404).json({ message: 'No matching records found' });
 //       }
-      
+
 //       res.json(result.rows);
 //     } catch (err) {
 //       console.error('Error executing query:', err);
@@ -341,7 +341,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     const { stock, status } = req.params;
     // const userrole = req.user.role;
     const userrole = "admin";
-    
+
     try {
       let stockTable = '';
       let userTable = '';
@@ -352,37 +352,38 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         if (stock === 'sold') {
           console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
-            console.log(`partyworking===${stock,party}`)
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'dealersStock';
             userTable = 'dealers_details';
           } else if (party === 'customer') {
-            console.log(`partyworking===${stock,party}`)
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'customersStock';
             userTable = 'customers_details';
           } else if (party === 'onlineCustomer') {
-            console.log(`partyworking===${stock,party}`)
+            console.log(`partyworking===${stock, party}`)
             stockTable = 'onlineCustomerStock';
             userTable = 'onlinecustomer_details';
           }
-          
-        }else if(!stock === 'sold'){
+
+        } else if (!stock === 'sold') {
           console.log(`insoldworking===${stock}`)
           stockTable = 'AdminStock ';
           userTable = '';
         }
-        
+
       } else if (userrole === 'dealer') {
         stockTable = 'dealersStock';
         userTable = 'dealers_details';
-        
+
         if (stock === 'sold' && party === 'customer') {
           stockTable = 'customersStock';
           userTable = 'customers_details';
         }
       }
-      
-      let query = `
-    SELECT 
+      let query = ''
+      if (!stockTable === "AdminStock") {
+        query = `
+          SELECT 
       t.id AS thing_id,
       t.thingName,
       t.createdby,
@@ -399,6 +400,27 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     FROM Things t
     LEFT JOIN ${stockTable} s ON t.id = s.thingId
 `;
+      } else if (stockTable === "AdminStock") {
+        query = `
+  SELECT 
+    t.id AS thing_id,
+    t.thingName,
+    t.createdby,
+    t.batchId,
+    t.model,
+    t.securityKey,
+    t.serialno,
+    s.status AS stock_status,
+    s.addedAt AS added_date,  -- Conditional column selection
+    s.addedby AS added_date,  -- Conditional column selection
+    tf.failureReason,
+    tf.fixed_by,
+    tf.loggedAt
+  FROM Things t
+  LEFT JOIN ${stockTable} s ON t.id = s.thingId
+`}
+
+
 
       if (userTable) {
         query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
@@ -3337,7 +3359,7 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 // --------------audit_log------------------
 dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   const { thingmac } = req.params;
-  const { page , pageSize} = req.query; // Default to page 1 and 10 items per page
+  const { page, pageSize } = req.query; // Default to page 1 and 10 items per page
 
   try {
     const offset = (page - 1) * pageSize; // Calculate the offset based on the page number and page size
