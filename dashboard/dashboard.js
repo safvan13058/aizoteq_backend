@@ -365,7 +365,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
             userTable = 'onlinecustomer_details';
           }
 
-        } else if (!stock === 'sold') {
+        } else if (stock !== 'sold') {
           console.log(`insoldworking===${stock}`)
           stockTable = 'AdminStock ';
           userTable = '';
@@ -381,7 +381,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         }
       }
       let query = ''
-      if (!stockTable === "AdminStock") {
+      if (stockTable !== "AdminStock") {
         query = `
           SELECT 
       t.id AS thing_id,
