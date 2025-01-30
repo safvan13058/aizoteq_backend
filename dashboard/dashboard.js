@@ -338,7 +338,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
   // validateJwt,
   // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
-    const { searchTerm, party } = req.query; // Extract `party`
+    const { searchTerm, party,serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
     // const userrole = req.user.role;
     const userrole = "admin";
