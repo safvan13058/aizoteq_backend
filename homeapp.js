@@ -82,6 +82,30 @@ homeapp.post("/api/users/profile-pic",
             res.status(500).json({ error: "Failed to upload and update profile picture" });
         }
     });
+homeapp.put('/api/users/:id/name', async (req, res) => {
+        const { id } = req.params;
+        const { name } = req.body;
+    
+        if (!name) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+    
+        try {
+            const result = await db.query(
+                `UPDATE Users SET name = $1, lastModified = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *`,
+                [name, id]
+            );
+    
+            if (result.rowCount === 0) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+    
+            res.json({ message: 'Name updated successfully', user: result.rows[0] });
+        } catch (error) {
+            console.error('Error updating name:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
+    })
 //ADD home
 homeapp.post('/app/add/home/',
     // validateJwt,
