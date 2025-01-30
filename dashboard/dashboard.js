@@ -427,8 +427,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
 
-      query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        WHERE s.status = $1`;
+      query += ` WHERE s.status = $1`;
 
       if (userrole === 'dealer') {
         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
