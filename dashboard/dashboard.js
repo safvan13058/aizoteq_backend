@@ -381,7 +381,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         }
       }
       let query = ''
-      if (stockTable !== "AdminStock") {
+      if (stockTable.trim() !== "AdminStock") {
         console.log(`tableworking===${stockTable}`)
         query = `
           SELECT 
@@ -411,8 +411,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     t.securityKey,
     t.serialno,
     s.status AS stock_status,
-    COALESCE(s.addedAt, s.added_at) AS added_date,  -- Handle column naming differences
-    COALESCE(s.addedBy, s.added_by) AS added_by,    -- Ensure consistency for added_by
+    s.addedAt, AS added_date,  -- Handle column naming differences
+    s.addedBy, AS added_by,    -- Ensure consistency for added_by
     tf.failureReason,
     tf.fixed_by,
     tf.loggedAt
