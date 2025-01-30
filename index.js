@@ -19,7 +19,13 @@ app.use('/signup',signup);
 app.use('/signup',login);
 app.use('/dashboard',dashboard);
 
+// Serve static files (important for service workers & Firebase SDK)
+app.use(express.static(path.join(__dirname, 'notifications')));
 
+// Route to serve the HTML file
+app.get('/notification', (req, res) => {
+    res.sendFile(path.join(__dirname, 'notifications', 'notify.html'));
+});
 
 
 app.get('/',(req,res)=>{
