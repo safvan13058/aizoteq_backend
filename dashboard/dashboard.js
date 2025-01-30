@@ -382,7 +382,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       t.serialno,
       s.status AS stock_status,
       ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'} AS added_date,  -- Conditional column selection
-      s.addedby,
+       ${stockTable === 'AdminStock' ? 's.addedby' : 's.added_by'} AS added_date,  -- Conditional column selection
       tf.failureReason,
       tf.fixed_by,
       tf.loggedAt
