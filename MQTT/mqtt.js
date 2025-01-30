@@ -70,7 +70,7 @@ const wifidata = async (req, res) => {
       const data = await iotData.getThingShadow(params).promise();
       const shadow = JSON.parse(data.payload);
       
-      console.log(`shadow===${JSON.stringify(shadow, null, 2)}`);
+      // console.log(`shadow===${JSON.stringify(shadow, null, 2)}`);
       
       // Extract Wi-Fi and Device Info
       const deviceInfo = shadow.state?.desired?.deviceInfo || [];
