@@ -351,6 +351,10 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       if (userrole === 'admin') {
         stockTable = 'AdminStock ';
         if (stock === 'sold') {
+          if (!party) {
+            return res.status(400).json({ message: "Party parameter is required" });
+        }
+        
           console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
             console.log(`partyworking===${stock, party}`)
@@ -449,8 +453,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       tf.fixed_by,
       tf.loggedAt
     FROM Things t
-    LEFT JOIN ${stockTable} s ON t.id = s.thingId
-`;
+    LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
       } else if (stockTable === "AdminStock") {
         query = `SELECT 
     t.id AS thing_id,
@@ -467,17 +470,16 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     tf.fixed_by,
     tf.loggedAt
   FROM Things t
-  LEFT JOIN ${stockTable} s ON t.id = s.thingId
-`;
+  LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
       }
 
 
 
       if (userTable) {
-        query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
+        query += `LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
 
-      query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+      query += `LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
         WHERE s.status = $1`;
 
       if (userrole === 'dealer') {
