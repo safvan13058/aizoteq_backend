@@ -366,6 +366,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           }
           
         }else if(!stock === 'sold'){
+          console.log(`insoldworking===${stock}`)
           stockTable = 'AdminStock ';
           userTable = '';
         }
