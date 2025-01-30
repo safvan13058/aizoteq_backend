@@ -399,7 +399,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       tf.fixed_by,
       tf.loggedAt
     FROM Things t
-    LEFT JOIN ${stockTable} s ON t.id = s.thingId
+    LEFT JOIN ${stockTable} s ON t.id = s.thingId WHERE s.status = $1
 `;
       } else if (stockTable === "AdminStock") {
         query = `SELECT 
@@ -417,7 +417,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     tf.fixed_by,
     tf.loggedAt
   FROM Things t
-  LEFT JOIN ${stockTable} s ON t.id = s.thingId
+  LEFT JOIN ${stockTable} s ON t.id = s.thingId WHERE s.status = $1
 `;
       }
 
@@ -427,7 +427,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
 
-      query += ` WHERE s.status = $1`;
+      
 
       if (userrole === 'dealer') {
         const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
