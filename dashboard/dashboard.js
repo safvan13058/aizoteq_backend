@@ -646,6 +646,8 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //   }
 // );
 
+
+
 dashboard.get('/api/searchThings/working/:stock/status/:status',
   // validateJwt,
   // authorizeRoles('admin', 'dealer'),
@@ -835,7 +837,6 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     }
   }
 );
-
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,

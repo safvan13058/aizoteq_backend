@@ -85,7 +85,7 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // }
 async function validateJwt(req, res, next) {
     try {
-        console.log(`headers ==${req.headers.authorization}`);
+        // console.log(`headers ==${req.headers.authorization}`);
 
         const token = req.headers.authorization;
         if (!token || !token.startsWith('Bearer ')) {
@@ -99,9 +99,9 @@ async function validateJwt(req, res, next) {
             bearerToken,
             async (header, callback) => {
                 try {
-                    console.log('JWT Header:', header);
+                    // console.log('JWT Header:', header);
                     const key = await getSigningKey(header.kid);
-                    console.log('Retrieved key:', key);
+                    // console.log('Retrieved key:', key);
                     callback(null, key.getPublicKey());
                 } catch (err) {
                     console.error('Error retrieving signing key:', err);
@@ -142,7 +142,7 @@ async function validateJwt(req, res, next) {
                         username: user.username,
                     };
 
-                    console.log('User authenticated:', req.user);
+                    // console.log('User authenticated:', req.user);
                     next();
                 } catch (dbError) {
                     console.error('Database query error:', dbError);
@@ -162,7 +162,7 @@ async function validateJwt(req, res, next) {
 function authorizeRoles(...allowedRoles) {
    
     return (req, res, next) => {
-        console.log(`authorizerole ${req.user.role}`)
+        // console.log(`authorizerole ${req.user.role}`)
         const userRole = req.user.role;
         if (!allowedRoles.includes(userRole)) {
             return res.status(403).json({ message: 'Access forbidden: insufficient role' });
