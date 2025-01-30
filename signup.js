@@ -72,10 +72,10 @@ async function handleSignup(req, res, role) {
         
        
         // Insert user details into PostgreSQL database
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole) VALUES ($1, $2, $3)';
-        const values = [userName, jwtsub, role];
+        // const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2, $3,$4)';
+        // const values = [userName, jwtsub, role,fullName];
 
-        await db.query(query, values);
+        // await db.query(query, values);
 
         req.session.username = userName; // Store username in session
 
@@ -86,6 +86,7 @@ async function handleSignup(req, res, role) {
         res.status(201).json({ 
             message: 'User signed up successfully',
             userSub: jwtsub,
+            role:role,
         });
     } catch (err) {
         console.error('Cognito sign-up error:', err.message, err.code);
@@ -136,8 +137,8 @@ signup.get('/get-session', (req, res) => {
 // Verify OTP using only the OTP code
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
-    const {username, otp } = req.body;
-
+    const {username, otp, fullName, jwtsub, role } = req.body;
+ 
     console.log(`get otp${otp}`)
     console.log(req.session.username)
     console.log(req.session)
@@ -157,6 +158,10 @@ signup.post('/verify-otp', async (req, res) => {
     try {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2, $3,$4)';
+        const values = [username, jwtsub, role,fullName];
+
+        await db.query(query, values);
         console.log("workings")
         req.session.destroy();
         res.status(200).json({ message: 'OTP verified successfully' });
