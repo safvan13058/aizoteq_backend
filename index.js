@@ -28,7 +28,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/notification', (req, res) => {
     res.sendFile(path.join(__dirname, 'notifications', 'notify.html'));
 });
-
+app.get('/firebase-messaging-sw.js', (req, res) => {
+    res.sendFile(path.join(__dirname,'firebase-messaging-sw.js'));
+});
 
 app.get('/',(req,res)=>{
     res.send('working EC2 ')
