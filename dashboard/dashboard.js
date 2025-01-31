@@ -2099,6 +2099,7 @@ dashboard.get('/api/display/party/:Party',
     }
 
     try {
+      console.log(`party table${Party}`)
       // Construct the table name dynamically
       const tableName = `${Party}_details`;
 
@@ -2126,6 +2127,7 @@ dashboard.get('/api/display/party/:Party',
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
+
 // dashboard.get('/api/display/party/:Party',
 //   // validateJwt,
 //   // authorizeRoles('admin', 'dealer'),
