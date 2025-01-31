@@ -3870,85 +3870,85 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 //     return res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
-dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
-  const { thingmac } = req.params;
-  const page = parseInt(req.query.page) || 1;
-  const pageSize = parseInt(req.query.pageSize) || 10;
+// dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
+//   const { thingmac } = req.params;
+//   const page = parseInt(req.query.page) || 1;
+//   const pageSize = parseInt(req.query.pageSize) || 10;
 
-  try {
-    // const offset = (page - 1) * pageSize;
-    // const limit = pageSize;
-      // LIMIT $2 OFFSET $3;
+//   try {
+//     // const offset = (page - 1) * pageSize;
+//     // const limit = pageSize;
+//       // LIMIT $2 OFFSET $3;
     
-    const query = `
-      SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
-      FROM audit_logs
-      WHERE thing_mac = $1
-      ORDER BY timestamp DESC
-    `;
+//     const query = `
+//       SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
+//       FROM audit_logs
+//       WHERE thing_mac = $1
+//       ORDER BY timestamp DESC
+//     `;
    
-    const dbResult = await db.query(query, [thingmac]);
-    // , limit, offset
-    let events = [];
+//     const dbResult = await db.query(query, [thingmac]);
+//     // , limit, offset
+//     let events = [];
 
-    dbResult.rows.forEach((row) => {
-      const eventData = row.event_data
-        ? typeof row.event_data === "string"
-          ? JSON.parse(row.event_data)
-          : row.event_data
-        : {};
+//     dbResult.rows.forEach((row) => {
+//       const eventData = row.event_data
+//         ? typeof row.event_data === "string"
+//           ? JSON.parse(row.event_data)
+//           : row.event_data
+//         : {};
 
-      const timestamp = new Date(row.timestamp).toISOString();
-      const method = eventData?.status?.desired?.u || "Unknown";
+//       const timestamp = new Date(row.timestamp).toISOString();
+//       const method = eventData?.status?.desired?.u || "Unknown";
 
-      if (eventData?.status?.desired?.command === "device_update") {
-        if (eventData.status.desired.status === "disconnected") {
-          events.push({
-            state: "DISCONNECTED",
-            time: timestamp,
-            method: method,
-            type: "Connection",
-          });
-        } else if (eventData.status.desired.status === "connected") {
-          events.push({
-            state: "CONNECTED",
-            time: timestamp,
-            method: method,
-            type: "Connection",
-          });
-        }
-      }
+//       if (eventData?.status?.desired?.command === "device_update") {
+//         if (eventData.status.desired.status === "disconnected") {
+//           events.push({
+//             state: "DISCONNECTED",
+//             time: timestamp,
+//             method: method,
+//             type: "Connection",
+//           });
+//         } else if (eventData.status.desired.status === "connected") {
+//           events.push({
+//             state: "CONNECTED",
+//             time: timestamp,
+//             method: method,
+//             type: "Connection",
+//           });
+//         }
+//       }
 
-      if (eventData.status?.desired) {
-        Object.entries(eventData.status.desired).forEach(([key, value]) => {
-          if (key.startsWith("s") && key.length === 2) {
-            const switchNumber = `${thingmac}_${key.substring(1)}`;
-            const switchState = value === "1" ? "ON" : "OFF";
+//       if (eventData.status?.desired) {
+//         Object.entries(eventData.status.desired).forEach(([key, value]) => {
+//           if (key.startsWith("s") && key.length === 2) {
+//             const switchNumber = `${thingmac}_${key.substring(1)}`;
+//             const switchState = value === "1" ? "ON" : "OFF";
 
-            events.push({
-              switch: switchNumber,
-              state: switchState,
-              time: timestamp,
-              method: method,
-              type: "Switch",
-            });
-          }
-        });
-      }
-    });
+//             events.push({
+//               switch: switchNumber,
+//               state: switchState,
+//               time: timestamp,
+//               method: method,
+//               type: "Switch",
+//             });
+//           }
+//         });
+//       }
+//     });
 
-    // ✅ No need to manually sort, since SQL now orders correctly
-    return res.json({
-      page,
-      pageSize,
-      total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count) : 0,
-      events,
-    });
-  } catch (err) {
-    console.error("Database query error:", err);
-    return res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+//     // ✅ No need to manually sort, since SQL now orders correctly
+//     return res.json({
+//       page,
+//       pageSize,
+//       total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count) : 0,
+//       events,
+//     });
+//   } catch (err) {
+//     console.error("Database query error:", err);
+//     return res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   const { thingmac } = req.params;
   const page = parseInt(req.query.page, 10) || 1;
