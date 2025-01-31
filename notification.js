@@ -3,7 +3,7 @@ const { Client } = require('pg'); // PostgreSQL client
 const fs = require('fs');
 const nodemailer = require("nodemailer");
 const admin = require('firebase-admin');
-
+const db =require('./middlewares/dbconnection')
 // Initialize Firebase Admin SDK
 
 const serviceAccount = {
@@ -62,16 +62,42 @@ async function sendEmail(to, subject, text) {
 }
 
 // Function to send push notification via Firebase
-async function sendPushNotification(title, body) {
+// async function sendPushNotification(title, body) {
+//   try {
+//     const message = {
+//       topic: "stock_alerts", // Topic-based notification
+//       notification: { title, body },
+//     };
+//     const response = await admin.messaging().send(message);
+//     console.log("📱 Push notification sent:", response);
+//   } catch (error) {
+//     console.error("Error sending push notification:", error);
+//   }
+// }
+// Function to send push notification via Firebase and store in DB
+async function sendPushNotification(title, body, topic = "stock_alerts") {
   try {
     const message = {
-      topic: "stock_alerts", // Topic-based notification
+      topic, // Store the topic dynamically
       notification: { title, body },
     };
     const response = await admin.messaging().send(message);
     console.log("📱 Push notification sent:", response);
+
+    // Store in database with topic
+    await storeNotification(title, body, topic);
   } catch (error) {
     console.error("Error sending push notification:", error);
+  }
+}
+// Function to store notification in the database
+async function storeNotification(title, body, topic = "stock_alerts") {
+  try {
+    const query = "INSERT INTO alert_notifications (title, body, topic) VALUES ($1, $2, $3)";
+    await db.query(query, [title, body, topic]);
+    console.log("📄 Notification stored in DB");
+  } catch (error) {
+    console.error("❌ Error storing notification:", error);
   }
 }
 
