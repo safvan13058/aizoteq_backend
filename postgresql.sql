@@ -513,11 +513,22 @@ CREATE TABLE thing_raw_materials (
         ON UPDATE CASCADE                       -- Update records in this table if the price table ID changes
 );
 
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(255)  NULL,
+    action VARCHAR(100)  NULL,
+    event_data JSONB NOT NULL,
+    user_id VARCHAR(255),
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    thing_mac VARCHAR(255) NOT NULL,
+    CONSTRAINT fk_thingmac FOREIGN KEY (thing_ mac) REFERENCES things(macaddress) 
+);
 
 CREATE TABLE alert_notifications ( 
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
     topic VARCHAR(100) ,
+    read BOOLEAN
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
