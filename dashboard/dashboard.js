@@ -4118,7 +4118,7 @@ dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
     const updateQuery = await client.query(
       `UPDATE alert_notifications 
        SET read = TRUE
-       WHERE id = $1 
+       WHERE id = $1  
        RETURNING id, title, body, topic, read, sent_at`,
       [id]
     );
