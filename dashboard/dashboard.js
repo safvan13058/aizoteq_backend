@@ -649,13 +649,13 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 
 
 dashboard.get('/api/searchThings/working/:stock/status/:status',
-  // validateJwt,
-  // authorizeRoles('admin', 'dealer'),
+  validateJwt,
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
-    // const userrole = req.user.role;
-    const userrole = "admin";
+    const userrole = req.user.role;
+    // const userrole = "admin";
 
     try {
       let stockTable = '';
@@ -767,7 +767,9 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       s.added_by AS added_by,
       tf.failureReason,
       tf.fixed_by,
-      tf.loggedAt
+      tf.loggedAt,
+       u.name,
+       u.phone,
     FROM Things t
     LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
       }
@@ -2099,7 +2101,7 @@ dashboard.get('/api/display/party/:Party',
     }
 
     try {
-      console.log(`party table${Party}`)
+      console.log(`party table${Party}`) 
       // Construct the table name dynamically
       const tableName = `${Party}_details`;
 
@@ -2127,7 +2129,6 @@ dashboard.get('/api/display/party/:Party',
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
-
 // dashboard.get('/api/display/party/:Party',
 //   // validateJwt,
 //   // authorizeRoles('admin', 'dealer'),
