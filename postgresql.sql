@@ -514,3 +514,10 @@ CREATE TABLE thing_raw_materials (
 );
 
 
+CREATE TABLE alert_notifications ( 
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    body TEXT NOT NULL,
+    topic VARCHAR(100) ,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
