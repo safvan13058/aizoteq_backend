@@ -3949,6 +3949,95 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
+  const { thingmac } = req.params;
+  const page = parseInt(req.query.page, 10) || 1;
+  const pageSize = parseInt(req.query.pageSize, 10) || 10;
+
+  try {
+    // const offset = (page - 1) * pageSize;
+    // const limit = pageSize;
+
+    const query = `
+      SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
+      FROM audit_logs
+      WHERE thingmac = $1
+      ORDER BY timestamp DESC
+      
+    `;
+    // LIMIT $2 OFFSET $3;
+    // , limit, offset
+    const dbResult = await db.query(query, [thingmac]);
+
+    let events = [];
+
+    dbResult.rows.forEach((row) => {
+      const eventData = row.event_data
+        ? typeof row.event_data === "string"
+          ? JSON.parse(row.event_data)
+          : row.event_data
+        : {};
+
+      const timestamp = new Date(row.timestamp).toISOString();
+
+      // Handle event data whether it's inside status or status.desired
+      const status = eventData?.status || {};
+      const desiredStatus = status?.desired || {};
+
+      const method = status?.u || desiredStatus?.u || "Unknown";
+
+      // ✅ Handling connection/disconnection events
+      if (status?.command === "device_update" || desiredStatus?.command === "device_update") {
+        const deviceStatus = status?.status || desiredStatus?.status;
+        if (deviceStatus === "disconnected") {
+          events.push({
+            state: "DISCONNECTED",
+            time: timestamp,
+            method,
+            type: "Connection",
+          });
+        } else if (deviceStatus === "connected") {
+          events.push({
+            state: "CONNECTED",
+            time: timestamp,
+            method,
+            type: "Connection",
+          });
+        }
+      }
+
+      // ✅ Handling switch logs (Check both status and status.desired)
+      [status, desiredStatus].forEach((data) => {
+        if (data) {
+          Object.entries(data).forEach(([key, value]) => {
+            if (key.startsWith("s") && key.length === 2) {
+              const switchNumber = `${thingmac}_${key.substring(1)}`;
+              const switchState = value === "1" ? "ON" : "OFF";
+
+              events.push({
+                switch: switchNumber,
+                state: switchState,
+                time: timestamp,
+                method,
+                type: "Switch",
+              });
+            }
+          });
+        }
+      });
+    });
+
+    return res.json({
+      page,
+      pageSize,
+      total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count, 10) : 0,
+      events,
+    });
+  } catch (err) {
+    console.error("Database query error:", err);
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
                                                              
