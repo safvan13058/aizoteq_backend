@@ -3783,41 +3783,124 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 
 
 // --------------audit_log------------------
+// dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
+//   const { thingmac } = req.params;
+//   const { page, pageSize } = req.query; // Default to page 1 and 10 items per page
+
+//   try {
+//     const offset = (page - 1) * pageSize; // Calculate the offset based on the page number and page size
+//     const limit = pageSize; // Limit based on the page size
+
+//     const query = `
+//       SELECT event_data, timestamp
+//       FROM audit_logs
+//       WHERE thing_mac = $1
+//       ORDER BY timestamp ASC
+//      ;
+//     `;
+//     // LIMIT $2 OFFSET $3
+//     const dbResult = await db.query(query, [thingmac]);
+
+//     let events = [];
+
+//     dbResult.rows.forEach((row) => {
+//       // ✅ Ensure event_data is valid before parsing
+//       const eventData = row.event_data
+//         ? typeof row.event_data === "string"
+//           ? JSON.parse(row.event_data)
+//           : row.event_data
+//         : {};
+
+//       // ✅ Use full ISO timestamp instead of local time
+//       const timestamp = new Date(row.timestamp).toISOString();
+
+//       // ✅ Ensure method is properly extracted
+//       const method = eventData?.status?.desired?.u || "Unknown";
+
+//       // ✅ Handling connection/disconnection events
+//       if (eventData?.status?.desired?.command === "device_update") {
+//         if (eventData.status.desired.status === "disconnected") {
+//           events.push({
+//             state: "DISCONNECTED",
+//             time: timestamp,
+//             method: method,
+//             type: "Connection",
+//           });
+//         } else if (eventData.status.desired.status === "connected") {
+//           events.push({
+//             state: "CONNECTED",
+//             time: timestamp,
+//             method: method,
+//             type: "Connection",
+//           });
+//         }
+//       }
+
+//       // ✅ Handling switch logs
+//       if (eventData.status?.desired) {
+//         Object.entries(eventData.status.desired).forEach(([key, value]) => {
+//           if (key.startsWith("s") && key.length === 2) {
+//             const switchNumber = `${thingmac}_${key.substring(1)}`;
+//             const switchState = value === "1" ? "ON" : "OFF";
+
+//             events.push({
+//               switch: switchNumber,
+//               state: switchState,
+//               time: timestamp,
+//               method: method,
+//               type: "Switch",
+//             });
+//           }
+//         });
+//       }
+//     });
+
+//     // ✅ Sort by full timestamp, not just time string
+//     events.sort((a, b) => new Date(a.time) - new Date(b.time));
+
+//     // ✅ Return the events as JSON, including pagination metadata
+//     return res.json({
+//       page,
+//       pageSize,
+//       total: dbResult.rowCount, // You could modify this part to return total records count if needed
+//       events,
+//     });
+//   } catch (err) {
+//     console.error("Database query error:", err);
+//     return res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   const { thingmac } = req.params;
-  const { page, pageSize } = req.query; // Default to page 1 and 10 items per page
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 10;
 
   try {
-    const offset = (page - 1) * pageSize; // Calculate the offset based on the page number and page size
-    const limit = pageSize; // Limit based on the page size
-
+    // const offset = (page - 1) * pageSize;
+    // const limit = pageSize;
+      // LIMIT $2 OFFSET $3;
+    
     const query = `
-      SELECT event_data, timestamp
+      SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
       FROM audit_logs
-      WHERE thing_mac = $1
-      ORDER BY timestamp ASC
-     ;
+      WHERE thingmac = $1
+      ORDER BY timestamp DESC
     `;
-    // LIMIT $2 OFFSET $3
+   
     const dbResult = await db.query(query, [thingmac]);
-
+    // , limit, offset
     let events = [];
 
     dbResult.rows.forEach((row) => {
-      // ✅ Ensure event_data is valid before parsing
       const eventData = row.event_data
         ? typeof row.event_data === "string"
           ? JSON.parse(row.event_data)
           : row.event_data
         : {};
 
-      // ✅ Use full ISO timestamp instead of local time
       const timestamp = new Date(row.timestamp).toISOString();
-
-      // ✅ Ensure method is properly extracted
       const method = eventData?.status?.desired?.u || "Unknown";
 
-      // ✅ Handling connection/disconnection events
       if (eventData?.status?.desired?.command === "device_update") {
         if (eventData.status.desired.status === "disconnected") {
           events.push({
@@ -3836,7 +3919,6 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
         }
       }
 
-      // ✅ Handling switch logs
       if (eventData.status?.desired) {
         Object.entries(eventData.status.desired).forEach(([key, value]) => {
           if (key.startsWith("s") && key.length === 2) {
@@ -3855,14 +3937,11 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
       }
     });
 
-    // ✅ Sort by full timestamp, not just time string
-    events.sort((a, b) => new Date(a.time) - new Date(b.time));
-
-    // ✅ Return the events as JSON, including pagination metadata
+    // ✅ No need to manually sort, since SQL now orders correctly
     return res.json({
       page,
       pageSize,
-      total: dbResult.rowCount, // You could modify this part to return total records count if needed
+      total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count) : 0,
       events,
     });
   } catch (err) {
