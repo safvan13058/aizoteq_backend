@@ -75,6 +75,7 @@ async function sendEmail(to, subject, text) {
 //   }
 // }
 // Function to send push notification via Firebase and store in DB
+
 async function sendPushNotification(title, body, topic = "stock_alerts") {
   try {
     const message = {

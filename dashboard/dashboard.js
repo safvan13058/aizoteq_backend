@@ -3816,4 +3816,29 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
 });
 
 dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
+
+dashboard.get("/api/display/alert/notifications/", async (req, res) => {
+  try {
+    const result = await db.query("SELECT * FROM alert_notifications ORDER BY sent_at DESC");
+    res.json(result.rows);
+  } catch (error) {
+    console.error(" Error fetching notifications:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query("DELETE FROM alert_notifications WHERE id = $1 RETURNING *", [id]);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
+    res.json({ message: "Notification deleted", deletedNotification: result.rows[0] });
+  } catch (error) {
+    console.error("Error deleting notification:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 module.exports = dashboard;
