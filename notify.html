@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Push Notification Demo</title>
+  <script type="module">
+    // Import Firebase (Modular SDK)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+    import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging.js";
+    
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDU3Hsw-EJ6O6KKwJN-IDddhR_TnErCpFw",
+      authDomain: "aizoteq-c0002.firebaseapp.com",
+      projectId: "aizoteq-c0002",
+      storageBucket: "aizoteq-c0002.appspot.com",
+      messagingSenderId: "351655299170",
+      appId: "1:351655299170:web:0fcf402a1f8eeeb922293b",
+      measurementId: "G-JBFGVX7VXX"
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const messaging = getMessaging(app);
+
+    // Ensure DOM is fully loaded before executing
+    document.addEventListener("DOMContentLoaded", () => {
+      // Register service worker for Firebase Messaging
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("firebase-messaging-sw.js")
+          .then((registration) => {
+            console.log("✅ Service Worker registered:", registration);
+          })
+          .catch((error) => {
+            console.error("❌ Service Worker registration failed:", error);
+          });
+      }
+
+      // Subscribe to notifications
+      document.getElementById("subscribe").addEventListener("click", async () => {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") {
+            document.getElementById("status").innerText = "Notification permission denied.";
+            return;
+          }
+
+          const token = await getToken(messaging, { vapidKey: "BPV34sQU7Bnu2WtKUAC5w1Sue-U0aSJQZsSdHPtJxGTQ-qX7iSQANdk-r1KRfg2Yh-Lw5OmczCxHTuGnbx4hRSU" });
+          if (token) {
+            document.getElementById("status").innerText = "Subscribed to notifications!";
+            document.getElementById("token").innerText = `Token: ${token}`;
+            console.log("Token received:", token);
+            // Send token to your server for further processing
+          } else {
+            document.getElementById("status").innerText = "No token available. Try again.";
+          }
+        } catch (err) {
+          document.getElementById("status").innerText = "Error getting token.";
+          console.error("Error getting token:", err);
+        }
+      });
+
+      // Handle Incoming Messages (Foreground)
+      onMessage(messaging, (payload) => {
+        console.log("📩 Foreground message received:", payload);
+        displayNotification(payload.notification.title, payload.notification.body);
+      });
+
+      // Function to Display Notification in HTML
+      function displayNotification(title, body) {
+        const notificationDiv = document.getElementById("notifications");
+        const notification = document.createElement("div");
+        notification.classList.add("notification");
+        notification.innerHTML = `<strong>${title}</strong><p>${body}</p>`;
+        notificationDiv.appendChild(notification);
+      }
+    });
+  </script>
+
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    .notification { 
+      background: #f8f9fa; 
+      padding: 10px; 
+      margin: 5px auto; 
+      border-left: 5px solid #007bff; 
+      width: 80%;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h1>Push Notification Demo</h1>
+  <button id="subscribe">Subscribe to Push Notifications</button>
+  <div id="status"></div>
+  <div id="token"></div>
+  <h2>Notifications:</h2>
+  <div id="notifications"></div>
+</body>
+</html>
