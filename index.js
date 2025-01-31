@@ -26,7 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Route to serve the HTML file
 app.get('/notification', (req, res) => {
-    res.sendFile(path.join(__dirname, 'notifications', 'notify.html'));
+    res.sendFile(path.join(__dirname,'notify.html'));
 });
 app.get('/firebase-messaging-sw.js', (req, res) => {
     res.sendFile(path.join(__dirname,'firebase-messaging-sw.js'));
