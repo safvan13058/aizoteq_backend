@@ -21,7 +21,7 @@ dashboard.use("/api-dashboard", swaggerU.serve, swaggerU.setup(spec));
 // API endpoint to count users
 dashboard.get('/api/users/count',
   validateJwt,
-  authorizeRoles('admin', 'dealers'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     console.log(`working count${req.user.id}`)
     try {
@@ -840,7 +840,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,
-  authorizeRoles('admin', 'dealers'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { serialno } = req.query;
     const { status } = req.params;
@@ -1277,7 +1277,7 @@ dashboard.get('/api/display/users/:role',
     console.log(`changerole${req.user}`)
     const { search } = req.query;
     const role = req.params.role.toLowerCase(); // Normalize case for role comparison
-    const allowedRoles = ['admin', 'staff', 'customer', 'dealers']; // Valid roles
+    const allowedRoles = ['admin', 'staff', 'customer', 'dealer']; // Valid roles
 
     try {
       // Validate role
