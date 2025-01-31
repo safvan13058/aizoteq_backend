@@ -1744,11 +1744,16 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
             VALUES ($1, $2, $3)
             ON CONFLICT (user_id, device_id)
             DO UPDATE 
-            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP;
+            SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
+            RETURNING favorite;
         `;
-        await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+        const result = await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
+        const newFavoriteStatus = result.rows[0].favorite;
 
-        res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
+        res.status(200).json({ 
+            message: `Device ${deviceid} favorite status toggled successfully.`,
+            favorite: newFavoriteStatus
+        });
     } catch (error) {
         console.error('Error toggling favorite status:', error);
         res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
@@ -1756,6 +1761,7 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
         client.release(); // Release the client back to the pool
     }
 });
+
 
 
 // homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
