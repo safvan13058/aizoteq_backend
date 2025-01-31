@@ -3841,4 +3841,15 @@ dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) => {
+  try {
+    const { id } = req.params; // Extract id from the route params
+    const result = await db.query("SELECT * FROM alert_notifications WHERE id = $1 ORDER BY sent_at DESC", [id]);
+    res.json(result.rows);
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 module.exports = dashboard;
