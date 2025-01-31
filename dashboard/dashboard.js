@@ -3961,7 +3961,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
     const query = `
       SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
       FROM audit_logs
-      WHERE thingmac = $1
+      WHERE thing_mac = $1
       ORDER BY timestamp DESC
       
     `;
