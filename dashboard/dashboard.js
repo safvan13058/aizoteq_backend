@@ -1948,6 +1948,56 @@ dashboard.get("/api/warranty/:serial_no", async (req, res) => {
     client.release();
   }
 });
+dashboard.get("/api/display/warranty/thing", async (req, res) => {
+  const { search } = req.query; // Single search term
+
+  const client = await db.connect();
+
+  try {
+    let query = `
+      SELECT 
+        w.id AS warranty_id,
+        w.serial_no,
+        w.receipt_id,
+        w.date AS warranty_start_date,
+        w.due_date AS warranty_expiration_date,
+        r.name AS customer_name,
+        r.phone AS customer_phone,
+        r.datetime AS receipt_date
+      FROM 
+        thing_warranty w
+      JOIN 
+        billing_receipt r
+      ON 
+        w.receipt_id = r.id
+    `;
+
+    let values = [];
+
+    if (search) {
+      query += ` WHERE 
+        w.serial_no ILIKE $1 
+        OR r.name ILIKE $1 
+        OR r.phone ILIKE $1
+      `;
+      values.push(`%${search}%`);
+    }
+
+    query += ` ORDER BY w.date DESC`; // Sort by warranty start date
+
+    const warrantyQuery = await client.query(query, values);
+
+    return res.status(200).json({
+      message: "Warranty details retrieved successfully",
+      warranty_details: warrantyQuery.rows,
+    });
+  } catch (error) {
+    console.error("Error fetching warranty details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
+  }
+});
 
 //display warranties with search
 dashboard.get('/warranties', async (req, res) => {
