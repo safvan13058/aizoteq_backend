@@ -12,6 +12,7 @@ homeapp.get('/homeapp', (req, res) => {
     res.send("homeapp working")
 });
 
+
 homeapp.get("/api/display/user",
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
