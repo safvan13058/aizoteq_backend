@@ -1949,6 +1949,7 @@ dashboard.get("/api/warranty/:serial_no", async (req, res) => {
     client.release();
   }
 });
+
 dashboard.get("/api/display/warranty/thing", async (req, res) => {
   const { search } = req.query; // Single search term
 
@@ -3901,6 +3902,36 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
   } catch (error) {
     console.error("Error fetching notifications:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
+  const { id } = req.params;
+
+  const client = await db.connect();
+
+  try {
+    // Toggle the read status
+    const updateQuery = await client.query(
+      `UPDATE alert_notifications 
+       SET read = NOT COALESCE(read, FALSE) 
+       WHERE id = $1 
+       RETURNING id, title, body, topic, read, sent_at`,
+      [id]
+    );
+
+    if (updateQuery.rowCount === 0) {
+      return res.status(404).json({ error: `Notification with ID ${id} not found` });
+    }
+
+    return res.status(200).json({
+      message: "Notification read status toggled successfully",
+      notification: updateQuery.rows[0],
+    });
+  } catch (error) {
+    console.error("Error toggling read status:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
   }
 });
 
