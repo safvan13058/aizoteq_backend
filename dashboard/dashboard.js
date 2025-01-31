@@ -3829,7 +3829,7 @@ dashboard.get("/api/display/alert/notifications/", async (req, res) => {
 dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
   const { id } = req.params;
   try {
-    const result = await pool.query("DELETE FROM alert_notifications WHERE id = $1 RETURNING *", [id]);
+    const result = await db.query("DELETE FROM alert_notifications WHERE id = $1 RETURNING *", [id]);
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: "Notification not found" });
