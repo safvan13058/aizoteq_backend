@@ -3869,7 +3869,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
 });
 
 dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
-
+                                                             
 dashboard.get("/api/display/alert/notifications/", async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM alert_notifications ORDER BY sent_at DESC");
@@ -3879,6 +3879,7 @@ dashboard.get("/api/display/alert/notifications/", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
   const { id } = req.params;
   try {
@@ -3894,6 +3895,7 @@ dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) => {
   try {
     const { id } = req.params; // Extract id from the route params
@@ -3904,6 +3906,7 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
   const { id } = req.params;
 
@@ -3934,6 +3937,7 @@ dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
     client.release();
   }
 });
+
 dashboard.get("/api/alert_notifications/unread-count", async (req, res) => {
   const client = await db.connect();
 
