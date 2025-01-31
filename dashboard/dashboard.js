@@ -354,7 +354,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //           if (!party) {
 //             return res.status(400).json({ message: "Party parameter is required" });
 //         }
-        
+
 //           console.log(`soldworking===${stock}`)
 //           if (party === 'dealer') {
 //             console.log(`partyworking===${stock, party}`)
@@ -652,7 +652,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
   // validateJwt,
   // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
-    const { searchTerm, party="customer",serialno } = req.query; // Extract `party`
+    const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
     // const userrole = req.user.role;
     const userrole = "admin";
@@ -667,8 +667,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         if (stock === 'sold') {
           if (!party) {
             return res.status(400).json({ message: "Party parameter is required" });
-        }
-        
+          }
+
           console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
             console.log(`partyworking===${stock, party}`)
@@ -706,39 +706,39 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
           WHERE a.status = $1
       `;
-        
-      // If user is a dealer, fetch their ID and add to query
-      if (userrole === 'dealer') {
-        const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
-        const dealerResult = await db.query(dealerQuery, [req.user.email]);
-        if (dealerResult.rows.length === 0) {
-          return res.status(404).json({ message: 'Dealer not found' });
+
+          // If user is a dealer, fetch their ID and add to query
+          if (userrole === 'dealer') {
+            const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+            const dealerResult = await db.query(dealerQuery, [req.user.email]);
+            if (dealerResult.rows.length === 0) {
+              return res.status(404).json({ message: 'Dealer not found' });
+            }
+            query += ` AND a.user_id = $2`;
+            params.push(dealerResult.rows[0].id);
+          }
+
+          // Add serialno filter if provided
+          if (serialno) {
+            query += ` AND t.serialno ILIKE $${params.length + 1}`;
+            params.push(`%${serialno}%`);
+          }
+
+          // Log for debugging
+          console.log('Executing query:', query);
+          console.log('Query parameters:', params);
+
+          // Execute the query
+          const result = await db.query(query, params);
+          // Handle no results
+          if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No matching records found' });
+          }
+
+          // Return results
+          return res.json(result.rows);
+
         }
-        query += ` AND a.user_id = $2`;
-        params.push(dealerResult.rows[0].id);
-      }
-
-      // Add serialno filter if provided
-      if (serialno) {
-        query += ` AND t.serialno ILIKE $${params.length + 1}`;
-        params.push(`%${serialno}%`);
-      }
-
-      // Log for debugging
-      console.log('Executing query:', query);
-      console.log('Query parameters:', params);
-
-      // Execute the query
-      const result = await db.query(query, params);
-       // Handle no results
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No matching records found' });
-      }
-
-      // Return results
-      return res.json(result.rows);
-      
-    }
 
       } else if (userrole === 'dealer') {
         stockTable = 'dealersStock';
@@ -749,7 +749,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           userTable = 'customers_details';
         }
       }
-     
+
       if (stockTable.trim() !== "AdminStock") {
         console.log(`tableworking===${stockTable}`)
         query = `
@@ -769,26 +769,27 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       tf.fixed_by,
       tf.loggedAt
     FROM Things t
-    LEFT JOIN ${stockTable} s ON t.id = s.thingId `;}
-  //      else if (stockTable === "AdminStock") {
-  //       query = `SELECT 
-  //   t.id AS thing_id,
-  //   t.thingName,
-  //   t.createdby,
-  //   t.batchId,
-  //   t.model,
-  //   t.macaddress,
-  //   t.securityKey,
-  //   t.serialno,
-  //   s.status AS stock_status,
-  //   s.addedAt AS added_date,  -- Handle column naming differences
-  //   s.addedBy AS added_by,    -- Ensure consistency for added_by
-  //   tf.failureReason,
-  //   tf.fixed_by,
-  //   tf.loggedAt
-  // FROM Things t
-  // LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
-  //     }
+    LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
+      }
+      //      else if (stockTable === "AdminStock") {
+      //       query = `SELECT 
+      //   t.id AS thing_id,
+      //   t.thingName,
+      //   t.createdby,
+      //   t.batchId,
+      //   t.model,
+      //   t.macaddress,
+      //   t.securityKey,
+      //   t.serialno,
+      //   s.status AS stock_status,
+      //   s.addedAt AS added_date,  -- Handle column naming differences
+      //   s.addedBy AS added_by,    -- Ensure consistency for added_by
+      //   tf.failureReason,
+      //   tf.fixed_by,
+      //   tf.loggedAt
+      // FROM Things t
+      // LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
+      //     }
 
 
 
@@ -1963,6 +1964,7 @@ dashboard.get("/api/display/warranty/thing", async (req, res) => {
         w.due_date AS warranty_expiration_date,
         r.name AS customer_name,
         r.phone AS customer_phone,
+        r.email AS customer_email,
         r.datetime AS receipt_date
       FROM 
         thing_warranty w
