@@ -117,7 +117,7 @@ const wifidata = async (req, res) => {
       res.json(responseData);
           
   } catch (error) {
-      console.error(`Error fetching data for ${thingmac}:`, error);
+      // console.error(`Error fetching data for ${thingmac}:`, error);
       res.status(500).json({ error: `Failed to fetch device data: ${error.message}` });
   }
 };
