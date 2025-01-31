@@ -66,6 +66,7 @@ async function handleSignup(req, res, role) {
 
     try {
         console.log(userName, password, email, phoneNumber, fullName)
+        console.log("signup working")
         // Sign up the user in Cognito
         const signUpResponse = await cognito.signUp(params).promise();
         const jwtsub = signUpResponse.UserSub; // The unique identifier for the user in Cognito
@@ -83,7 +84,7 @@ async function handleSignup(req, res, role) {
         console.log(req.session.username)
         console.log(req.session)
         console.log(req.session)
-
+        console.log("signup working alll")
         req.session.jwtsub =jwtsub;
         req.session.role =role;
         res.status(201).json({ 
