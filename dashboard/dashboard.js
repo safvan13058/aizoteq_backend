@@ -654,8 +654,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
   async (req, res) => {
     const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
-    const userrole = req.user.role;
-    // const userrole = "admin";
+    // const userrole = req.user.role;
+    const userrole = "admin";
 
     try {
       let stockTable = '';
