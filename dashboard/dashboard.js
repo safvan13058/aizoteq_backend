@@ -4162,4 +4162,23 @@ dashboard.get("/api/alert_notifications/unread-count", async (req, res) => {
   }
 });
 
+dashboard.get("/api/attribute", async (req, res) => {
+  const client = await db.connect();
+
+  try {
+    const countQuery = await client.query(
+      `SELECT * from  ThingAttributes where thingId=74 `
+    );
+
+    return res.status(200).json({
+      message: "Unread notifications count retrieved successfully",
+      unread_count: parseInt(countQuery.rows[0].unread_count, 10),
+    });
+  } catch (error) {
+    console.error("Error fetching unread notifications count:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    client.release();
+  }
+});
 module.exports = dashboard;
