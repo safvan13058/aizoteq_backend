@@ -753,21 +753,6 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       if (stockTable.trim() !== "AdminStock") {
         console.log(`tableworking===${stockTable}`)
         query = `
-          SELECT 
-      t.id AS thing_id,
-      t.thingName,
-      t.createdby,
-      t.batchId,
-      t.model,
-      t.macaddress,
-      t.securityKey,
-      t.serialno,
-      s.status AS stock_status,
-      s.added_at AS added_date,  -- Handle column naming differences
-      s.added_by AS added_by,
-      tf.failureReason,
-      tf.fixed_by,
-      tf.loggedAt,
       SELECT 
     t.id AS thing_id,
     t.thingName,
