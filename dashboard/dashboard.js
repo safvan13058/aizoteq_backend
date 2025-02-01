@@ -4162,23 +4162,36 @@ dashboard.get("/api/alert_notifications/unread-count", async (req, res) => {
   }
 });
 
-dashboard.get("/api/attribute", async (req, res) => {
-  const client = await db.connect();
+dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
+  const { thingId } = req.params; // Get thingId from URL params
+
+  const sql = `
+      SELECT thingid, attributename, attributevalue, lastmodified 
+      FROM ThingAttributes
+      WHERE thingid = $1;
+  `;
 
   try {
-    const countQuery = await client.query(
-      `SELECT * from  ThingAttributes where thingId=74 `
-    );
+      const { rows } = await db.query(sql, [thingId]);
 
-    return res.status(200).json({
-      message: "Unread notifications count retrieved successfully",
-      unread_count: countQuery,
-    });
+      if (rows.length === 0) {
+          return res.status(404).json({ message: "No attributes found for the given thingId" });
+      }
+
+      // Transform the results into a structured format
+      const groupedData = {
+          thingId: parseInt(thingId),
+          attributes: {},
+          lastModified: rows[0].lastmodified
+      };
+
+      rows.forEach(row => {
+          groupedData.attributes[row.attributename] = row.attributevalue;
+      });
+
+      res.json(groupedData);
   } catch (error) {
-    console.error("Error fetching unread notifications count:", error);
-    return res.status(500).json({ error: "Internal server error" });
-  } finally {
-    client.release();
+      res.status(500).json({ error: error.message });
   }
 });
 module.exports = dashboard;
