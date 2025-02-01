@@ -4172,7 +4172,7 @@ dashboard.get("/api/attribute", async (req, res) => {
 
     return res.status(200).json({
       message: "Unread notifications count retrieved successfully",
-      unread_count: parseInt(countQuery.rows[0].unread_count, 10),
+      unread_count: parseInt(countQuery),
     });
   } catch (error) {
     console.error("Error fetching unread notifications count:", error);
