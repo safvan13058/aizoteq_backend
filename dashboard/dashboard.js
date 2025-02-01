@@ -767,7 +767,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       s.added_by AS added_by,
       tf.failureReason,
       tf.fixed_by,
-      tf.loggedAt,
+      tf.loggedAt
     FROM Things t
     LEFT JOIN ${stockTable} s ON t.id = s.thingId `;
       }
