@@ -649,8 +649,8 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 
 
 dashboard.get('/api/searchThings/working/:stock/status/:status',
-  validateJwt,
-  authorizeRoles('admin', 'dealer'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
