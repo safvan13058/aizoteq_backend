@@ -2348,8 +2348,7 @@ dashboard.post('/api/create/price_table',
       res.status(500).json({ error: 'Failed to create entry' });
     }
   });
-dashboard.post(
-    "/api/create/model_details",
+dashboard.post("/api/create/model_details",
     // validateJwt,
     // authorizeRoles("admin"),
     async (req, res) => {
@@ -2459,80 +2458,8 @@ dashboard.get('/api/display/prices-table',
       res.status(500).json({ error: 'Failed to retrieve prices' });
     }
   });
-  dashboard.get("/api/display/model/:model_id", validateJwt, authorizeRoles("admin"), async (req, res) => {
-    const { model_id } = req.params;
-  
-    try {
-      let query = `
-        SELECT p.*, 
-               json_agg(json_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features
-        FROM price_table p
-        LEFT JOIN model_features f ON p.id = f.model_id
-      `;
-  
-      let values = [];
-      if (model_id) {
-        query += " WHERE p.id = $1";
-        values.push(model_id);
-      }
-  
-      query += " GROUP BY p.id ORDER BY p.created_at DESC;";
-  
-      const result = await db.query(query, values);
-  
-      res.status(200).json({
-        message: "Price table data retrieved successfully",
-        data: result.rows,
-      });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch data" });
-    }
-  });
-  dashboard.get("/api/get/model_details/:model",
-     validateJwt,
-     authorizeRoles("admin"),
-   async (req, res) => {
-    const { model } = req.params;
-  
-    try {
-      const query = `
-        WITH FirstThing AS (
-          SELECT t.id AS thing_id
-          FROM Things t
-          WHERE t.model = $1
-          ORDER BY t.id ASC
-          LIMIT 1
-        )
-        SELECT 
-          p.id AS price_id, p.model, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
-          jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
-          jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
-        FROM price_table p
-        LEFT JOIN model_features f ON p.id = f.model_id
-        LEFT JOIN Things t ON p.model = t.model
-        LEFT JOIN ThingAttributes ta ON t.id = (SELECT thing_id FROM FirstThing)
-        WHERE p.model = $1
-        GROUP BY p.id;
-      `;
-  
-      const { rows } = await db.query(query, [model]);
-  
-      if (rows.length === 0) {
-        return res.status(404).json({ message: "No data found for this model" });
-      }
-  
-      res.status(200).json({
-        message: "Model details retrieved successfully",
-        data: rows[0]
-      });
-  
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Failed to fetch data" });
-    }
-  });
-  dashboard.get("/api/get/model_details",
+
+dashboard.get("/api/get/model_details",
     //  validateJwt, authorizeRoles("admin"), 
      async (req, res) => {
     try {
@@ -2569,6 +2496,7 @@ dashboard.get('/api/display/prices-table',
       res.status(500).json({ error: "Failed to fetch data" });
     }
   });
+
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,

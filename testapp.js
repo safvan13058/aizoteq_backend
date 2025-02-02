@@ -941,6 +941,7 @@ testapp.get('/api/display/thingattribute/:serialno',
         }
     }
 );
+
 //display things with  status
 testapp.get('/api/display/status/:status',
     // validateJwt,

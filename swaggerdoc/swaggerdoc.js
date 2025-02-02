@@ -6823,7 +6823,167 @@ const Swaggerdoc = {
       }
     },
 
-
+"/api/create/model_details": {
+      "post": {
+        "summary": "Create a new model and its features",
+        "operationId": "createModelDetails",
+        "tag":["Test APP APIs"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "description": "The model name or identifier"
+                  },
+                  "mrp": {
+                    "type": "number",
+                    "description": "The maximum retail price"
+                  },
+                  "retail_price": {
+                    "type": "number",
+                    "description": "The retail price of the product"
+                  },
+                  "discount": {
+                    "type": "number",
+                    "description": "The discount percentage on the model"
+                  },
+                  "warranty_period": {
+                    "type": "string",
+                    "description": "Warranty period in formats like '2 years', '6 months', or '1 year 6 months'."
+                  },
+                  "sgst": {
+                    "type": "number",
+                    "description": "SGST percentage"
+                  },
+                  "cgst": {
+                    "type": "number",
+                    "description": "CGST percentage"
+                  },
+                  "igst": {
+                    "type": "number",
+                    "description": "IGST percentage"
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string",
+                          "description": "Feature name"
+                        },
+                        "feature_value": {
+                          "type": "string",
+                          "description": "Value of the feature"
+                        }
+                      },
+                      "required": ["feature"]
+                    },
+                    "description": "A list of features associated with the model"
+                  }
+                },
+                "required": ["model"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Model and features added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Model and features added successfully"
+                    },
+                    "model": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "description": "The ID of the newly created model"
+                        },
+                        "model": {
+                          "type": "string",
+                          "description": "The model name"
+                        },
+                        "mrp": {
+                          "type": "number",
+                          "description": "The maximum retail price"
+                        },
+                        "retail_price": {
+                          "type": "number",
+                          "description": "The retail price of the model"
+                        },
+                        "discount": {
+                          "type": "number",
+                          "description": "The discount percentage"
+                        },
+                        "warranty_period": {
+                          "type": "string",
+                          "description": "Warranty period"
+                        },
+                        "sgst": {
+                          "type": "number",
+                          "description": "SGST percentage"
+                        },
+                        "cgst": {
+                          "type": "number",
+                          "description": "CGST percentage"
+                        },
+                        "igst": {
+                          "type": "number",
+                          "description": "IGST percentage"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "description": "Error message"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 };
 
 
