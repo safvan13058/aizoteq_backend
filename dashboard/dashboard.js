@@ -2348,7 +2348,90 @@ dashboard.post('/api/create/price_table',
       res.status(500).json({ error: 'Failed to create entry' });
     }
   });
-
+dashboard.post(
+    "/api/create/model_details",
+    // validateJwt,
+    // authorizeRoles("admin"),
+    async (req, res) => {
+      const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst, features } = req.body;
+  
+      // Function to validate warranty_period
+      function isValidWarrantyPeriod(warrantyPeriod) {
+        const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
+        return regex.test(warrantyPeriod);
+      }
+  
+      // Validate input data
+      if (!model || !mrp || !retail_price) {
+        return res.status(400).json({ error: "Missing required fields: model, mrp, retail_price." });
+      }
+  
+      if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+        return res.status(400).json({
+          error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+        });
+      }
+  
+      const client = await db.connect(); // Start a transaction
+  
+      try {
+        await client.query("BEGIN"); // Begin transaction
+  
+        // Check if model already exists
+        const checkModelQuery = "SELECT * FROM price_table WHERE model ILIKE $1";
+        const existingModel = await client.query(checkModelQuery, [model]);
+  
+        if (existingModel.rows.length > 0) {
+          return res.status(400).json({ error: "Model already exists in the price table." });
+        }
+  
+        // Insert model into price_table
+        const insertModelQuery = `
+          INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst)
+          VALUES ($1, $2, $3, $4, $5::INTERVAL, $6, $7, $8) RETURNING *;
+        `;
+        const modelResult = await client.query(insertModelQuery, [
+          model,
+          mrp,
+          retail_price,
+          discount,
+          warranty_period,
+          sgst,
+          cgst,
+          igst,
+        ]);
+  
+        const modelId = modelResult.rows[0].id; // Get the newly inserted model ID
+  
+        // Insert features if provided
+        if (Array.isArray(features) && features.length > 0) {
+          const insertFeaturesQuery = `
+            INSERT INTO model_features (model_id, feature, feature_value)
+            VALUES ${features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(", ")}
+            RETURNING *;
+          `;
+  
+          const featureValues = [modelId, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
+  
+          await client.query(insertFeaturesQuery, featureValues);
+        }
+  
+        await client.query("COMMIT"); // Commit transaction
+  
+        res.status(201).json({
+          message: "Model and features added successfully",
+          model: modelResult.rows[0],
+        });
+      } catch (err) {
+        await client.query("ROLLBACK"); // Rollback transaction on error
+        console.error(err);
+        res.status(500).json({ error: "Failed to create entry" });
+      } finally {
+        client.release(); // Release client
+      }
+    }
+  );
+  
 // Read all entries from the price_table
 dashboard.get('/api/display/prices-table',
   validateJwt,
@@ -2486,7 +2569,6 @@ dashboard.get('/api/display/prices-table',
       res.status(500).json({ error: "Failed to fetch data" });
     }
   });
-  
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
@@ -2645,7 +2727,6 @@ dashboard.post("/api/add-features/:model_id", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
-
 // API to Add Multiple Features with model_id in Params
 dashboard.post("api/add-features/model/:model_id", async (req, res) => {
   const { model_id } = req.params;
@@ -2676,6 +2757,7 @@ dashboard.post("api/add-features/model/:model_id", async (req, res) => {
     res.status(500).json({ error: "Database error" });
   }
 });
+
 // API to delete an image by its ID
 dashboard.delete("/api/delete-image/:id", async (req, res) => {
   const { id } = req.params;
