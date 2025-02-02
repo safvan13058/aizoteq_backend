@@ -6823,11 +6823,11 @@ const Swaggerdoc = {
       }
     },
 
-"/api/create/model_details": {
+    "/api/create/model_details": {
       "post": {
         "summary": "Create a new model and its features",
         "operationId": "createModelDetails",
-        "tags":["Test APP APIs"],
+        "tags": ["Test APP APIs"],
         "requestBody": {
           "required": true,
           "content": {
@@ -6853,7 +6853,8 @@ const Swaggerdoc = {
                   },
                   "warranty_period": {
                     "type": "string",
-                    "description": "Warranty period in formats like '2 years', '6 months', or '1 year 6 months'."
+                    "description": "Warranty period in formats like '2 years', '6 months', or '1 year 6 months'.",
+                    "example": "2 years 6 months"
                   },
                   "sgst": {
                     "type": "number",
@@ -6887,6 +6888,25 @@ const Swaggerdoc = {
                   }
                 },
                 "required": ["model"]
+              },
+              "examples": {
+                "validRequest": {
+                  "value": {
+                    "model": "ABC123",
+                    "mrp": 1200.50,
+                    "retail_price": 1100.00,
+                    "discount": 10,
+                    "warranty_period": "2 years 6 months",
+                    "sgst": 5.00,
+                    "cgst": 5.00,
+                    "igst": 0.00,
+                    "features": [
+                      { "feature": "Battery Life", "feature_value": "10 hours" },
+                      { "feature": "Weight", "feature_value": "250g" },
+                      { "feature": "Color", "feature_value": "Black" }
+                    ]
+                  }
+                }
               }
             }
           }
