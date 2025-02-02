@@ -2876,11 +2876,11 @@ dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), as
   }
 });
 dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) => {
-  const { model_id_or_model_no } = req.params;
+  const { modelid_or_modelno } = req.params;
 
   try {
     // Check if the value is a number (model_id) or string (model_no)
-    const isModelId = !isNaN(parseInt(model_id_or_model_no));
+    const isModelId = !isNaN(parseInt(modelid_or_modelno));
 
     let query = "";
     let values = [];
@@ -2888,11 +2888,11 @@ dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) =>
     if (isModelId) {
       // If the parameter is a model_id (number), use it in the query
       query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
-      values = [model_id_or_model_no];
+      values = [modelid_or_modelno];
     } else {
       // If the parameter is a model_no (string), use it in the query
       query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
-      values = [model_id_or_model_no];
+      values = [modelid_or_modelno];
     }
 
     const { rows } = await db.query(query, values);
