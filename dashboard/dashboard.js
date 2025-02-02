@@ -2449,7 +2449,9 @@ dashboard.get('/api/display/prices-table',
       res.status(500).json({ error: "Failed to fetch data" });
     }
   });
-  dashboard.get("/api/get/model_details", validateJwt, authorizeRoles("admin"), async (req, res) => {
+  dashboard.get("/api/get/model_details",
+    //  validateJwt, authorizeRoles("admin"), 
+     async (req, res) => {
     try {
       const query = `
         WITH FirstThing AS (
