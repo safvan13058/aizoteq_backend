@@ -6823,7 +6823,7 @@ const Swaggerdoc = {
       }
     },
 
-    "/api/create/model_details": {
+    "/dashboard/api/create/model_details": {
       "post": {
         "summary": "Create a new model and its features",
         "operationId": "createModelDetails",
