@@ -963,6 +963,7 @@ dashboard.get('/api/searchThings/working/:status',
 //     res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+
 dashboard.get("/api/users/graph", async (req, res) => {
   const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
 
@@ -2301,6 +2302,7 @@ dashboard.put('/api/update/account/for/:Party/:id',
   });
 
 // Create a new entry in the price_table
+
 dashboard.post('/api/create/price_table',
   validateJwt,
   authorizeRoles('admin'),
@@ -2374,7 +2376,115 @@ dashboard.get('/api/display/prices-table',
       res.status(500).json({ error: 'Failed to retrieve prices' });
     }
   });
-
+  dashboard.get("/api/display/model/:model_id", validateJwt, authorizeRoles("admin"), async (req, res) => {
+    const { model_id } = req.params;
+  
+    try {
+      let query = `
+        SELECT p.*, 
+               json_agg(json_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features
+        FROM price_table p
+        LEFT JOIN model_features f ON p.id = f.model_id
+      `;
+  
+      let values = [];
+      if (model_id) {
+        query += " WHERE p.id = $1";
+        values.push(model_id);
+      }
+  
+      query += " GROUP BY p.id ORDER BY p.created_at DESC;";
+  
+      const result = await db.query(query, values);
+  
+      res.status(200).json({
+        message: "Price table data retrieved successfully",
+        data: result.rows,
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch data" });
+    }
+  });
+  dashboard.get("/api/get/model_details/:model",
+     validateJwt,
+     authorizeRoles("admin"),
+   async (req, res) => {
+    const { model } = req.params;
+  
+    try {
+      const query = `
+        WITH FirstThing AS (
+          SELECT t.id AS thing_id
+          FROM Things t
+          WHERE t.model = $1
+          ORDER BY t.id ASC
+          LIMIT 1
+        )
+        SELECT 
+          p.id AS price_id, p.model, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
+          jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+          jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+        FROM price_table p
+        LEFT JOIN model_features f ON p.id = f.model_id
+        LEFT JOIN Things t ON p.model = t.model
+        LEFT JOIN ThingAttributes ta ON t.id = (SELECT thing_id FROM FirstThing)
+        WHERE p.model = $1
+        GROUP BY p.id;
+      `;
+  
+      const { rows } = await db.query(query, [model]);
+  
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "No data found for this model" });
+      }
+  
+      res.status(200).json({
+        message: "Model details retrieved successfully",
+        data: rows[0]
+      });
+  
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch data" });
+    }
+  });
+  dashboard.get("/api/get/model_details", validateJwt, authorizeRoles("admin"), async (req, res) => {
+    try {
+      const query = `
+        WITH FirstThing AS (
+          SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
+          FROM Things t
+          ORDER BY t.model, t.id ASC
+        )
+        SELECT 
+          p.id AS price_id, p.model, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
+          jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+          jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+        FROM price_table p
+        LEFT JOIN model_features f ON p.id = f.model_id
+        LEFT JOIN FirstThing ft ON p.model = ft.model
+        LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
+        GROUP BY p.id;
+      `;
+  
+      const { rows } = await db.query(query);
+  
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "No models found" });
+      }
+  
+      res.status(200).json({
+        message: "All model details retrieved successfully",
+        data: rows
+      });
+  
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch data" });
+    }
+  });
+  
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
@@ -2531,6 +2641,37 @@ dashboard.post("/api/add-features/:model_id", async (req, res) => {
   } catch (error) {
     console.error("Error adding features:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// API to Add Multiple Features with model_id in Params
+dashboard.post("api/add-features/model/:model_id", async (req, res) => {
+  const { model_id } = req.params;
+  const { features } = req.body;
+
+  if (!model_id || isNaN(model_id)) {
+    return res.status(400).json({ error: "Invalid model_id in URL" });
+  }
+
+  if (!Array.isArray(features) || features.length === 0) {
+    return res.status(400).json({ error: "A non-empty features array is required" });
+  }
+
+  try {
+    const query = `
+      INSERT INTO model_features (model_id, feature, feature_value)
+      VALUES ${features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(", ")}
+      RETURNING *;
+    `;
+
+    const values = [model_id, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
+
+    const result = await db.query(query, values);
+
+    res.status(201).json({ message: "Features added successfully", data: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Database error" });
   }
 });
 // API to delete an image by its ID
