@@ -6827,7 +6827,7 @@ const Swaggerdoc = {
       "post": {
         "summary": "Create a new model and its features",
         "operationId": "createModelDetails",
-        "tag":["Test APP APIs"],
+        "tags":["Test APP APIs"],
         "requestBody": {
           "required": true,
           "content": {
