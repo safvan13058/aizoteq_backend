@@ -2831,6 +2831,113 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
   }
 });
 
+dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), async (req, res) => {
+  const { model_id } = req.params;
+  console.log("Uploaded files:", req.files);
+
+  try {
+    // No files uploaded check
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
+    }
+
+    // Fetch model_no from price_table using model_id
+    const { rows } = await db.query(
+      "SELECT model FROM price_table WHERE id = $1",
+      [model_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Model not found" });
+    }
+
+    const model_no = rows[0].model;  // Assuming "model" column contains the model identifier
+
+    // Save the image file paths to the database
+    const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+    const queries = imagePaths.map((filePath) =>
+      db.query(
+        "INSERT INTO web_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
+        [model_id, model_no, filePath]
+      )
+    );
+
+    console.log("Image paths to save:", imagePaths);
+    await Promise.all(queries);
+
+    // Return the success message with image paths
+    res.status(200).json({
+      message: "Images uploaded successfully",
+      imagePaths,
+    });
+  } catch (error) {
+    console.error("Error uploading images:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) => {
+  const { model_id_or_model_no } = req.params;
+
+  try {
+    // Check if the value is a number (model_id) or string (model_no)
+    const isModelId = !isNaN(parseInt(model_id_or_model_no));
+
+    let query = "";
+    let values = [];
+
+    if (isModelId) {
+      // If the parameter is a model_id (number), use it in the query
+      query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
+      values = [model_id_or_model_no];
+    } else {
+      // If the parameter is a model_no (string), use it in the query
+      query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
+      values = [model_id_or_model_no];
+    }
+
+    const { rows } = await db.query(query, values);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No images found for this model" });
+    }
+
+    res.status(200).json({
+      message: "Images retrieved successfully",
+      images: rows,
+    });
+  } catch (error) {
+    console.error("Error retrieving images:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+// DELETE: Delete a specific image by image_id
+dashboard.delete("/api/delete/web/images/:image_id", async (req, res) => {
+  const { image_id } = req.params;
+
+  try {
+    const { rows } = await db.query(
+      "SELECT * FROM web_image WHERE id = $1",
+      [image_id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Image not found" });
+    }
+
+    await db.query(
+      "DELETE FROM web_image WHERE id = $1",
+      [image_id]
+    );
+
+    res.status(200).json({
+      message: "Image deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id", async (req, res) => {
   const featureId = parseInt(req.params.id);
@@ -2908,6 +3015,7 @@ dashboard.get("/api/things/features/:model", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 dashboard.get("/api/billing/:entity_type/:entity_id",
   validateJwt,
