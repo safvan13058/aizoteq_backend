@@ -1043,25 +1043,25 @@ testapp.get('/api/display/devices/:thingid',
 });
 testapp.get('/api/list/macaddress/user/:user_id', async (req, res) => {
     const { user_id } = req.params;
-  
-    try {
-      const result = await db.query(
-        `SELECT t.macaddress 
-         FROM customer_access ca
-         JOIN Things t ON ca.thing_id = t.id
-         WHERE ca.user_id = $1;`, 
-        [user_id]
-      );
-  
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No devices found for this user', count: 0 });
-      }
-  
-      res.json({ count: result.rows.length, macaddresses: result.rows });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Internal Server Error' });
+
+  try {
+    const result = await db.query(
+      `SELECT DISTINCT t.macaddress 
+       FROM customer_access ca
+       JOIN Things t ON ca.thing_id = t.id
+       WHERE ca.user_id = $1 AND t.macaddress IS NOT NULL;`, 
+      [user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'No devices found for this user', count: 0 });
     }
-  });
+
+    res.json({ count: result.rows.length, macaddresses: result.rows.map(row => row.macaddress) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
   
 module.exports = testapp;
