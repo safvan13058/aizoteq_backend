@@ -981,7 +981,6 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
         WHERE s.status = $1
       `;
       
-
           if (userrole === 'dealer') {
               const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
               const dealerResult = await db.query(dealerQuery, [req.user.email]);
