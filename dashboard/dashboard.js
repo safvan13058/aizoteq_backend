@@ -2655,7 +2655,7 @@ dashboard.get("/api/display/prices-table",
           ORDER BY t.model, t.id ASC
         )
         SELECT 
-          p.id AS price_id, p.model, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
+          p.id AS price_id, p.model,P.lastmodified, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
           jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
           jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
         FROM price_table p
