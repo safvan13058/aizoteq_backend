@@ -64,7 +64,7 @@ CREATE TABLE AdminStock (
     FOREIGN KEY (thingId) REFERENCES Things(id),
     FOREIGN KEY (addedBy) REFERENCES Users(userName),
 ); 
- 
+
 -- Table to store home information
 CREATE TABLE HOME (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
@@ -358,15 +358,35 @@ CREATE TABLE price_table (
     mrp NUMERIC(10, 2) NOT NULL,                -- Maximum retail price
     retail_price NUMERIC(10, 2) NOT NULL,       -- Actual retail price
     sgst NUMERIC(5, 2) DEFAULT 0.00, -- State GST as a percentage
-    cgst NUMERIC(5, 2) DEFAULT 0.00;
-    igst NUMERIC(5, 2) DEFAULT 0.00;
+    cgst NUMERIC(5, 2) DEFAULT 0.00,
+    igst NUMERIC(5, 2) DEFAULT 0.00,
     discount NUMERIC(10, 2), 
     warranty_period INTERVAL DEFAULT INTERVAL '3 years',                -- Discount applied (optional)
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
     
-
 );
-
+CREATE TABLE model_features (
+    id SERIAL PRIMARY KEY,
+    model_id INT NOT NULL,
+    feature VARCHAR(255) NOT NULL,
+    feature_value VARCHAR(255) ,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+model_no varchar(255)
+CREATE TABLE model_features_image (
+    id SERIAL PRIMARY KEY,
+    model_id INT,
+    model_no VARCHAR(255) NULL,
+    image_url TEXT,
+    CONSTRAINT fk_model_id FOREIGN KEY (model_id) REFERENCES price_table(id)
+);
+CREATE TABLE web_image (
+    id SERIAL PRIMARY KEY,
+    model_id INT,
+    model_no VARCHAR(255) NOT NULL,
+    image_url TEXT,
+    CONSTRAINT fk_model_id FOREIGN KEY (model_id) REFERENCES price_table(id)
+);
 -- Create billing_receipt
 CREATE TABLE billing_receipt (
     id SERIAL PRIMARY KEY, 
