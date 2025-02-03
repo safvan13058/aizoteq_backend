@@ -840,6 +840,171 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     }
   }
 );
+dashboard.get('/api/searchThings/workings/:stock/status/:status',
+  async (req, res) => {
+    const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
+    const { stock, status } = req.params;
+    const userrole = "admin"; // Hardcoded for testing
+
+    try {
+      let stockTable = '';
+      let userTable = '';
+      let params = [status];
+      let query = '';
+
+      if (userrole === 'admin') {
+        stockTable = 'AdminStock ';
+        if (stock === 'sold') {
+          if (!party) {
+            return res.status(400).json({ message: "Party parameter is required" });
+          }
+
+          if (party === 'dealer') {
+            stockTable = 'dealersStock';
+            userTable = 'dealers_details';
+          } else if (party === 'customer') {
+            stockTable = 'customersStock';
+            userTable = 'customers_details';
+          } else if (party === 'onlineCustomer') {
+            stockTable = 'onlineCustomerStock';
+            userTable = 'onlinecustomer_details';
+          }
+        } else if (stock !== 'sold') {
+          query = `
+            SELECT 
+                t.id AS thing_id,
+                t.thingName,
+                t.createdby,
+                t.batchId,
+                t.model,
+                t.macaddress,
+                t.securityKey,
+                t.serialno,
+                a.status AS stock_status,
+                a.addedAt,
+                a.addedby,
+                tf.failureReason,
+                tf.fixed_by,
+                tf.loggedAt,
+                -- Join the features and attributes
+                jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+                jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+            FROM Things t
+            LEFT JOIN ${userrole === 'admin' ? 'AdminStock' : 'dealersStock'} a ON t.id = a.thingId
+            LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+            LEFT JOIN model_features f ON t.model = f.model_id
+            LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
+            WHERE a.status = $1
+            GROUP BY t.id, a.status, a.addedAt, a.addedby, tf.failureReason, tf.fixed_by, tf.loggedAt;
+          `;
+
+          // If user is a dealer, fetch their ID and add to query
+          if (userrole === 'dealer') {
+            const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+            const dealerResult = await db.query(dealerQuery, [req.user.email]);
+            if (dealerResult.rows.length === 0) {
+              return res.status(404).json({ message: 'Dealer not found' });
+            }
+            query += ` AND a.user_id = $2`;
+            params.push(dealerResult.rows[0].id);
+          }
+
+          // Add serialno filter if provided
+          if (serialno) {
+            query += ` AND t.serialno ILIKE $${params.length + 1}`;
+            params.push(`%${serialno}%`);
+          }
+
+          // Log for debugging
+          console.log('Executing query:', query);
+          console.log('Query parameters:', params);
+
+          // Execute the query
+          const result = await db.query(query, params);
+
+          // Handle no results
+          if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No matching records found' });
+          }
+
+          // Return results with features and attributes
+          return res.json(result.rows);
+        }
+
+      }
+
+      if (stockTable.trim() !== "AdminStock") {
+        query = `
+          SELECT 
+              t.id AS thing_id,
+              t.thingName,
+              t.createdby,
+              t.batchId,
+              t.model,
+              t.macaddress,
+              t.securityKey,
+              t.serialno,
+              s.status AS stock_status,
+              s.added_at AS added_date,
+              s.added_by AS added_by,
+              tf.failureReason,
+              tf.fixed_by,
+              tf.loggedAt,
+              u.name AS user_name,
+              u.phone AS user_phone,
+              -- Join the features and attributes
+              jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+              jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+          FROM Things t
+          LEFT JOIN ${stockTable} s ON t.id = s.thingId
+          LEFT JOIN ${userTable} u ON s.user_id = u.id
+          LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+          LEFT JOIN model_features f ON t.model = f.model_id
+          LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
+          WHERE s.status = $1
+        `;
+
+        if (userrole === 'dealer') {
+          const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+          const dealerResult = await db.query(dealerQuery, [req.user.email]);
+          if (dealerResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Dealer not found' });
+          }
+          query += ` AND s.user_id = $2`;
+          params.push(dealerResult.rows[0].id);
+        }
+
+        if (searchTerm) {
+          query += ` AND (
+            t.serialno ILIKE $${params.length + 1} 
+            OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
+            OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
+          )`;
+          params.push(`%${searchTerm}%`);
+        }
+      }
+
+      // Log for debugging
+      console.log('Executing query:', query);
+      console.log('Query parameters:', params);
+
+      const result = await db.query(query, params);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: 'No matching records found' });
+      }
+
+      // Return results with features and attributes
+      return res.json(result.rows);
+    } catch (err) {
+      console.error('Error executing query:', err);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        details: process.env.NODE_ENV === 'production' ? undefined : err.message,
+      });
+    }
+  }
+);
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,
@@ -2348,6 +2513,7 @@ dashboard.post('/api/create/price_table',
       res.status(500).json({ error: 'Failed to create entry' });
     }
   });
+
 dashboard.post("/api/create/model_details",
     // validateJwt,
     // authorizeRoles("admin"),
@@ -2458,8 +2624,9 @@ dashboard.post("/api/create/model_details",
 //       res.status(500).json({ error: 'Failed to retrieve prices' });
 //     }
 //   });
+
 dashboard.get("/api/display/prices-table",
-    //  validateJwt, authorizeRoles("admin"), 
+     validateJwt, authorizeRoles("admin","dealer"), 
      async (req, res) => {
     try {
       const query = `
@@ -2495,7 +2662,97 @@ dashboard.get("/api/display/prices-table",
       res.status(500).json({ error: "Failed to fetch data" });
     }
   });
-
+// dashboard.get("/api/display/prices-table",
+//     validateJwt, 
+//     authorizeRoles("admin", "dealer"), 
+//     async (req, res) => {
+//       try {
+//         // Step 1: Fetch price details for models
+//         const query = `
+//           WITH FirstThing AS (
+//             SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
+//             FROM Things t
+//             ORDER BY t.model, t.id ASC
+//           )
+//           SELECT 
+//             p.id AS price_id, 
+//             p.model, 
+//             p.mrp, 
+//             p.retail_price, 
+//             p.sgst, 
+//             p.cgst, 
+//             p.igst, 
+//             p.discount, 
+//             jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+//             jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+//           FROM price_table p
+//           LEFT JOIN model_features f ON p.id = f.model_id
+//           LEFT JOIN FirstThing ft ON p.model = ft.model
+//           LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
+//           GROUP BY p.id;
+//         `;
+    
+//         const { rows } = await db.query(query);
+    
+//         if (rows.length === 0) {
+//           return res.status(404).json({ message: "No models found" });
+//         }
+  
+//         // Step 2: Get the role and email of the user (dealer or admin)
+//         const user = await db.query('SELECT * FROM Users WHERE email = $1', [req.user.email]);
+//         if (user.rows.length === 0) {
+//           return res.status(404).json({ message: "User not found" });
+//         }
+  
+//         const { role } = user.rows[0];
+  
+//         // Step 3: Initialize an array to store stock data
+//         let stockData = [];
+  
+//         // Step 4: Fetch stock data based on user role
+//         if (role === 'admin') {
+//           // Admin: Get stock data from AdminStock
+//           const adminStockQuery = `
+//             SELECT t.model, COUNT(*) AS stock_count
+//             FROM AdminStock a
+//             JOIN Things t ON a.thingId = t.id
+//             WHERE t.model IN (${rows.map((row) => `'${row.model}'`).join(', ')})
+//             GROUP BY t.model;
+//           `;
+//           stockData = await db.query(adminStockQuery);
+//         } else if (role === 'dealer') {
+//           // Dealer: Get stock data from DealersStock
+//           const dealerStockQuery = `
+//             SELECT t.model, COUNT(*) AS stock_count
+//             FROM DealersStock ds
+//             JOIN Things t ON ds.thingid = t.id
+//             WHERE ds.user_id = (SELECT id FROM dealers_details WHERE email = $1)
+//             AND t.model IN (${rows.map((row) => `'${row.model}'`).join(', ')})
+//             GROUP BY t.model;
+//           `;
+//           stockData = await db.query(dealerStockQuery, [req.user.email]);
+//         }
+  
+//         // Step 5: Merge price and stock data by model
+//         const mergedData = rows.map((price) => {
+//           const stock = stockData.rows.find((stockItem) => stockItem.model === price.model);
+//           return {
+//             ...price,
+//             stock_count: stock ? stock.stock_count : 0,  // Default to 0 if no stock data found
+//           };
+//         });
+  
+//         // Step 6: Return the merged data with price and stock count
+//         res.status(200).json({
+//           message: "All model details with stock retrieved successfully",
+//           data: mergedData
+//         });
+//       } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ error: "Failed to fetch data" });
+//       }
+//     });
+  
 // Read a single entry by ID
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
