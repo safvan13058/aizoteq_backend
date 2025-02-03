@@ -943,43 +943,52 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
       // For non-admin users (such as dealers)
       if (stockTable.trim() !== "AdminStock") {
         query = `
-        SELECT 
-            t.id AS thing_id,
-            t.thingName,
-            t.createdby,
-            t.batchId,
-            t.model,
-            t.macaddress,
-            t.securityKey,
-            t.serialno,
-            s.status AS stock_status,
-            s.added_at AS added_date,
-            s.added_by AS added_by,
-            tf.failureReason,
-            tf.fixed_by,
-            tf.loggedAt,
-            u.name AS user_name,
-            u.phone AS user_phone,
-            -- Join the features and attributes
-            jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
-            jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes,
-            -- Join price table with type casting
-            p.mrp,
-            p.retail_price,
-            p.sgst,
-            p.cgst,
-            p.igst,
-            p.discount,
-            p.warranty_period
-        FROM Things t
-        LEFT JOIN ${stockTable} s ON t.id = s.thingId
-        LEFT JOIN ${userTable} u ON s.user_id = u.id
-        LEFT JOIN price_table p ON t.model  = p.model 
-        LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        LEFT JOIN model_features f ON p.id = f.model_id
-        LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
-        WHERE s.status = $1
-      `;
+    SELECT
+        t.id AS thing_id,
+        t.thingName,
+        t.createdby,
+        t.batchId,
+        t.model,
+        t.macaddress,
+        t.securityKey,
+        t.serialno,
+        s.status AS stock_status,
+        s.added_at AS added_date,
+        s.added_by AS added_by,
+        tf.failureReason,
+        tf.fixed_by,
+        tf.loggedAt,
+        u.name AS user_name,
+        u.phone AS user_phone,
+        -- Join the features and attributes
+        jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+        jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes,
+        -- Join price table
+        p.mrp,
+        p.retail_price,
+        p.sgst,
+        p.cgst,
+        p.igst,
+        p.discount,
+        p.warranty_period
+    FROM Things t
+    LEFT JOIN ${stockTable} s ON t.id = s.thingId
+    LEFT JOIN ${userTable} u ON s.user_id = u.id
+    LEFT JOIN price_table p ON t.model = p.model
+    LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
+    LEFT JOIN model_features f ON p.id = f.model_id  -- Corrected Join
+    LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
+    WHERE s.status = $1
+    GROUP BY
+        t.id, t.thingName, t.createdby, t.batchId, t.model, t.macaddress, 
+        t.securityKey, t.serialno, s.status, s.added_at, s.added_by, 
+        tf.failureReason, tf.fixed_by, tf.loggedAt, u.name, u.phone, 
+        p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, p.warranty_period;
+`;
+
+console.log("Executing query:", query);
+console.log("Query parameters:", [status]);
+
       
           if (userrole === 'dealer') {
               const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
