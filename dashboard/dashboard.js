@@ -974,8 +974,9 @@ dashboard.get('/api/searchThings/workings/:stock/status/:status', async (req, re
         FROM Things t
         LEFT JOIN ${stockTable} s ON t.id = s.thingId
         LEFT JOIN ${userTable} u ON s.user_id = u.id
+          LEFT JOIN price_table p ON t.model  = p.model 
         LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-        LEFT JOIN model_features f ON t.model = f.model_id
+        LEFT JOIN model_features f ON p.id = f.model_id
         LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
         LEFT JOIN price_table p ON CAST(t.model AS INTEGER) = p.model  -- Apply type casting here
         WHERE s.status = $1
