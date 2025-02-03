@@ -899,9 +899,9 @@ dashboard.get('/api/searchThings/workings/:stock/status/:status', async (req, re
             FROM Things t
             LEFT JOIN AdminStock a ON t.id = a.thingId
             LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
-            LEFT JOIN model_features f ON t.model = f.model_id
+            LEFT JOIN model_features f ON p.id = f.model_id
             LEFT JOIN ThingAttributes ta ON t.id = ta.thingId
-            LEFT JOIN price_table p ON CAST(t.model AS INTEGER) = p.model  -- Applying type casting here
+            LEFT JOIN price_table p ON t.model  = p.model  -- Applying type casting here
             WHERE a.status = $1
             GROUP BY t.id, a.status, a.addedAt, a.addedby, tf.failureReason, tf.fixed_by, tf.loggedAt, p.id;
           `;
