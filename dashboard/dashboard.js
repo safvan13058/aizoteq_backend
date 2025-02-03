@@ -2432,34 +2432,33 @@ dashboard.post("/api/create/model_details",
   );
   
 // Read all entries from the price_table
-dashboard.get('/api/display/prices-table',
-  validateJwt,
-  authorizeRoles('admin', 'dealer'),
-  async (req, res) => {
-    console.log(`working pricetable ${req.user} `)
-    const { search } = req.query; // Get the search query from the request
+// dashboard.get('/api/display/prices-table',
+//   validateJwt,
+//   authorizeRoles('admin', 'dealer'),
+//   async (req, res) => {
+//     console.log(`working pricetable ${req.user} `)
+//     const { search } = req.query; // Get the search query from the request
 
-    try {
-      // Base query
-      let query = 'SELECT * FROM price_table';
-      const params = [];
+//     try {
+//       // Base query
+//       let query = 'SELECT * FROM price_table';
+//       const params = [];
 
-      // Add search condition if a search query is provided
-      if (search) {
-        query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
-        params.push(`%${search}%`); // Add wildcards for partial matching
-      }
+//       // Add search condition if a search query is provided
+//       if (search) {
+//         query += ' WHERE model ILIKE $1'; // Use ILIKE for case-insensitive search
+//         params.push(`%${search}%`); // Add wildcards for partial matching
+//       }
 
-      // Execute the query
-      const result = await db.query(query, params);
-      res.status(200).json(result.rows);
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to retrieve prices' });
-    }
-  });
-
-dashboard.get("/api/get/model_details",
+//       // Execute the query
+//       const result = await db.query(query, params);
+//       res.status(200).json(result.rows);
+//     } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ error: 'Failed to retrieve prices' });
+//     }
+//   });
+dashboard.get("/api/display/prices-table",
     //  validateJwt, authorizeRoles("admin"), 
      async (req, res) => {
     try {
