@@ -4527,6 +4527,9 @@ dashboard.get('/api/raw_materials',
               stock_quantity: row.stock_quantity,
               reorder_level: row.reorder_level,
               image: row.image,
+              tax: row.tax,
+              shipping_cost: row.shipping_charge,
+              total_price: row.total_price,
               raw_material_features: [],
             });
           }
