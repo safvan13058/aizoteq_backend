@@ -3931,7 +3931,7 @@ dashboard.get('/api/sales', async (req, res) => {
     // validateJwt,
     // authorizeRoles('admin'),
     async (req, res) => {
-      const  material_id= req.params
+      const  {material_id}= req.params
       const { raw_material_features } = req.body;
   
       // Validate input
