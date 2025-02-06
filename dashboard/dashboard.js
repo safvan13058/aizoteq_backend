@@ -3928,15 +3928,13 @@ dashboard.get('/api/sales', async (req, res) => {
     }
   );
   dashboard.post('/api/raw_materials/add_features/:material_id',
-    // validateJwt,
-    // authorizeRoles('admin'),
     async (req, res) => {
-      const  {material_id}= req.params
+      const {material_id} = req.params
       const { raw_material_features } = req.body;
   
       // Validate input
-      if (!material_id) {
-        return res.status(400).json({ error: 'material_id is required' });
+      if (!material_id || isNaN(material_id)) {
+        return res.status(400).json({ error: 'Valid material_id is required' });
       }
   
       if (!Array.isArray(raw_material_features) || raw_material_features.length === 0) {
@@ -3953,28 +3951,29 @@ dashboard.get('/api/sales', async (req, res) => {
         if (materialCheck.rows.length === 0) {
           return res.status(404).json({ error: 'Material not found' });
         }
-  
+
         // Insert features into raw_material_features
         const featureQuery = `
           INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
-          VALUES ${raw_material_features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
+          VALUES ${raw_material_features.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`).join(', ')}
         `;
-  
+
         const featureValues = raw_material_features.flatMap(({ feature, value }) => [
-          material_id,
+          material_id, // Ensure material_id is passed for each row
           feature,
-          value,
+          value
         ]);
-  
-        await db.query(featureQuery, [material_id, ...featureValues]);
-  
+
+        await db.query(featureQuery, featureValues);
+
         res.status(201).json({ message: 'Features added successfully' });
       } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Failed to add features', message: err.message });
       }
     }
-  );
+);
+
   dashboard.put('/api/raw_materials/update_feature',
     validateJwt,
     authorizeRoles('admin'),
