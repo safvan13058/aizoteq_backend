@@ -3927,11 +3927,12 @@ dashboard.get('/api/sales', async (req, res) => {
       }
     }
   );
-  dashboard.post('/api/raw_materials/add_features',
-    validateJwt,
-    authorizeRoles('admin'),
+  dashboard.post('/api/raw_materials/add_features/:material_id',
+    // validateJwt,
+    // authorizeRoles('admin'),
     async (req, res) => {
-      const { material_id, raw_material_features } = req.body;
+      const  material_id= req.params
+      const { raw_material_features } = req.body;
   
       // Validate input
       if (!material_id) {
