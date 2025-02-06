@@ -2768,7 +2768,7 @@ dashboard.get("/api/display/prices-table",
         )
         SELECT 
           p.id AS price_id, p.model,P.lastmodified, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
-          jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
+          jsonb_agg(DISTINCT jsonb_build_object('feature_id',f.id,'feature', f.feature, 'feature_value', f.feature_value)) AS features,
           jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
         FROM price_table p
         LEFT JOIN model_features f ON p.id = f.model_id
@@ -4299,7 +4299,7 @@ dashboard.put('/api/raw_materials/update/:id',
 //       res.status(500).json({ error: 'Failed to update stock quantity', message: err.message });
 //     }
 //   });
- 
+
 dashboard.put('/api/raw/stock/update/:id',
     validateJwt,
     authorizeRoles('admin'),
@@ -4401,7 +4401,7 @@ dashboard.put('/api/raw/stock/update/:id',
       }
     }
   );
-  
+
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id',
 
