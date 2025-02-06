@@ -2757,7 +2757,7 @@ dashboard.post('/api/model/features/add/:model_id',
 //   });
 
 dashboard.get("/api/display/prices-table",
-     validateJwt, authorizeRoles("admin","dealer"), 
+    //  validateJwt, authorizeRoles("admin","dealer"), 
      async (req, res) => {
     try {
       const query = `
