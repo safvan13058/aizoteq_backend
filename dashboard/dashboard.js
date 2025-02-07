@@ -2627,6 +2627,7 @@ dashboard.put('/api/model/features/update/:model_id/:id',
     validateJwt,
     authorizeRoles('admin'),
     async (req, res) => {
+      console.log("update features working")
       const { model_id, id } = req.params;
       const { feature, feature_value } = req.body;
   
@@ -2697,7 +2698,7 @@ dashboard.delete('/api/model/features/delete/:model_id/:id',
         res.status(500).json({ error: 'Failed to delete model feature', message: err.message });
       }
     }
-  );
+  ); iii/ 
 dashboard.post('/api/model/features/add/:model_id',
     validateJwt,
     authorizeRoles('admin'),
