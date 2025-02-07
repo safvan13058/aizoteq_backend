@@ -3984,13 +3984,13 @@ dashboard.get('/api/sales', async (req, res) => {
     // authorizeRoles('admin'),
     async (req, res) => {
       const{id}=req.params;
-      const { raw_material_feature, raw_material_value } = req.body;
+      const {raw_material_value } = req.body;
   
       // Validate input
       if (!id) {
         return res.status(400).json({ error: 'Feature ID is required' });
       }
-     console.log(raw_material_feature, raw_material_value)
+     console.log(raw_material_value)
       try {
         // Check if feature exists
         const featureCheck = await db.query(
@@ -4005,11 +4005,11 @@ dashboard.get('/api/sales', async (req, res) => {
         // Update feature
         const updateQuery = `
           UPDATE raw_material_features
-          SET raw_material_feature = $1, raw_material_value = $2
-          WHERE id = $3
+          SET raw_material_value = $1
+          WHERE id = $2
         `;
   
-        await db.query(updateQuery, [raw_material_feature, raw_material_value, id]);
+        await db.query(updateQuery, [raw_material_value, id]);
   
         res.status(200).json({ message: 'Feature updated successfully' });
       } catch (err) {
