@@ -3979,11 +3979,12 @@ dashboard.get('/api/sales', async (req, res) => {
     }
 );
 
-  dashboard.put('/api/raw_materials/update_feature',
-    validateJwt,
-    authorizeRoles('admin'),
+  dashboard.put('/api/raw_materials/update_feature/:id',
+    // validateJwt,
+    // authorizeRoles('admin'),
     async (req, res) => {
-      const { id, raw_material_feature, raw_material_value } = req.body;
+      const{id}=req.params;
+      const { raw_material_feature, raw_material_value } = req.body;
   
       // Validate input
       if (!id) {
