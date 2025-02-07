@@ -2662,7 +2662,7 @@ dashboard.put('/api/model/features/update/:model_id/:id',
         `;
   
         const result = await db.query(updateQuery, values);
-  
+        console.log(`final==${updateQuery}`)
         if (result.rowCount === 0) {
           return res.status(404).json({ error: 'Feature not found or no changes made' });
         }
