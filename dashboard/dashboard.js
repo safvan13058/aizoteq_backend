@@ -2630,7 +2630,7 @@ dashboard.put('/api/model/features/update/:model_id/:id',
       console.log("update features working")
       const { model_id, id } = req.params;
       const { feature, feature_value } = req.body;
-  
+      console.log(feature, feature_value)
       try {
         // Dynamically build the update query
         const updates = [];
