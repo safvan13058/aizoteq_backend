@@ -2645,7 +2645,8 @@ dashboard.put('/api/model/features/update/:model_id/:id',
           updates.push(`feature_value = $${queryIndex++}`);
           values.push(feature_value);
         }
-  
+        
+        console.log(`update ====${req.body}`)
         // If no fields to update, return an error
         if (updates.length === 0) {
           return res.status(400).json({ error: 'No valid fields provided for update' });
