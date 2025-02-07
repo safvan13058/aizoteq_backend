@@ -3990,7 +3990,7 @@ dashboard.get('/api/sales', async (req, res) => {
       if (!id) {
         return res.status(400).json({ error: 'Feature ID is required' });
       }
-  
+     console.log(raw_material_feature, raw_material_value)
       try {
         // Check if feature exists
         const featureCheck = await db.query(
