@@ -2698,7 +2698,7 @@ dashboard.delete('/api/model/features/delete/:model_id/:id',
         res.status(500).json({ error: 'Failed to delete model feature', message: err.message });
       }
     }
-  ); iii/ 
+  );  
 dashboard.post('/api/model/features/add/:model_id',
     validateJwt,
     authorizeRoles('admin'),
