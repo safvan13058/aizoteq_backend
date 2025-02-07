@@ -2624,8 +2624,8 @@ dashboard.post("/api/create/model_details",
   );
 
 dashboard.put('/api/model/features/update/:model_id/:id',
-    validateJwt,
-    authorizeRoles('admin'),
+    // validateJwt,
+    // authorizeRoles('admin'),
     async (req, res) => {
       console.log("update features working")
       const { model_id, id } = req.params;
@@ -2675,6 +2675,8 @@ dashboard.put('/api/model/features/update/:model_id/:id',
       }
     }
   );
+
+
 dashboard.delete('/api/model/features/delete/:model_id/:id',
     validateJwt,
     authorizeRoles('admin'),
