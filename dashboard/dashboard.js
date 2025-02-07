@@ -2649,6 +2649,7 @@ dashboard.put('/api/model/features/update/:model_id/:id',
         console.log(`update ====${req.body}`)
         // If no fields to update, return an error
         if (updates.length === 0) {
+          console.log(updates.length)
           return res.status(400).json({ error: 'No valid fields provided for update' });
         }
   
