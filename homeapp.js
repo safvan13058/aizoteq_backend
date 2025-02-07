@@ -2411,7 +2411,7 @@ homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
         try {
             // Check if the device exists
             const deviceResult = await client.query(
-                'SELECT * FROM devices WHERE deviceid = $1',
+                'SELECT * FROM devices WHERE id = $1',
                 [device_id]
             );
 
