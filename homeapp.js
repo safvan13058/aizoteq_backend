@@ -2468,7 +2468,7 @@ homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
             if (fields.length > 0) {
                 // Add lastModified field and WHERE condition
                 fields.push(`lastModified = CURRENT_TIMESTAMP`);
-                query += fields.join(', ') + ` WHERE deviceid = $${paramIndex}`;
+                query += fields.join(', ') + ` WHERE id = $${paramIndex}`;
                 values.push(device_id);
 
                 await client.query(query, values);
