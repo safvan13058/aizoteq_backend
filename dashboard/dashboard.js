@@ -32,6 +32,60 @@ dashboard.get('/api/users/count',
       res.status(500).json({ error: 'Internal server error' });
     }
   });
+dashboard.get("/api/things/graph", async (req, res) => {
+    const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
+  
+    if (!["day", "week", "month", "year"].includes(groupBy)) {
+      return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
+    }
+  
+    // Map groupBy to SQL expressions
+    const groupByExpression = {
+      day: "TO_CHAR( added_at, 'Mon DD')", // Example: "Feb 11"
+      week: "TO_CHAR( added_at, 'IYYY-IW')", // Example: "2025-06" (ISO year-week)
+      month: "TO_CHAR( added_at, 'Mon YYYY')", // Example: "Feb 2025"
+      year: "EXTRACT(YEAR FROM  added_at)::INT", // Example: 2025
+    };
+  
+    const sortExpression = {
+      day: "DATE( added_at)", // Sort by actual date
+      week: "DATE_TRUNC('week',  added_at)", // Start of the week
+      month: "DATE_TRUNC('month',  added_at)", // Start of the month
+      year: "DATE_TRUNC('year',  added_at)", // Start of the year
+    };
+  
+    const query = `
+      SELECT 
+        ${groupByExpression[groupBy]} AS period,
+        COUNT(*) AS thing_count,
+        ${sortExpression[groupBy]} AS sort_date
+      FROM 
+        Things
+      GROUP BY 
+        ${groupByExpression[groupBy]}, sort_date
+      ORDER BY 
+        sort_date ASC;
+    `;
+  
+    try {
+      const client = await db.connect();
+      const result = await client.query(query);
+  
+      res.status(200).json({
+        groupBy,
+        data: result.rows.map(row => ({
+          period: row.period,
+          thing_count: row.thing_count,
+        })),
+      });
+  
+      client.release();
+    } catch (err) {
+      console.error("Error fetching Things graph data:", err);
+      res.status(500).json({ error: "Internal Server Error" });
+    }
+  });
+  
 //api for sale graph
 dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
   const { user_id } = req.params;
@@ -3932,6 +3986,7 @@ dashboard.get('/api/sales', async (req, res) => {
       }
     }
   );
+  
   dashboard.post('/api/raw_materials/add_features/:material_id',
     async (req, res) => {
       const {material_id} = req.params
