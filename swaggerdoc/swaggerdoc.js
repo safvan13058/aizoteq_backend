@@ -5626,6 +5626,7 @@ const Swaggerdoc = {
 //     },
 "/api/display/all/devices/{userId}": {
   "get": {
+    "tags": ["device"],
     "summary": "Get all devices for a user",
     "description": "Fetches all devices grouped by Home → Floor → Room for a given user with pagination.",
     "parameters": [
