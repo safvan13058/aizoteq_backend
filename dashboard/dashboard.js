@@ -32,7 +32,8 @@ dashboard.get('/api/users/count',
       res.status(500).json({ error: 'Internal server error' });
     }
   });
-dashboard.get("/api/things/graph", async (req, res) => {
+
+dashboard.get("/api/production/graph", async (req, res) => {
     const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
   
     if (!["day", "week", "month", "year"].includes(groupBy)) {
@@ -84,7 +85,7 @@ dashboard.get("/api/things/graph", async (req, res) => {
       console.error("Error fetching Things graph data:", err);
       res.status(500).json({ error: "Internal Server Error" });
     }
-  });
+  });  
   
 //api for sale graph
 dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
@@ -3229,6 +3230,54 @@ const uploads = multer({
 dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Image Upload Endpoint
+// dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
+//   const { model_id } = req.params;
+//   console.log("Uploaded files:", req.files);
+
+//   try {
+//     if (!req.files || req.files.length === 0) {
+//       return res.status(400).json({ message: "No files uploaded" });
+//     }
+
+//     // Check how many images already exist for this model_id
+//     const { rows } = await db.query(
+//       "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
+//       [model_id]
+//     );
+
+//     const currentImageCount = parseInt(rows[0].image_count, 10);
+
+//     if (currentImageCount >= 5) {
+//       return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
+//     }
+
+//     // Determine how many new images can be uploaded
+//     const availableSlots = 5 - currentImageCount;
+//     if (req.files.length > availableSlots) {
+//       return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
+//     }
+
+//     // Save local image file paths to the database
+//     const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
+//     const queries = imagePaths.map((filePath) =>
+//       db.query(
+//         "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
+//         [model_id, filePath]
+//       )
+//     );
+
+//     console.log("Image paths to save:", imagePaths);
+//     await Promise.all(queries);
+
+//     res.status(200).json({
+//       message: "Images uploaded successfully",
+//       imagePaths,
+//     });
+//   } catch (error) {
+//     console.error("Error uploading images:", error);
+//     res.status(500).json({ message: "Internal server error" });
+//   }
+// });
 dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
   console.log("Uploaded files:", req.files);
@@ -3238,6 +3287,18 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
       return res.status(400).json({ message: "No files uploaded" });
     }
 
+    // Fetch model_no from price_table
+    const modelNoResult = await db.query(
+      "SELECT model FROM price_table WHERE id = $1",
+      [model_id]
+    );
+
+    if (modelNoResult.rows.length === 0) {
+      return res.status(404).json({ message: "Model ID not found" });
+    }
+
+    const model_no = modelNoResult.rows[0].model;
+
     // Check how many images already exist for this model_id
     const { rows } = await db.query(
       "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
@@ -3245,7 +3306,6 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
     );
 
     const currentImageCount = parseInt(rows[0].image_count, 10);
-
     if (currentImageCount >= 5) {
       return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
     }
@@ -3260,8 +3320,8 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
     const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
     const queries = imagePaths.map((filePath) =>
       db.query(
-        "INSERT INTO model_features_image (model_id, image_url) VALUES ($1, $2)",
-        [model_id, filePath]
+        "INSERT INTO model_features_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
+        [model_id, model_no, filePath]
       )
     );
 
@@ -3365,19 +3425,22 @@ dashboard.get("/api/display/images/:modelid_or_modelno", async (req, res) => {
     const isModelId = !isNaN(parseInt(modelid_or_modelno));
     let values = [modelid_or_modelno];
 
-    // Query for model_features_image
-    const featuresQuery = `
-      SELECT id, image_url 
-      FROM model_features_image 
-      WHERE model_id = $1;
-    `;
+    // Query for model_features_image (check both model_id and model_no)
+    let featuresQuery = "";
+    if (isModelId) {
+      featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_id = $1`;
+    } else {
+      featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_no = $1`;
+    }
     const featuresResult = await db.query(featuresQuery, values);
     const featureImages = featuresResult.rows.map(row => ({
       id: row.id,
+      model_id: row.model_id,
+      model_no: row.model_no,
       images: [{ image_id: row.id, image_url: row.image_url }]
     }));
 
-    // Query for web_image
+    // Query for web_image (same logic as before)
     let webQuery = "";
     if (isModelId) {
       webQuery = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
@@ -3387,6 +3450,8 @@ dashboard.get("/api/display/images/:modelid_or_modelno", async (req, res) => {
     const webResult = await db.query(webQuery, values);
     const webImages = webResult.rows.map(row => ({
       id: row.id,
+      model_id: row.model_id,
+      model_no: row.model_no,
       images: [{ image_id: row.id, image_url: row.image_url }]
     }));
 
@@ -3401,6 +3466,7 @@ dashboard.get("/api/display/images/:modelid_or_modelno", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 // DELETE: Delete a specific image by image_id
 dashboard.delete("/api/delete/web/images/:image_id", async (req, res) => {
