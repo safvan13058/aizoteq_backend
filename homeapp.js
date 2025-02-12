@@ -1514,18 +1514,41 @@ homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
 // });
 homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
     const userId = req.params.userId;
-    const limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
-    const offset = parseInt(req.query.offset) || 0; // Default offset to 0 if not provided
+    const limit = parseInt(req.query.limit) || 10; // Default limit to 10
+    const page = parseInt(req.query.page) || 1; // Default page to 1
 
-    console.log('Fetching devices for userId:', userId);
+    if (page < 1) {
+        return res.status(400).json({ error: "Page number must be 1 or higher" });
+    }
+
+    const offset = (page - 1) * limit; // Calculate offset
+
+    console.log('Fetching devices for userId:', userId, 'Page:', page, 'Limit:', limit);
 
     try {
-        // Execute the query
+        // Get the total number of devices
+        const countResult = await db.query(
+            `
+            SELECT COUNT(DISTINCT d.id) AS total_count
+            FROM users u
+            JOIN home h ON u.id = h.userid
+            JOIN floor f ON h.id = f.home_id
+            JOIN room r ON f.id = r.floor_id
+            JOIN room_device rd ON r.id = rd.room_id
+            JOIN devices d ON rd.device_id = d.deviceId
+            WHERE u.id = $1;
+            `,
+            [userId]
+        );
+
+        const total_count = countResult.rows[0]?.total_count || 0;
+
+        // Fetch paginated devices
         const result = await db.query(
             `
             SELECT DISTINCT
-                h.id AS home_id, -- Include home ID
-                h.name AS home_name, -- Include home name
+                h.id AS home_id,
+                h.name AS home_name,
                 d.id AS device_id,
                 d.deviceId,
                 d.macAddress,
@@ -1541,7 +1564,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 r.name AS room_name,
                 r.id AS roomid,
                 f.id AS floorid,
-                COALESCE(ufd.favorite, FALSE) AS favorite -- Include favorite status
+                COALESCE(ufd.favorite, FALSE) AS favorite
             FROM 
                 users u
             JOIN 
@@ -1555,7 +1578,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             JOIN 
                 devices d ON rd.device_id = d.deviceId
             LEFT JOIN 
-                UserFavoriteDevices ufd ON ufd.device_id = d.id AND ufd.user_id = $1 -- Join for favorite status
+                UserFavoriteDevices ufd ON ufd.device_id = d.id AND ufd.user_id = $1
             WHERE 
                 u.id = $1
             ORDER BY 
@@ -1563,10 +1586,9 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 r.name ASC
             LIMIT $2 OFFSET $3;
             `,
-            [userId, limit, offset] // Parameterized query with limit and offset
+            [userId, limit, offset]
         );
 
-        // Extract rows from the result object
         const rows = result.rows;
 
         if (!rows || rows.length === 0) {
@@ -1579,7 +1601,6 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             const floorKey = device.floorid;
             const roomKey = device.roomid;
 
-            // If home does not exist, initialize it
             if (!acc[homeKey]) {
                 acc[homeKey] = {
                     home_id: device.home_id,
@@ -1588,7 +1609,6 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 };
             }
 
-            // If floor does not exist within the home, initialize it
             if (!acc[homeKey].floors[floorKey]) {
                 acc[homeKey].floors[floorKey] = {
                     floor_id: device.floorid,
@@ -1597,7 +1617,6 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 };
             }
 
-            // If room does not exist within the floor, initialize it
             if (!acc[homeKey].floors[floorKey].rooms[roomKey]) {
                 acc[homeKey].floors[floorKey].rooms[roomKey] = {
                     room_id: device.roomid,
@@ -1606,9 +1625,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
                 };
             }
 
-            // Add the device to the corresponding room
             acc[homeKey].floors[floorKey].rooms[roomKey].devices.push(device);
-
             return acc;
         }, {});
 
@@ -1624,8 +1641,17 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             })),
         }));
 
-        // Respond with the structured data
+        // Calculate `has_more`
+        const has_more = page * limit < total_count;
+        const total_pages = Math.ceil(total_count / limit);
+
+        // Respond with structured data
         res.status(200).json({
+            total_count, // Total number of devices
+            total_pages, // Total pages available
+            page, // Current page number
+            limit, // Items per page
+            has_more, // Indicates if there are more records
             total_homes: formattedHomes.length,
             homes: formattedHomes,
         });
@@ -1634,6 +1660,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
 
 //add device to favorite
 // homeapp.put('/api/device/favorite/:deviceid',
