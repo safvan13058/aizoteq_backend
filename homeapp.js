@@ -1651,7 +1651,7 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
             total_pages, // Total pages available
             page, // Current page number
             limit, // Items per page
-            has_more, // Indicates if there are more records
+            // has_more, // Indicates if there are more records
             total_homes: formattedHomes.length,
             homes: formattedHomes,
         });
