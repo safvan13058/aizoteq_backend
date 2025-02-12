@@ -3361,7 +3361,7 @@ dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), as
     const model_no = rows[0].model;  // Assuming "model" column contains the model identifier
 
     // Save the image file paths to the database
-    const imagePaths = req.files.map((file) => `/uploads/${file.filename}`);
+    const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
     const queries = imagePaths.map((filePath) =>
       db.query(
         "INSERT INTO web_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
