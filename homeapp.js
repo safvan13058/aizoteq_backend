@@ -1993,6 +1993,97 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 //     }
 // });
 
+// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
+//     const { userId } = req.params;
+//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
+//     const client = await db.connect();
+
+//     try {
+//         // Step 1: Check if the user has access to the devices
+//         const accessCheckQuery = `
+//             SELECT DISTINCT d.deviceId
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
+//             INNER JOIN Things t ON d.thingId = t.id
+//             INNER JOIN customer_access ca ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
+//             WHERE ufd.user_id = $1 AND ufd.favorite = true;
+//         `;
+        
+//         const accessResult = await client.query(accessCheckQuery, [userId]);
+
+//         if (accessResult.rowCount === 0) {
+//             return res.status(403).json({ success: false, message: 'No accessible favorite devices found for this user.' });
+//         }
+
+//         // Step 2: Fetch the paginated list of favorite devices with access
+//         const offset = (page - 1) * limit;
+
+//         const query = `
+//             SELECT d.*, r.id AS room_id, r.name AS room_name
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
+//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
+//             LEFT JOIN room r ON rd.room_id = r.id
+//             WHERE ufd.user_id = $1 AND ufd.favorite = true
+//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2))
+//             LIMIT $3 OFFSET $4;
+//         `;
+
+//         const deviceIds = accessResult.rows.map(row => row.deviceid); // Get the accessible device IDs
+
+//         const countQuery = `
+//             SELECT COUNT(*) AS total
+//             FROM Devices d
+//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
+//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
+//             LEFT JOIN room r ON rd.room_id = r.id
+//             WHERE ufd.user_id = $1 AND ufd.favorite = true
+//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2));
+//         `;
+
+//         // Fetch the paginated data
+//         const result = await client.query(query, [userId, deviceIds, limit, offset]);
+
+//         // Fetch the total count
+//         const countResult = await client.query(countQuery, [userId, deviceIds]);
+//         const total = parseInt(countResult.rows[0].total, 10);
+
+//         // Restructure the data to group devices by room
+//         const rooms = {};
+//         result.rows.forEach(row => {
+//             const { room_id, room_name, ...device } = row;
+
+//             if (!rooms[room_id]) {
+//                 rooms[room_id] = {
+//                     room_id,
+//                     room_name,
+//                     devices: [],
+//                 };
+//             }
+
+//             rooms[room_id].devices.push(device);
+//         });
+
+//         // Convert the rooms object into an array
+//         const roomArray = Object.values(rooms);
+
+//         res.status(200).json({
+//             success: true,
+//             data: roomArray,
+//             pagination: {
+//                 currentPage: parseInt(page, 10),
+//                 totalPages: Math.ceil(total / limit),
+//                 totalItems: total,
+//                 pageSize: parseInt(limit, 10),
+//             },
+//         });
+//     } catch (error) {
+//         console.error('Error fetching favorite devices:', error);
+//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
+//     } finally {
+//         client.release();
+//     }
+// });
 homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
@@ -2008,24 +2099,33 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             INNER JOIN customer_access ca ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
             WHERE ufd.user_id = $1 AND ufd.favorite = true;
         `;
-        
+
         const accessResult = await client.query(accessCheckQuery, [userId]);
 
         if (accessResult.rowCount === 0) {
             return res.status(403).json({ success: false, message: 'No accessible favorite devices found for this user.' });
         }
 
-        // Step 2: Fetch the paginated list of favorite devices with access
+        // Step 2: Fetch the paginated list of favorite devices with home_id and floor_id
         const offset = (page - 1) * limit;
 
         const query = `
-            SELECT d.*, r.id AS room_id, r.name AS room_name
+            SELECT 
+                d.*, 
+                r.id AS room_id, 
+                r.name AS room_name, 
+                f.id AS floor_id, 
+                f.name AS floor_name, 
+                h.id AS home_id, 
+                h.name AS home_name
             FROM Devices d
             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
             LEFT JOIN room r ON rd.room_id = r.id
+            LEFT JOIN floor f ON r.floor_id = f.id
+            LEFT JOIN HOME h ON f.home_id = h.id
             WHERE ufd.user_id = $1 AND ufd.favorite = true
-            AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2))
+            AND d.deviceId = ANY($2)
             LIMIT $3 OFFSET $4;
         `;
 
@@ -2037,8 +2137,10 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
             LEFT JOIN room r ON rd.room_id = r.id
+            LEFT JOIN floor f ON r.floor_id = f.id
+            LEFT JOIN HOME h ON f.home_id = h.id
             WHERE ufd.user_id = $1 AND ufd.favorite = true
-            AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2));
+            AND d.deviceId = ANY($2);
         `;
 
         // Fetch the paginated data
@@ -2048,28 +2150,55 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
         const countResult = await client.query(countQuery, [userId, deviceIds]);
         const total = parseInt(countResult.rows[0].total, 10);
 
-        // Restructure the data to group devices by room
-        const rooms = {};
-        result.rows.forEach(row => {
-            const { room_id, room_name, ...device } = row;
+        // Restructure data: Home → Floor → Room → Devices
+        const homes = {};
 
-            if (!rooms[room_id]) {
-                rooms[room_id] = {
+        result.rows.forEach(row => {
+            const { home_id, home_name, floor_id, floor_name, room_id, room_name, ...device } = row;
+
+            // Add home if not exists
+            if (!homes[home_id]) {
+                homes[home_id] = {
+                    home_id,
+                    home_name,
+                    floors: {},
+                };
+            }
+
+            // Add floor if not exists
+            if (!homes[home_id].floors[floor_id]) {
+                homes[home_id].floors[floor_id] = {
+                    floor_id,
+                    floor_name,
+                    rooms: {},
+                };
+            }
+
+            // Add room if not exists
+            if (!homes[home_id].floors[floor_id].rooms[room_id]) {
+                homes[home_id].floors[floor_id].rooms[room_id] = {
                     room_id,
                     room_name,
                     devices: [],
                 };
             }
 
-            rooms[room_id].devices.push(device);
+            // Add device to the corresponding room
+            homes[home_id].floors[floor_id].rooms[room_id].devices.push(device);
         });
 
-        // Convert the rooms object into an array
-        const roomArray = Object.values(rooms);
+        // Convert nested objects to arrays for response format
+        const homeArray = Object.values(homes).map(home => ({
+            ...home,
+            floors: Object.values(home.floors).map(floor => ({
+                ...floor,
+                rooms: Object.values(floor.rooms),
+            })),
+        }));
 
         res.status(200).json({
             success: true,
-            data: roomArray,
+            data: homeArray,
             pagination: {
                 currentPage: parseInt(page, 10),
                 totalPages: Math.ceil(total / limit),
