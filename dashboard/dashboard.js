@@ -3979,6 +3979,79 @@ dashboard.get('/api/sales', async (req, res) => {
 //       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
 //     }
 //   });
+  // dashboard.post('/api/raw_materials/create',
+  //   validateJwt,
+  //   authorizeRoles('admin'),
+  //   upload.single('image'),
+  //   async (req, res) => {
+  //     const {
+  //       Component,
+  //       package,
+  //       category,
+  //       value,
+  //       unit_price_in_rupees,
+  //       unit_price_in_dollars,
+  //       reference_no,
+  //       stock_quantity,
+  //       reorder_level,
+  //       raw_material_features // Can be undefined, empty, or an array of features
+  //     } = req.body;
+  
+  //     let fileUrl = null;
+  
+  //     if (req.file) {
+  //       const file = req.file;
+  //       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+  //       const params = {
+  //         Bucket: process.env.S3_BUCKET_NAME,
+  //         Key: fileKey,
+  //         Body: file.buffer,
+  //         ContentType: file.mimetype,
+  //       };
+  
+  //       const uploadResult = await s3.upload(params).promise();
+  //       fileUrl = uploadResult.Location; // S3 file URL
+  //     }
+  
+  //     const query = `
+  //       INSERT INTO raw_materials_stock (Component, category, package, value, reference_no, image, unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level)
+  //       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
+  
+  //     try {
+  //       const result = await db.query(query, [
+  //         Component,
+  //         category,
+  //         package,
+  //         value,
+  //         reference_no,
+  //         fileUrl,
+  //         unit_price_in_rupees,
+  //         unit_price_in_dollars,
+  //         stock_quantity,
+  //         reorder_level,
+  //       ]);
+  
+  //       const materialId = result.rows[0].id; // Get the inserted material ID
+  
+  //       // Insert features ONLY if they exist and are an array
+  //       if (Array.isArray(raw_material_features) && raw_material_features.length > 0) {
+  //         const featureQuery = `
+  //           INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
+  //           VALUES ${raw_material_features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
+  //         `;
+  
+  //         const featureValues = raw_material_features.flatMap(({ feature, value }) => [materialId, feature, value]);
+  
+  //         await db.query(featureQuery, [materialId, ...featureValues]);
+  //       }
+  
+  //       res.status(201).json({ message: 'Raw material created successfully', id: materialId });
+  //     } catch (err) {
+  //       console.error(err);
+  //       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
+  //     }
+  //   }
+  // );
   dashboard.post('/api/raw_materials/create',
     validateJwt,
     authorizeRoles('admin'),
@@ -3994,6 +4067,8 @@ dashboard.get('/api/sales', async (req, res) => {
         reference_no,
         stock_quantity,
         reorder_level,
+        tax,                // Percentage
+        shipping_charge,    // Percentage
         raw_material_features // Can be undefined, empty, or an array of features
       } = req.body;
   
@@ -4013,9 +4088,22 @@ dashboard.get('/api/sales', async (req, res) => {
         fileUrl = uploadResult.Location; // S3 file URL
       }
   
+      // Ensure tax and shipping_charge have valid values (default to 0 if not provided)
+      const taxPercent = tax !== undefined ? parseFloat(tax) : 0;
+      const shippingPercent = shipping_charge !== undefined ? parseFloat(shipping_charge) : 0;
+      const priceInRupees = parseFloat(unit_price_in_rupees) || 0;
+
+      // Calculate total price with tax and shipping percentage
+      const totalPrice = priceInRupees * (1 + taxPercent / 100 + shippingPercent / 100);
+  
       const query = `
-        INSERT INTO raw_materials_stock (Component, category, package, value, reference_no, image, unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
+        INSERT INTO raw_materials_stock (
+          Component, category, package, value, reference_no, image, 
+          unit_price_in_rupees, unit_price_in_dollars, tax, shipping_charge, 
+          total_price, stock_quantity, reorder_level
+        ) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
+        RETURNING id`;
   
       try {
         const result = await db.query(query, [
@@ -4027,6 +4115,9 @@ dashboard.get('/api/sales', async (req, res) => {
           fileUrl,
           unit_price_in_rupees,
           unit_price_in_dollars,
+          taxPercent,        // Store tax as percentage
+          shippingPercent,   // Store shipping as percentage
+          totalPrice,        // Store calculated total price
           stock_quantity,
           reorder_level,
         ]);
@@ -4052,7 +4143,7 @@ dashboard.get('/api/sales', async (req, res) => {
       }
     }
   );
-  
+
   dashboard.post('/api/raw_materials/add_features/:material_id',
     async (req, res) => {
       const {material_id} = req.params
@@ -4428,106 +4519,114 @@ dashboard.put('/api/raw_materials/update/:id',
 //   });
 
 dashboard.put('/api/raw/stock/update/:id',
-    validateJwt,
-    authorizeRoles('admin'),
-    async (req, res) => {
-      const { id } = req.params;
-      const {
-        unit_price_in_rupees,
-        unit_price_in_dollars,
-        stock_quantity,
-        tax,
-        shipping_charge,
-        total_price
-      } = req.body;
-  
-      const user = req.user.username; // Track the user making the update
-  
-      try {
-        // Fetch previous data before updating
-        const oldDataQuery = `
-          SELECT unit_price_in_rupees, unit_price_in_dollars, stock_quantity, tax, shipping_charge, total_price
-          FROM raw_materials_stock WHERE id = $1
-        `;
-        const oldDataResult = await db.query(oldDataQuery, [id]);
-  
-        if (oldDataResult.rows.length === 0) {
-          return res.status(404).json({ error: 'Raw material not found' });
-        }
-  
-        const oldData = oldDataResult.rows[0];
-  
-        // Store previous values in history table
-        const historyQuery = `
-          INSERT INTO raw_materials_stock_history (
-            raw_material_id, unit_price_in_rupees, unit_price_in_dollars, 
-            stock_quantity, tax, shipping_charge, total_price, updated_by
-          ) VALUES (
-            $1, $2, $3, $4, $5, $6, $7, $8
-          )
-        `;
-  
-        const historyValues = [
-          id, oldData.unit_price_in_rupees, oldData.unit_price_in_dollars,
-          oldData.stock_quantity, oldData.tax, oldData.shipping_charge,
-          oldData.total_price, user
-        ];
-  
-        await db.query(historyQuery, historyValues);
-  
-        // Dynamically construct the update query
-        const updates = [];
-        const values = [];
-        let queryIndex = 1;
-  
-        if (unit_price_in_rupees !== undefined) {
-          updates.push(`unit_price_in_rupees = $${queryIndex++}`);
-          values.push(unit_price_in_rupees);
-        }
-        if (unit_price_in_dollars !== undefined) {
-          updates.push(`unit_price_in_dollars = $${queryIndex++}`);
-          values.push(unit_price_in_dollars);
-        }
-        if (stock_quantity !== undefined) {
-          updates.push(`stock_quantity = $${queryIndex++}`);
-          values.push(stock_quantity);
-        }
-        if (tax !== undefined) {
-          updates.push(`tax = $${queryIndex++}`);
-          values.push(tax);
-        }
-        if (shipping_charge !== undefined) {
-          updates.push(`shipping_charge = $${queryIndex++}`);
-          values.push(shipping_charge);
-        }
-        if (total_price !== undefined) {
-          updates.push(`total_price = $${queryIndex++}`);
-          values.push(total_price);
-        }
-  
-        // If no fields to update, return an error
-        if (updates.length === 0) {
-          return res.status(400).json({ error: 'No valid fields provided for update' });
-        }
-  
-        // Add the id as the last parameter
-        values.push(id);
-  
-        const updateQuery = `
-          UPDATE raw_materials_stock
-          SET ${updates.join(', ')}
-          WHERE id = $${queryIndex}
-        `;
-  
-        await db.query(updateQuery, values);
-  
-        res.status(200).json({ message: 'Raw material updated successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update raw material', message: err.message });
+  validateJwt,
+  authorizeRoles('admin'),
+  async (req, res) => {
+    const { id } = req.params;
+    const {
+      unit_price_in_rupees,
+      unit_price_in_dollars,
+      stock_quantity,  // New stock should be added to old stock
+      tax,
+      shipping_charge
+    } = req.body;
+
+    const user = req.user.username; // Track the user making the update
+
+    try {
+      // Fetch previous data before updating
+      const oldDataQuery = `
+        SELECT unit_price_in_rupees, unit_price_in_dollars, stock_quantity, tax, shipping_charge
+        FROM raw_materials_stock WHERE id = $1
+      `;
+      const oldDataResult = await db.query(oldDataQuery, [id]);
+
+      if (oldDataResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Raw material not found' });
       }
+
+      const oldData = oldDataResult.rows[0];
+
+      // Determine new values (fallback to existing if not provided)
+      const newUnitPrice = unit_price_in_rupees !== undefined ? unit_price_in_rupees : oldData.unit_price_in_rupees;
+      const newTax = tax !== undefined ? tax : oldData.tax;
+      const newShippingCharge = shipping_charge !== undefined ? shipping_charge : oldData.shipping_charge;
+
+      // Add new stock to old stock
+      const updatedStockQuantity = stock_quantity !== undefined ? oldData.stock_quantity + parseInt(stock_quantity) : oldData.stock_quantity;
+
+      // Calculate the new total_price
+      const newTotalPrice = newUnitPrice * (1 + newTax / 100 + newShippingCharge / 100);
+
+      // Store previous values in history table
+      const historyQuery = `
+        INSERT INTO raw_materials_stock_history (
+          raw_material_id, unit_price_in_rupees, unit_price_in_dollars, 
+          stock_quantity, tax, shipping_charge, total_price, updated_by
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8
+        )
+      `;
+
+      const historyValues = [
+        id, oldData.unit_price_in_rupees, oldData.unit_price_in_dollars,
+        oldData.stock_quantity, oldData.tax, oldData.shipping_charge,
+        oldData.unit_price_in_rupees * (1 + oldData.tax / 100 + oldData.shipping_charge / 100), // Store old total_price
+        user
+      ];
+
+      await db.query(historyQuery, historyValues);
+
+      // Dynamically construct the update query
+      const updates = [];
+      const values = [];
+      let queryIndex = 1;
+
+      if (unit_price_in_rupees !== undefined) {
+        updates.push(`unit_price_in_rupees = $${queryIndex++}`);
+        values.push(unit_price_in_rupees);
+      }
+      if (unit_price_in_dollars !== undefined) {
+        updates.push(`unit_price_in_dollars = $${queryIndex++}`);
+        values.push(unit_price_in_dollars);
+      }
+      // Ensure stock quantity is updated with the added value
+      updates.push(`stock_quantity = $${queryIndex++}`);
+      values.push(updatedStockQuantity);
+
+      if (tax !== undefined) {
+        updates.push(`tax = $${queryIndex++}`);
+        values.push(tax);
+      }
+      if (shipping_charge !== undefined) {
+        updates.push(`shipping_charge = $${queryIndex++}`);
+        values.push(shipping_charge);
+      }
+
+      // Update total_price dynamically
+      updates.push(`total_price = $${queryIndex++}`);
+      values.push(newTotalPrice);
+
+      // Add the id as the last parameter
+      values.push(id);
+
+      const updateQuery = `
+        UPDATE raw_materials_stock
+        SET ${updates.join(', ')}
+        WHERE id = $${queryIndex}
+      `;
+
+      await db.query(updateQuery, values);
+
+      res.status(200).json({ message: 'Raw material updated successfully', updated_stock: updatedStockQuantity });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update raw material', message: err.message });
     }
-  );
+  }
+);
+
+
 
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id',
