@@ -4057,7 +4057,7 @@ dashboard.get('/api/sales', async (req, res) => {
     authorizeRoles('admin'),
     upload.single('image'),
     async (req, res) => {
-      console.log(`rawww==${req.body}`)
+      // console.log(`rawww==${req.body}`)
       const {
         Component,
         package,
