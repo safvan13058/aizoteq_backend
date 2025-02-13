@@ -4057,6 +4057,7 @@ dashboard.get('/api/sales', async (req, res) => {
     authorizeRoles('admin'),
     upload.single('image'),
     async (req, res) => {
+      consol.log(req)
       const {
         Component,
         package,
@@ -4071,7 +4072,7 @@ dashboard.get('/api/sales', async (req, res) => {
         shipping_charge,    // Percentage
         raw_material_features // Can be undefined, empty, or an array of features
       } = req.body;
-  
+      
       let fileUrl = null;
   
       if (req.file) {
