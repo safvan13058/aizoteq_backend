@@ -2116,7 +2116,7 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
             LEFT JOIN room r ON rd.room_id = r.id
-            LEFT JOIN homes h ON r.home_id = h.id  -- Fetch home ID and name
+            LEFT JOIN home h ON r.home_id = h.id  -- Fetch home ID and name
             WHERE ufd.user_id = $1 AND ufd.favorite = true
             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2))
             LIMIT $3 OFFSET $4;
