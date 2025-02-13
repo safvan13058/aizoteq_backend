@@ -895,6 +895,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //     }
 //   }
 // );
+
 dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res) => {
   const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
   const { stock, status } = req.params;
@@ -1370,6 +1371,39 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
+dashboard.get("/price/:serialno", async (req, res) => {
+  const serialno = req.params.serialno;
+
+  try {
+    const query = `
+      SELECT 
+          t.serialno,
+          t.model,
+          p.mrp,
+          p.retail_price,
+          p.sgst,
+          p.cgst,
+          p.igst,
+          p.discount,
+          p.warranty_period,
+          p.lastmodified
+      FROM Things t
+      JOIN price_table p ON t.model = p.model
+      WHERE t.serialno = $1;
+    `;
+
+    const result = await db.query(query, [serialno]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No data found for this serial number" });
+    }
+
+    res.json(result.rows[0]); // Return the first matching result
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 dashboard.post('/api/pay-balance', async (req, res) => {
   try {
