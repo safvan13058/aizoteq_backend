@@ -4778,8 +4778,8 @@ dashboard.get('/api/raw_materials',
     }
   );
 dashboard.get('/api/raw/stock/history/:raw_material_id',
-    validateJwt,
-    authorizeRoles('admin'),
+    // validateJwt,
+    // authorizeRoles('admin'),
     async (req, res) => {
       const { raw_material_id } = req.params;
   
