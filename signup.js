@@ -141,18 +141,59 @@ signup.get('/get-session', (req, res) => {
 
 // Verify OTP using only the OTP code
 // Verify OTP API
-signup.post('/verify-otp', async (req, res) => {
-    const {username, otp, fullName, jwtsub, role } = req.body;
-    console.log(`otp${req.body}`)
-    console.log(`get otp${otp}`)
-    console.log(req.session.username)
-    console.log(req.session)
+// signup.post('/verify-otp', async (req, res) => {
+//     const {username, otp, fullName, jwtsub, role } = req.body;
+//     console.log(`otp${req.body}`)
+//     console.log(`get otp${otp}`)
+//     console.log(req.session.username)
+//     console.log(req.session)
     
 
-    if (!username|| !otp) {
-        return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
+//     if (!username|| !otp) {
+//         return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
+//     }
+//     // const username = req.session.username;
+//     const params = {
+//         ClientId: process.env.clientId,
+//         Username: username,
+//         ConfirmationCode: otp,
+//         SecretHash: calculateSecretHash(username),
+//     };
+
+//     try {
+//         console.log("working")
+//         await cognito.confirmSignUp(params).promise();
+//         const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2,$3,$4)';
+//         const values = [username, jwtsub||req.session.jwtsub, role||req.session.role,fullName];
+
+//         await db.query(query, values);
+//         console.log("workings")
+//         req.session.destroy();
+//         res.status(200).json({ message: 'OTP verified successfully' });
+//         console.log('OTP verified successfully' )
+//     } catch (err) {
+//         if (err.code === 'CodeMismatchException') {
+//             return res.status(400).json({ message: 'Invalid OTP' });
+//         }
+//         if (err.code === 'ExpiredCodeException') {
+//             return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
+//         }
+//         res.status(500).json({ message: 'Error during OTP verification', error: err.message });
+//     }
+// });
+
+signup.post('/verify-otp', async (req, res) => {
+    const { username, otp, fullName, jwtsub, role } = req.body;
+
+    console.log("Received Request Body:", JSON.stringify(req.body, null, 2));
+    console.log(`Session Data:`, req.session);
+
+    // Validate required fields
+    if (!username || !otp) {
+        return res.status(400).json({ message: 'Missing required fields: username and OTP are required' });
     }
-    // const username = req.session.username;
+
+    // Construct Cognito confirmation parameters
     const params = {
         ClientId: process.env.clientId,
         Username: username,
@@ -161,23 +202,45 @@ signup.post('/verify-otp', async (req, res) => {
     };
 
     try {
-        console.log("working")
+        console.log("Attempting OTP Verification...");
         await cognito.confirmSignUp(params).promise();
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2,$3,$4)';
-        const values = [username, jwtsub||req.session.jwtsub, role||req.session.role,fullName];
+
+        // Ensure required user data is available
+        const userJwtSub = jwtsub || req.session.jwtsub;
+        const userRole = role || req.session.role;
+
+        if (!userJwtSub || !userRole || !fullName) {
+            return res.status(400).json({ message: "Missing user details (jwtsub, role, fullName)" });
+        }
+
+        // Insert user into database
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole, name) VALUES ($1, $2, $3, $4)';
+        const values = [username, userJwtSub, userRole, fullName];
 
         await db.query(query, values);
-        console.log("workings")
-        req.session.destroy();
+        console.log("User successfully inserted into database");
+
+        // Destroy session properly
+        req.session.destroy((err) => {
+            if (err) {
+                console.error("Error destroying session:", err);
+                return res.status(500).json({ message: "Session destruction error", error: err.message });
+            }
+        });
+
         res.status(200).json({ message: 'OTP verified successfully' });
-        console.log('OTP verified successfully' )
+        console.log('OTP verification complete');
     } catch (err) {
+        console.error("Error during OTP verification:", err);
+
+        // Handle specific Cognito errors
         if (err.code === 'CodeMismatchException') {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
         if (err.code === 'ExpiredCodeException') {
             return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
         }
+
         res.status(500).json({ message: 'Error during OTP verification', error: err.message });
     }
 });
