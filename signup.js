@@ -8,17 +8,17 @@ const crypto = require('crypto');
 
 
 const session = require('express-session');
-const PgSession = require('connect-pg-simple')(session);
-const { Pool } = require('pg');
+// const PgSession = require('connect-pg-simple')(session);
+// const { Pool } = require('pg');
 
 // 🔥 PostgreSQL Connection Pool
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || "postgres://postgres:Aizo12345@database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com:5432/postgres",
-    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
-});
+// const pool = new Pool({
+//     connectionString: process.env.DATABASE_URL || "postgres://postgres:Aizo12345@database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com:5432/postgres",
+//     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+// });
 // Configure session middleware
 signup.use(session({
-    store: new PgSession({ pool }),
+    // store: new PgSession({ pool }),
     secret: "ffbd7c1dbf8ccc6d000658acfa9bc8be68086f710177e0fa0802d4f6f5579805", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
