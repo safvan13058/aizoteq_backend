@@ -146,7 +146,7 @@ signup.post('/verify-otp', async (req, res) => {
     const {username, otp, fullName, jwtsub, role } = req.body;
     console.log(`otp${req.body}`)
     console.log(`get otp${otp}`)
-    console.log(req.session.username)
+    console.log(`otpp session ${req.session.username}`)
     console.log(req.session)
     console.log(`jwtsub==${req.session.jwtsub}`)
     console.log(req.session)
