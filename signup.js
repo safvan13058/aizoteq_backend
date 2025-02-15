@@ -8,8 +8,10 @@ const crypto = require('crypto');
 
 
 const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
 // Configure session middleware
 signup.use(session({
+    store: new PgSession({ db }),
     secret: "ffbd7c1dbf8ccc6d000658acfa9bc8be68086f710177e0fa0802d4f6f5579805", // Use a strong, secure secret
     resave: false,
     saveUninitialized: true,
