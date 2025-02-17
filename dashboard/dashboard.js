@@ -1835,7 +1835,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += "))";
       }
 
-      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price";
+      sqlQuery += " GROUP BYpt.model, pt.mrp,pt.retail_price,  pt.sgst,pt.cgst,  pt.igst,  pt.discount, pt.warranty_period,";
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
