@@ -86,7 +86,101 @@ dashboard.get("/api/production/graph", async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   });  
-  
+// 📊 API to get total sales count (Filtered by `sale_by`)
+dashboard.get('/api/sales/total', async (req, res) => {
+  try {
+      const  sale_by  = req.user?.username||req.query.sale_by;
+      
+      if (!sale_by) {
+          return res.status(400).json({ error: "sale_by parameter is required" });
+      }
+
+      // Step 1: Get user role
+      const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
+
+      if (userResult.rows.length === 0) {
+          return res.status(404).json({ error: "User not found" });
+      }
+
+      const userRole = userResult.rows[0].userrole; // Case-sensitive issue, use lowercase
+
+      let query;
+      let values = [];
+
+      // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
+      if (userRole === 'admin') {
+          query = `
+              SELECT COUNT(*) AS total_sales 
+              FROM sales_graph 
+              WHERE sale_by IN (SELECT userName FROM Users WHERE userRole = 'admin')
+          `;
+      } else {
+          query = 'SELECT COUNT(*) AS total_sales FROM sales_graph WHERE sale_by = $1';
+          values.push(sale_by);
+      }
+
+      // Step 3: Execute query
+      const result = await db.query(query, values);
+      res.json(result.rows[0]);
+
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// 📈 API to get sales data for graph (Filtered by `sale_by`)
+dashboard.get('/api/sales/graph', async (req, res) => {
+  try {
+      const  sale_by  = req.user?.username||req.query.sale_by;
+
+      if (!sale_by) {
+          return res.status(400).json({ error: "sale_by parameter is required" });
+      }
+
+      // Step 1: Get user role
+      const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
+
+      if (userResult.rows.length === 0) {
+          return res.status(404).json({ error: "User not found" });
+      }
+
+      const userRole = userResult.rows[0].userrole; // Make sure column names match
+
+      let query;
+      let values = [];
+
+      // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
+      if (userRole === 'admin') {
+          query = `
+              SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
+              FROM sales_graph
+              WHERE sale_by IN (SELECT userName FROM Users WHERE userRole = 'admin')
+              GROUP BY sale_date
+              ORDER BY sale_date
+          `;
+      } else {
+          query = `
+              SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
+              FROM sales_graph
+              WHERE sale_by = $1
+              GROUP BY sale_date
+              ORDER BY sale_date
+          `;
+          values.push(sale_by);
+      }
+
+      // Step 3: Execute query
+      const result = await db.query(query, values);
+      res.json(result.rows);
+
+  } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server error' });
+  }
+});
+
 //api for sale graph
 dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
   const { user_id } = req.params;
@@ -120,6 +214,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
     res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 // dashboard.get('/api/searchThings/working/:stock/status/:status',  
 //   validateJwt,
 //   authorizeRoles('admin', 'dealer'),
@@ -1371,6 +1466,70 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
+// API Endpoint to search price_table by model and/or attributes
+dashboard.get('/api/search/model/price', async (req, res) => {
+  try {
+      const { query } = req.query;
+
+      if (!query) {
+          return res.status(400).json({ error: "Missing query parameter" });
+      }
+
+      // Split query into parts
+      const parts = query.split(',').map(item => item.trim());
+
+      let model = null;
+      let conditions = [];
+
+      // Identify if the first part is a model (assumes models don't contain spaces)
+      if (parts[0] && !parts[0].includes(' ')) {
+          model = parts[0]; // First part is the model name
+          conditions = parts.slice(1).map(item => {
+              const [attributeName, attributeValue] = item.split(' ');
+              return { attributeName, attributeValue };
+          });
+      } else {
+          conditions = parts.map(item => {
+              const [attributeName, attributeValue] = item.split(' ');
+              return { attributeName, attributeValue };
+          });
+      }
+
+      // Base SQL query (only selecting from price_table)
+      let sqlQuery = `
+          SELECT pt.* 
+          FROM price_table pt
+      `;
+      const queryParams = [];
+
+      // Apply filters
+      if (model) {
+          sqlQuery += " WHERE pt.model = $1";
+          queryParams.push(model);
+      }
+
+      if (conditions.length > 0) {
+          sqlQuery += model ? " AND EXISTS (" : " WHERE EXISTS (";
+          sqlQuery += `
+              SELECT 1 FROM Things t
+              JOIN ThingAttributes ta ON t.id = ta.thingId
+              WHERE t.model = pt.model AND (
+          `;
+          conditions.forEach((condition, index) => {
+              sqlQuery += `(ta.attributeName = $${queryParams.length + 1} AND ta.attributeValue = $${queryParams.length + 2})`;
+              if (index < conditions.length - 1) sqlQuery += " OR ";
+              queryParams.push(condition.attributeName, condition.attributeValue);
+          });
+          sqlQuery += "))";
+      }
+
+      const { rows } = await pool.query(sqlQuery, queryParams);
+      res.json(rows);
+  } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 dashboard.get("/price/:serialno", async (req, res) => {
   const serialno = req.params.serialno;
 
