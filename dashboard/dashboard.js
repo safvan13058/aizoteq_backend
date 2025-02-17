@@ -1788,7 +1788,13 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       }
 
       let sqlQuery = `
-          SELECT pt.model, pt.mrp, pt.retail_price,
+          SELECT pt.model, pt.mrp,
+              pt.retail_price, 
+              pt.sgst, 
+              pt.cgst, 
+              pt.igst, 
+              pt.discount, 
+              pt.warranty_period,
                  JSON_AGG(DISTINCT JSONB_BUILD_OBJECT('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
           FROM price_table pt
           JOIN Things t ON pt.model = t.model
@@ -1829,7 +1835,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += "))";
       }
 
-      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price";
+      sqlQuery += " GROUP BY pt.model";
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
