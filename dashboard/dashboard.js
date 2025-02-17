@@ -1467,6 +1467,70 @@ dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
 // API Endpoint to search price_table by model and/or attributes
+// dashboard.get('/api/search/model/price', async (req, res) => {
+//   try {
+//       const { query } = req.query;
+
+//       if (!query) {
+//           return res.status(400).json({ error: "Missing query parameter" });
+//       }
+
+//       // Split query into parts
+//       const parts = query.split(',').map(item => item.trim());
+
+//       let model = null;
+//       let conditions = [];
+
+//       // Identify if the first part is a model (assumes models don't contain spaces)
+//       if (parts[0] && !parts[0].includes(' ')) {
+//           model = parts[0]; // First part is the model name
+//           conditions = parts.slice(1).map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       } else {
+//           conditions = parts.map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       }
+
+//       // Base SQL query (only selecting from price_table)
+//       let sqlQuery = `
+//           SELECT pt.* 
+//           FROM price_table pt
+//       `;
+//       const queryParams = [];
+
+//       // Apply filters
+//       if (model) {
+//           sqlQuery += " WHERE pt.model = $1";
+//           queryParams.push(model);
+//       }
+
+//       if (conditions.length > 0) {
+//           sqlQuery += model ? " AND EXISTS (" : " WHERE EXISTS (";
+//           sqlQuery += `
+//               SELECT 1 FROM Things t
+//               JOIN ThingAttributes ta ON t.id = ta.thingId
+//               WHERE t.model = pt.model AND (
+//           `;
+//           conditions.forEach((condition, index) => {
+//               sqlQuery += `(ta.attributeName = $${queryParams.length + 1} AND ta.attributeValue = $${queryParams.length + 2})`;
+//               if (index < conditions.length - 1) sqlQuery += " OR ";
+//               queryParams.push(condition.attributeName, condition.attributeValue);
+//           });
+//           sqlQuery += "))";
+//       }
+
+//       const { rows } = await db.query(sqlQuery, queryParams);
+//       res.json(rows);
+//   } catch (error) {
+//       console.error("Error fetching data:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
       const { query } = req.query;
@@ -1504,7 +1568,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 
       // Apply filters
       if (model) {
-          sqlQuery += " WHERE pt.model = $1";
+          sqlQuery += " WHERE LOWER(pt.model) = LOWER($1)";
           queryParams.push(model);
       }
 
@@ -1513,10 +1577,10 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += `
               SELECT 1 FROM Things t
               JOIN ThingAttributes ta ON t.id = ta.thingId
-              WHERE t.model = pt.model AND (
+              WHERE LOWER(t.model) = LOWER(pt.model) AND (
           `;
           conditions.forEach((condition, index) => {
-              sqlQuery += `(ta.attributeName = $${queryParams.length + 1} AND ta.attributeValue = $${queryParams.length + 2})`;
+              sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
               if (index < conditions.length - 1) sqlQuery += " OR ";
               queryParams.push(condition.attributeName, condition.attributeValue);
           });
@@ -1530,6 +1594,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 dashboard.get("/price/:serialno", async (req, res) => {
   const serialno = req.params.serialno;
 
