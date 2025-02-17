@@ -1696,7 +1696,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       }
 
       let sqlQuery = `
-          SELECT pt.model, 
+          SELECT pt.model, pt.price,
                  JSON_AGG(JSON_BUILD_OBJECT('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
           FROM price_table pt
           JOIN Things t ON pt.model = t.model
@@ -1717,16 +1717,27 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           `;
 
           conditions.forEach((condition, index) => {
-              sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
-                            AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
+              const { attributeName, attributeValue } = condition;
+              const isNumeric = !isNaN(attributeValue);
+
+              if (isNumeric) {
+                  sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+                                AND CAST(ta.attributeValue AS INTEGER) 
+                                BETWEEN $${queryParams.length + 2} - 2 AND $${queryParams.length + 2} + 2)`;
+                  queryParams.push(attributeName, parseInt(attributeValue));
+              } else {
+                  sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+                                AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
+                  queryParams.push(attributeName, attributeValue);
+              }
+
               if (index < conditions.length - 1) sqlQuery += " OR ";
-              queryParams.push(condition.attributeName, condition.attributeValue);
           });
 
           sqlQuery += "))";
       }
 
-      sqlQuery += " GROUP BY pt.model";
+      sqlQuery += " GROUP BY pt.model, pt.price";
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
