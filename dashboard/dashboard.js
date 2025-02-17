@@ -1611,30 +1611,42 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       const queryParams = [];
       const whereClauses = [];
 
-      // Ensure all attributes match their exact values
+      // Ensure light is between the given value and +2 tolerance
       conditions.forEach((condition, index) => {
           const { attributeName, attributeValue } = condition;
           const isNumeric = !isNaN(attributeValue);
 
-          whereClauses.push(`
-              EXISTS (
-                  SELECT 1 FROM ThingAttributes ta_sub
-                  WHERE ta_sub.thingId = t.id
-                  AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
-                  AND ${isNumeric ? `CAST(ta_sub.attributeValue AS INTEGER) = $${queryParams.length + 2}` : `LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})`}
-              )
-          `);
-          queryParams.push(attributeName, isNumeric ? parseInt(attributeValue) : attributeValue);
+          if (attributeName.toLowerCase() === "light" && isNumeric) {
+              const upperBound = parseInt(attributeValue) + 2; // Only +2 tolerance
+
+              whereClauses.push(`
+                  EXISTS (
+                      SELECT 1 FROM ThingAttributes ta_sub
+                      WHERE ta_sub.thingId = t.id
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3}
+                  )
+              `);
+              queryParams.push(attributeName, parseInt(attributeValue), upperBound); // Range: light value +2
+          } else {
+              whereClauses.push(`
+                  EXISTS (
+                      SELECT 1 FROM ThingAttributes ta_sub
+                      WHERE ta_sub.thingId = t.id
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
+                  )
+              `);
+              queryParams.push(attributeName, attributeValue);
+          }
       });
 
       if (whereClauses.length > 0) {
           sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
       }
 
-      // Ensure the result contains *all* requested attributes
       sqlQuery += `
           GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
-          HAVING COUNT(DISTINCT CASE WHEN LOWER(ta.attributeName) IN (${conditions.map((_, i) => `$${i * 2 + 1}`).join(', ')}) THEN ta.attributeName END) = ${conditions.length}
       `;
 
       const { rows } = await db.query(sqlQuery, queryParams);
@@ -1645,6 +1657,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 dashboard.get("/price/:serialno", async (req, res) => {
