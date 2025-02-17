@@ -1523,7 +1523,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += "))";
       }
 
-      const { rows } = await pool.query(sqlQuery, queryParams);
+      const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
   } catch (error) {
       console.error("Error fetching data:", error);
