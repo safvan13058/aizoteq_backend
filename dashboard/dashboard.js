@@ -1650,6 +1650,12 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       `;
 
       const { rows } = await db.query(sqlQuery, queryParams);
+
+      // If no models are found, send a custom message
+      if (rows.length === 0) {
+          return res.status(404).json({ message: "No models found with the given criteria." });
+      }
+
       res.json(rows);
 
   } catch (error) {
@@ -1657,6 +1663,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 
 
