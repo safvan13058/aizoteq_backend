@@ -1560,6 +1560,7 @@ dashboard.post("/api/billing/return/:status", returned)
 //       res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
       const { query } = req.query;
@@ -1663,9 +1664,6 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
-
 
 dashboard.get("/price/:serialno", async (req, res) => {
   const serialno = req.params.serialno;
