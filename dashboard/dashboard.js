@@ -1469,118 +1469,6 @@ dashboard.post("/api/billing/return/:status", returned)
 // API Endpoint to search price_table by model and/or attributes
 
 
-// dashboard.get('/api/search/model/price', async (req, res) => {
-//   try {
-//       const { query } = req.query;
-
-//       if (!query) {
-//           return res.status(400).json({ error: "Missing query parameter" });
-//       }
-
-//       // Parse query parameters into attribute conditions
-//       const parts = query.split(',').map(item => item.trim());
-//       let model = null;
-//       const conditions = [];
-//       if (parts[0] && !parts[0].includes(' ')) {
-//         model = parts[0]; // First part is the model name
-//         conditions = parts.slice(1).map(item => {
-//             const [attributeName, attributeValue] = item.split(' ');
-//             return { attributeName, attributeValue };
-//         });
-//     } else {
-//         return res.status(400).json({ error: "Model name is required at the beginning of the query" });
-//     }
-//       parts.forEach(item => {
-//           const [attributeName, attributeValue] = item.split(' ');
-//           if (attributeName && attributeValue !== undefined) {
-//               conditions.push({
-//                   attributeName: attributeName.trim(),
-//                   attributeValue: attributeValue.trim()
-//               });
-//           }
-//       });
-
-//       if (conditions.length === 0) {
-//           return res.status(400).json({ error: "Invalid query format" });
-//       }
-
-//       let sqlQuery = `
-//           SELECT 
-//               pt.model, 
-//               pt.mrp, 
-//               pt.retail_price, 
-//               pt.sgst, 
-//               pt.cgst, 
-//               pt.igst, 
-//               pt.discount, 
-//               pt.warranty_period, 
-//               pt.lastmodified, 
-//               JSON_AGG(
-//                   DISTINCT JSONB_BUILD_OBJECT(
-//                       'attributeName', ta.attributeName, 
-//                       'attributeValue', ta.attributeValue
-//                   )
-//               ) AS attributes
-//           FROM price_table pt
-//           JOIN Things t ON pt.model = t.model
-//           JOIN ThingAttributes ta ON t.id = ta.thingId
-//       `;
-
-//       const queryParams = [];
-//       const whereClauses = [];
-
-//       // Ensure light is between the given value and +2 tolerance
-//       conditions.forEach((condition, index) => {
-//           const { attributeName, attributeValue } = condition;
-//           const isNumeric = !isNaN(attributeValue);
-
-//           if (isNumeric) {
-//               const upperBound = parseInt(attributeValue) + 2; // Only +2 tolerance
-
-//               whereClauses.push(`
-//                   EXISTS (
-//                       SELECT 1 FROM ThingAttributes ta_sub
-//                       WHERE ta_sub.thingId = t.id
-//                       AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
-//                       AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3}
-//                   )
-//               `);
-//               queryParams.push(attributeName, parseInt(attributeValue), upperBound); // Range: light value +2
-//           } else {
-//               whereClauses.push(`
-//                   EXISTS (
-//                       SELECT 1 FROM ThingAttributes ta_sub
-//                       WHERE ta_sub.thingId = t.id
-//                       AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
-//                       AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
-//                   )
-//               `);
-//               queryParams.push(attributeName, attributeValue);
-//           }
-//       });
-
-//       if (whereClauses.length > 0) {
-//           sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
-//       }
-
-//       sqlQuery += `
-//           GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
-//       `;
-
-//       const { rows } = await db.query(sqlQuery, queryParams);
-
-//       // If no models are found, send a custom message
-//       if (rows.length === 0) {
-//           return res.status(404).json({ message: "No models found with the given criteria." });
-//       }
-
-//       res.json(rows);
-
-//   } catch (error) {
-//       console.error("Error fetching data:", error);
-//       res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
       const { query } = req.query;
@@ -1591,19 +1479,26 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 
       // Parse query parameters into attribute conditions
       const parts = query.split(',').map(item => item.trim());
-      if (!parts[0] || parts[0].includes(' ')) {
-          return res.status(400).json({ error: "Model name is required at the beginning of the query" });
-      }
-
-      const model = parts[0];
-      const conditions = parts.slice(1).map(item => {
-          const splitItem = item.split(' ');
-          if (splitItem.length !== 2) {
-              return null; // Ensure valid format (attributeName attributeValue)
+      let model = null;
+      const conditions = [];
+      if (parts[0] && !parts[0].includes(' ')) {
+        model = parts[0]; // First part is the model name
+        conditions = parts.slice(1).map(item => {
+            const [attributeName, attributeValue] = item.split(' ');
+            return { attributeName, attributeValue };
+        });
+    } else {
+        return res.status(400).json({ error: "Model name is required at the beginning of the query" });
+    }
+      parts.forEach(item => {
+          const [attributeName, attributeValue] = item.split(' ');
+          if (attributeName && attributeValue !== undefined) {
+              conditions.push({
+                  attributeName: attributeName.trim(),
+                  attributeValue: attributeValue.trim()
+              });
           }
-          const [attributeName, attributeValue] = splitItem;
-          return { attributeName: attributeName.trim(), attributeValue: attributeValue.trim() };
-      }).filter(Boolean);
+      });
 
       if (conditions.length === 0) {
           return res.status(400).json({ error: "Invalid query format" });
@@ -1631,35 +1526,36 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           JOIN ThingAttributes ta ON t.id = ta.thingId
       `;
 
-      const queryParams = [model];
-      const whereClauses = [`LOWER(pt.model) = LOWER($1)`]; // Ensure case-insensitive match
+      const queryParams = [];
+      const whereClauses = [];
 
       // Ensure light is between the given value and +2 tolerance
       conditions.forEach((condition, index) => {
           const { attributeName, attributeValue } = condition;
-          const paramIndex = queryParams.length + 1;
-          if (!isNaN(attributeValue)) {
-              // Numeric value, add +2 tolerance
-              queryParams.push(attributeName.toLowerCase(), parseInt(attributeValue), parseInt(attributeValue) + 2);
+          const isNumeric = !isNaN(attributeValue);
+
+          if (isNumeric) {
+              const upperBound = parseInt(attributeValue) + 2; // Only +2 tolerance
+
               whereClauses.push(`
                   EXISTS (
                       SELECT 1 FROM ThingAttributes ta_sub
                       WHERE ta_sub.thingId = t.id
-                      AND LOWER(ta_sub.attributeName) = LOWER($${paramIndex})
-                      AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${paramIndex + 1} AND $${paramIndex + 2}
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3}
                   )
               `);
+              queryParams.push(attributeName, parseInt(attributeValue), upperBound); // Range: light value +2
           } else {
-              // Non-numeric, exact match
-              queryParams.push(attributeName.toLowerCase(), attributeValue.toLowerCase());
               whereClauses.push(`
                   EXISTS (
                       SELECT 1 FROM ThingAttributes ta_sub
                       WHERE ta_sub.thingId = t.id
-                      AND LOWER(ta_sub.attributeName) = LOWER($${paramIndex})
-                      AND LOWER(ta_sub.attributeValue) = LOWER($${paramIndex + 1})
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
                   )
               `);
+              queryParams.push(attributeName, attributeValue);
           }
       });
 
@@ -1673,16 +1569,120 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 
       const { rows } = await db.query(sqlQuery, queryParams);
 
+      // If no models are found, send a custom message
       if (rows.length === 0) {
           return res.status(404).json({ message: "No models found with the given criteria." });
       }
 
       res.json(rows);
+
   } catch (error) {
       console.error("Error fetching data:", error);
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
+// dashboard.get('/api/search/model/price', async (req, res) => {
+//   try {
+//       const { query } = req.query;
+
+//       if (!query) {
+//           return res.status(400).json({ error: "Missing query parameter" });
+//       }
+
+//       // Parse query parameters into attribute conditions
+//       const parts = query.split(',').map(item => item.trim());
+//       if (!parts[0] || parts[0].includes(' ')) {
+//           return res.status(400).json({ error: "Model name is required at the beginning of the query" });
+//       }
+
+//       const model = parts[0];
+//       const conditions = parts.slice(1).map(item => {
+//           const splitItem = item.split(' ');
+//           if (splitItem.length !== 2) {
+//               return null; // Ensure valid format (attributeName attributeValue)
+//           }
+//           const [attributeName, attributeValue] = splitItem;
+//           return { attributeName: attributeName.trim(), attributeValue: attributeValue.trim() };
+//       }).filter(Boolean);
+
+//       if (conditions.length === 0) {
+//           return res.status(400).json({ error: "Invalid query format" });
+//       }
+
+//       let sqlQuery = `
+//           SELECT 
+//               pt.model, 
+//               pt.mrp, 
+//               pt.retail_price, 
+//               pt.sgst, 
+//               pt.cgst, 
+//               pt.igst, 
+//               pt.discount, 
+//               pt.warranty_period, 
+//               pt.lastmodified, 
+//               JSON_AGG(
+//                   DISTINCT JSONB_BUILD_OBJECT(
+//                       'attributeName', ta.attributeName, 
+//                       'attributeValue', ta.attributeValue
+//                   )
+//               ) AS attributes
+//           FROM price_table pt
+//           JOIN Things t ON pt.model = t.model
+//           JOIN ThingAttributes ta ON t.id = ta.thingId
+//       `;
+
+//       const queryParams = [model];
+//       const whereClauses = [`LOWER(pt.model) = LOWER($1)`]; // Ensure case-insensitive match
+
+//       // Ensure light is between the given value and +2 tolerance
+//       conditions.forEach((condition, index) => {
+//           const { attributeName, attributeValue } = condition;
+//           const paramIndex = queryParams.length + 1;
+//           if (!isNaN(attributeValue)) {
+//               // Numeric value, add +2 tolerance
+//               queryParams.push(attributeName.toLowerCase(), parseInt(attributeValue), parseInt(attributeValue) + 2);
+//               whereClauses.push(`
+//                   EXISTS (
+//                       SELECT 1 FROM ThingAttributes ta_sub
+//                       WHERE ta_sub.thingId = t.id
+//                       AND LOWER(ta_sub.attributeName) = LOWER($${paramIndex})
+//                       AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${paramIndex + 1} AND $${paramIndex + 2}
+//                   )
+//               `);
+//           } else {
+//               // Non-numeric, exact match
+//               queryParams.push(attributeName.toLowerCase(), attributeValue.toLowerCase());
+//               whereClauses.push(`
+//                   EXISTS (
+//                       SELECT 1 FROM ThingAttributes ta_sub
+//                       WHERE ta_sub.thingId = t.id
+//                       AND LOWER(ta_sub.attributeName) = LOWER($${paramIndex})
+//                       AND LOWER(ta_sub.attributeValue) = LOWER($${paramIndex + 1})
+//                   )
+//               `);
+//           }
+//       });
+
+//       if (whereClauses.length > 0) {
+//           sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
+//       }
+
+//       sqlQuery += `
+//           GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
+//       `;
+
+//       const { rows } = await db.query(sqlQuery, queryParams);
+
+//       if (rows.length === 0) {
+//           return res.status(404).json({ message: "No models found with the given criteria." });
+//       }
+
+//       res.json(rows);
+//   } catch (error) {
+//       console.error("Error fetching data:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 
 // dashboard.get('/api/search/model/price', async (req, res) => {
 //   try {
