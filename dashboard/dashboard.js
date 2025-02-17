@@ -1760,6 +1760,91 @@ dashboard.post("/api/billing/return/:status", returned)
 //       res.status(500).json({ error: "Internal Server Error" });
 //   }
 // });
+
+// dashboard.get('/api/search/model/price', async (req, res) => {
+//   try {
+//       const { query } = req.query;
+
+//       if (!query) {
+//           return res.status(400).json({ error: "Missing query parameter" });
+//       }
+
+//       // Split query into parts
+//       const parts = query.split(',').map(item => item.trim());
+
+//       let model = null;
+//       let conditions = [];
+
+//       if (parts[0] && !parts[0].includes(' ')) {
+//           model = parts[0];
+//           conditions = parts.slice(1).map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       } else {
+//           conditions = parts.map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       }
+
+//       let sqlQuery = `
+//           SELECT pt.model, pt.mrp,
+//               pt.retail_price, 
+//               pt.sgst, 
+//               pt.cgst, 
+//               pt.igst, 
+//               pt.discount, 
+//               pt.warranty_period,
+//                  JSON_AGG(DISTINCT JSONB_BUILD_OBJECT('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+//           FROM price_table pt
+//           JOIN Things t ON pt.model = t.model
+//           JOIN ThingAttributes ta ON t.id = ta.thingId
+//       `;
+//       const queryParams = [];
+
+//       if (model) {
+//           sqlQuery += " WHERE LOWER(pt.model) = LOWER($1)";
+//           queryParams.push(model);
+//       }
+
+//       if (conditions.length > 0) {
+//           sqlQuery += model ? " AND EXISTS (" : " WHERE EXISTS (";
+//           sqlQuery += `
+//               SELECT 1 FROM ThingAttributes ta
+//               WHERE ta.thingId = t.id AND (
+//           `;
+
+//           conditions.forEach((condition, index) => {
+//               const { attributeName, attributeValue } = condition;
+//               const isNumeric = !isNaN(attributeValue);
+
+//               if (isNumeric) {
+//                   sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+//                                 AND CAST(ta.attributeValue AS INTEGER) 
+//                                 BETWEEN $${queryParams.length + 2} - 2 AND $${queryParams.length + 2} + 2)`;
+//                   queryParams.push(attributeName, parseInt(attributeValue));
+//               } else {
+//                   sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+//                                 AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
+//                   queryParams.push(attributeName, attributeValue);
+//               }
+
+//               if (index < conditions.length - 1) sqlQuery += " OR ";
+//           });
+
+//           sqlQuery += "))";
+//       }
+
+//       sqlQuery += " GROUP BY pt.model, pt.mrp,pt.retail_price,  pt.sgst,pt.cgst,  pt.igst,  pt.discount, pt.warranty_period,";
+
+//       const { rows } = await db.query(sqlQuery, queryParams);
+//       res.json(rows);
+//   } catch (error) {
+//       console.error("Error fetching data:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
       const { query } = req.query;
@@ -1788,14 +1873,22 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       }
 
       let sqlQuery = `
-          SELECT pt.model, pt.mrp,
+          SELECT 
+              pt.model, 
+              pt.mrp, 
               pt.retail_price, 
               pt.sgst, 
               pt.cgst, 
               pt.igst, 
               pt.discount, 
-              pt.warranty_period,
-                 JSON_AGG(DISTINCT JSONB_BUILD_OBJECT('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+              pt.warranty_period, 
+              pt.lastmodified, 
+              JSON_AGG(
+                  DISTINCT JSONB_BUILD_OBJECT(
+                      'attributeName', ta.attributeName, 
+                      'attributeValue', ta.attributeValue
+                  )
+              ) AS attributes
           FROM price_table pt
           JOIN Things t ON pt.model = t.model
           JOIN ThingAttributes ta ON t.id = ta.thingId
@@ -1835,7 +1928,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += "))";
       }
 
-      sqlQuery += " GROUP BY pt.model, pt.mrp,pt.retail_price,  pt.sgst,pt.cgst,  pt.igst,  pt.discount, pt.warranty_period,";
+      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified";
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
