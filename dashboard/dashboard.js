@@ -1696,8 +1696,22 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       }
 
       let sqlQuery = `
-          SELECT pt.model, pt.mrp, pt.retail_price,
-                 JSON_AGG(DISTINCT JSON_BUILD_OBJECT('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+          SELECT 
+              pt.model, 
+              pt.mrp, 
+              pt.retail_price, 
+              pt.sgst, 
+              pt.cgst, 
+              pt.igst, 
+              pt.discount, 
+              pt.warranty_period, 
+              pt.lastmodified, 
+              JSON_AGG(
+                  JSON_BUILD_OBJECT(
+                      'attributeName', ta.attributeName, 
+                      'attributeValue', ta.attributeValue
+                  )
+              ) AS attributes
           FROM price_table pt
           JOIN Things t ON pt.model = t.model
           JOIN ThingAttributes ta ON t.id = ta.thingId
@@ -1737,7 +1751,7 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           sqlQuery += "))";
       }
 
-      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price";
+      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified";
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
@@ -1746,8 +1760,6 @@ dashboard.get('/api/search/model/price', async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
   }
 });
-
-
 
 
 dashboard.get("/price/:serialno", async (req, res) => {
