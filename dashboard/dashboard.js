@@ -1468,6 +1468,98 @@ dashboard.post("/api/billing/create", billing);
 dashboard.post("/api/billing/return/:status", returned)
 // API Endpoint to search price_table by model and/or attributes
 
+// dashboard.get('/api/search/model/price', async (req, res) => {
+//   try {
+//       const { query } = req.query;
+
+//       if (!query) {
+//           return res.status(400).json({ error: "Missing query parameter" });
+//       }
+
+//       // Split query into parts
+//       const parts = query.split(',').map(item => item.trim());
+
+//       let model = null;
+//       let conditions = [];
+
+//       if (parts[0] && !parts[0].includes(' ')) {
+//           model = parts[0];
+//           conditions = parts.slice(1).map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       } else {
+//           conditions = parts.map(item => {
+//               const [attributeName, attributeValue] = item.split(' ');
+//               return { attributeName, attributeValue };
+//           });
+//       }
+
+//       let sqlQuery = `
+//           SELECT 
+//               pt.model, 
+//               pt.mrp, 
+//               pt.retail_price, 
+//               pt.sgst, 
+//               pt.cgst, 
+//               pt.igst, 
+//               pt.discount, 
+//               pt.warranty_period, 
+//               pt.lastmodified, 
+//               JSON_AGG(
+//                   DISTINCT JSONB_BUILD_OBJECT(
+//                       'attributeName', ta.attributeName, 
+//                       'attributeValue', ta.attributeValue
+//                   )
+//               ) AS attributes
+//           FROM price_table pt
+//           JOIN Things t ON pt.model = t.model
+//           JOIN ThingAttributes ta ON t.id = ta.thingId
+//       `;
+//       const queryParams = [];
+
+//       if (model) {
+//           sqlQuery += " WHERE LOWER(pt.model) = LOWER($1)";
+//           queryParams.push(model);
+//       }
+
+//       if (conditions.length > 0) {
+//           sqlQuery += model ? " AND EXISTS (" : " WHERE EXISTS (";
+//           sqlQuery += `
+//               SELECT 1 FROM ThingAttributes ta
+//               WHERE ta.thingId = t.id AND (
+//           `;
+
+//           conditions.forEach((condition, index) => {
+//               const { attributeName, attributeValue } = condition;
+//               const isNumeric = !isNaN(attributeValue);
+
+//               if (isNumeric) {
+//                   sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+//                                 AND CAST(ta.attributeValue AS INTEGER) 
+//                                 BETWEEN $${queryParams.length + 2} - 2 AND $${queryParams.length + 2} + 2)`;
+//                   queryParams.push(attributeName, parseInt(attributeValue));
+//               } else {
+//                   sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
+//                                 AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
+//                   queryParams.push(attributeName, attributeValue);
+//               }
+
+//               if (index < conditions.length - 1) sqlQuery += " OR ";
+//           });
+
+//           sqlQuery += "))";
+//       }
+
+//       sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified";
+
+//       const { rows } = await db.query(sqlQuery, queryParams);
+//       res.json(rows);
+//   } catch (error) {
+//       console.error("Error fetching data:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
       const { query } = req.query;
@@ -1476,23 +1568,22 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           return res.status(400).json({ error: "Missing query parameter" });
       }
 
-      // Split query into parts
+      // Split query into key-value pairs
       const parts = query.split(',').map(item => item.trim());
+      const conditions = [];
 
-      let model = null;
-      let conditions = [];
+      parts.forEach(item => {
+          const [attributeName, attributeValue] = item.split(' ');
+          if (attributeName && attributeValue !== undefined) {
+              conditions.push({
+                  attributeName: attributeName.trim(),
+                  attributeValue: attributeValue.trim()
+              });
+          }
+      });
 
-      if (parts[0] && !parts[0].includes(' ')) {
-          model = parts[0];
-          conditions = parts.slice(1).map(item => {
-              const [attributeName, attributeValue] = item.split(' ');
-              return { attributeName, attributeValue };
-          });
-      } else {
-          conditions = parts.map(item => {
-              const [attributeName, attributeValue] = item.split(' ');
-              return { attributeName, attributeValue };
-          });
+      if (conditions.length === 0) {
+          return res.status(400).json({ error: "Invalid query format" });
       }
 
       let sqlQuery = `
@@ -1516,45 +1607,50 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           JOIN Things t ON pt.model = t.model
           JOIN ThingAttributes ta ON t.id = ta.thingId
       `;
+
       const queryParams = [];
+      const whereClauses = [];
 
-      if (model) {
-          sqlQuery += " WHERE LOWER(pt.model) = LOWER($1)";
-          queryParams.push(model);
+      // Ensure all attributes match
+      conditions.forEach((condition, index) => {
+          const { attributeName, attributeValue } = condition;
+          const isNumeric = !isNaN(attributeValue);
+
+          if (isNumeric) {
+              whereClauses.push(`
+                  EXISTS (
+                      SELECT 1 FROM ThingAttributes ta_sub
+                      WHERE ta_sub.thingId = t.id
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} - 2 AND $${queryParams.length + 2} + 2
+                  )
+              `);
+              queryParams.push(attributeName, parseInt(attributeValue));
+          } else {
+              whereClauses.push(`
+                  EXISTS (
+                      SELECT 1 FROM ThingAttributes ta_sub
+                      WHERE ta_sub.thingId = t.id
+                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+                      AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
+                  )
+              `);
+              queryParams.push(attributeName, attributeValue);
+          }
+      });
+
+      if (whereClauses.length > 0) {
+          sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
       }
 
-      if (conditions.length > 0) {
-          sqlQuery += model ? " AND EXISTS (" : " WHERE EXISTS (";
-          sqlQuery += `
-              SELECT 1 FROM ThingAttributes ta
-              WHERE ta.thingId = t.id AND (
-          `;
-
-          conditions.forEach((condition, index) => {
-              const { attributeName, attributeValue } = condition;
-              const isNumeric = !isNaN(attributeValue);
-
-              if (isNumeric) {
-                  sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
-                                AND CAST(ta.attributeValue AS INTEGER) 
-                                BETWEEN $${queryParams.length + 2} - 2 AND $${queryParams.length + 2} + 2)`;
-                  queryParams.push(attributeName, parseInt(attributeValue));
-              } else {
-                  sqlQuery += `(LOWER(ta.attributeName) = LOWER($${queryParams.length + 1}) 
-                                AND LOWER(ta.attributeValue) = LOWER($${queryParams.length + 2}))`;
-                  queryParams.push(attributeName, attributeValue);
-              }
-
-              if (index < conditions.length - 1) sqlQuery += " OR ";
-          });
-
-          sqlQuery += "))";
-      }
-
-      sqlQuery += " GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified";
+      sqlQuery += `
+          GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
+          HAVING COUNT(DISTINCT CASE WHEN LOWER(ta.attributeName) IN (${conditions.map((_, i) => `$${i * 2 + 1}`).join(', ')}) THEN ta.attributeName END) = ${conditions.length}
+      `;
 
       const { rows } = await db.query(sqlQuery, queryParams);
       res.json(rows);
+
   } catch (error) {
       console.error("Error fetching data:", error);
       res.status(500).json({ error: "Internal Server Error" });
