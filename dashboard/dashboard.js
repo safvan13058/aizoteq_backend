@@ -3062,43 +3062,89 @@ dashboard.post('/api/model/features/add/:model_id',
 //     }
 //   });
 
-dashboard.get("/api/display/prices-table",
-    //  validateJwt, authorizeRoles("admin","dealer"), 
-     async (req, res) => {
+// dashboard.get("/api/display/prices-table",
+//     //  validateJwt, authorizeRoles("admin","dealer"), 
+//      async (req, res) => {
+//     try {
+//       const query = `
+//         WITH FirstThing AS (
+//           SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
+//           FROM Things t
+//           ORDER BY t.model, t.id ASC
+//         )
+//         SELECT 
+//           p.id AS price_id, p.model,P.lastmodified, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
+//           jsonb_agg(DISTINCT jsonb_build_object('feature_id',f.id,'feature', f.feature, 'feature_value', f.feature_value)) AS features,
+//           jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
+//         FROM price_table p
+//         LEFT JOIN model_features f ON p.id = f.model_id
+//         LEFT JOIN FirstThing ft ON p.model = ft.model
+//         LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
+//         GROUP BY p.id;
+//       `;
+  
+//       const { rows } = await db.query(query);
+  
+//       if (rows.length === 0) {
+//         return res.status(404).json({ message: "No models found" });
+//       }
+  
+//       res.status(200).json({
+//         message: "All model details retrieved successfully",
+//         data: rows
+//       });
+  
+//     } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ error: "Failed to fetch data" });
+//     }
+//   });
+dashboard.get("/api/display/prices-table", 
+  // validateJwt, authorizeRoles("admin","dealer"), 
+  async (req, res) => {
     try {
-      const query = `
+      const { search } = req.query;  // Get model_name from query params
+      let query = `
         WITH FirstThing AS (
           SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
           FROM Things t
           ORDER BY t.model, t.id ASC
         )
         SELECT 
-          p.id AS price_id, p.model,P.lastmodified, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, 
-          jsonb_agg(DISTINCT jsonb_build_object('feature_id',f.id,'feature', f.feature, 'feature_value', f.feature_value)) AS features,
+          p.id AS price_id, p.model, P.lastmodified, p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, p.warranty_period,
+          jsonb_agg(DISTINCT jsonb_build_object('feature_id', f.id, 'feature', f.feature, 'feature_value', f.feature_value)) AS features,
           jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes
         FROM price_table p
         LEFT JOIN model_features f ON p.id = f.model_id
         LEFT JOIN FirstThing ft ON p.model = ft.model
         LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
-        GROUP BY p.id;
-      `;
-  
-      const { rows } = await db.query(query);
-  
+        `;
+      
+      if (search) {
+        query += ` WHERE p.model ILIKE $1`;  // Add case-insensitive search for model_name
+      }
+      
+      query += ` GROUP BY p.id;`;
+
+      const values = search ? [search] : [];  // If model_name exists, use it as a filter value
+
+      const { rows } = await db.query(query, values);
+
       if (rows.length === 0) {
         return res.status(404).json({ message: "No models found" });
       }
-  
+
       res.status(200).json({
         message: "All model details retrieved successfully",
         data: rows
       });
-  
+
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch data" });
     }
-  });
+  }
+);
 
 // dashboard.get("/api/display/prices-table",
 //     validateJwt, 
