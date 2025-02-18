@@ -1479,17 +1479,17 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 
       // Parse query parameters into attribute conditions
       const parts = query.split(',').map(item => item.trim());
-      let model = null;
+      // let model = null;
       const conditions = [];
-      if (parts[0] && !parts[0].includes(' ')) {
-        model = parts[0]; // First part is the model name
-        conditions = parts.slice(1).map(item => {
-            const [attributeName, attributeValue] = item.split(' ');
-            return { attributeName, attributeValue };
-        });
-    } else {
-        return res.status(400).json({ error: "Model name is required at the beginning of the query" });
-    }
+    //   if (parts[0] && !parts[0].includes(' ')) {
+    //     model = parts[0]; // First part is the model name
+    //     conditions = parts.slice(1).map(item => {
+    //         const [attributeName, attributeValue] = item.split(' ');
+    //         return { attributeName, attributeValue };
+    //     });
+    // } else {
+    //     return res.status(400).json({ error: "Model name is required at the beginning of the query" });
+    // }
       parts.forEach(item => {
           const [attributeName, attributeValue] = item.split(' ');
           if (attributeName && attributeValue !== undefined) {
