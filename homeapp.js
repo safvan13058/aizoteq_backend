@@ -83,7 +83,10 @@ homeapp.post("/api/users/profile-pic",
             res.status(500).json({ error: "Failed to upload and update profile picture" });
         }
     });
-homeapp.put('/api/users/:id/name', async (req, res) => {
+homeapp.put('/api/users/:id/name', 
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
         const { id } = req.params;
         const { name } = req.body;
     
@@ -110,7 +113,7 @@ homeapp.put('/api/users/:id/name', async (req, res) => {
 //ADD home
 homeapp.post('/app/add/home/',
     // validateJwt,
-    // authorizeRoles('customer'),
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         console.log(req.body)
         console.log(req.body.id)
@@ -170,7 +173,7 @@ homeapp.post('/app/add/home/',
 //display home
 homeapp.get('/app/display/homes/',
     // validateJwt,
-    // authorizeRoles('customer'),
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             console.log(req.body)
@@ -250,7 +253,7 @@ homeapp.get('/app/display/homes/',
 
 homeapp.put('/app/update/home/:id',
     // validateJwt,
-    // authorizeRoles('customer'),
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const homeId = req.params.id; // Get home ID from URL parameter
@@ -297,8 +300,8 @@ homeapp.put('/app/update/home/:id',
 
 // Delete Home
 homeapp.delete('/app/delete/home/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const homeId = req.params.id; // Get the home ID from the URL parameter
@@ -325,7 +328,7 @@ homeapp.delete('/app/delete/home/:id',
 
 // ADD floor
 // homeapp.post('/app/add/floor/:home_id',
-//     // validateJwt,
+     // validateJwt,
 //     // authorizeRoles('customer'),
 //     async (req, res) => {
 //         try {
@@ -403,6 +406,8 @@ homeapp.delete('/app/delete/home/:id',
 // );
 
 homeapp.post('/app/add/floor/:home_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const home_id = req.params.home_id;
@@ -488,8 +493,8 @@ homeapp.post('/app/add/floor/:home_id',
 
 // Display floor
 homeapp.get('/app/display/floors/:home_id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const homeId = req.params.home_id; // Extract home ID from the request URL
@@ -523,7 +528,10 @@ homeapp.get('/app/display/floors/:home_id',
         }
     });
 
-homeapp.put('/app/reorder/floor/:floor_id', async (req, res) => {
+homeapp.put('/app/reorder/floor/:floor_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const floorId = parseInt(req.params.floor_id, 10);
     const { home_id, new_floor_index } = req.body;
 
@@ -583,8 +591,8 @@ homeapp.put('/app/reorder/floor/:floor_id', async (req, res) => {
 });
 //Update Floor
 homeapp.put('/app/update/floors/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             console.log(req.params.id);
@@ -635,7 +643,11 @@ homeapp.put('/app/update/floors/:id',
     }
 );
 
-homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
+homeapp.put('/app/reorder/rooms/:floor_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    
+    async (req, res) => {
     const client = await db.connect();
     try {
         const floor_id = req.params.floor_id
@@ -676,8 +688,8 @@ homeapp.put('/app/reorder/rooms/:floor_id', async (req, res) => {
 
 //Delete Floor
 homeapp.delete('/app/delete/floors/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const floorId = req.params.id; // Extract floor ID from the request URL
@@ -701,8 +713,8 @@ homeapp.delete('/app/delete/floors/:id',
 
 // ADD Room
 homeapp.post('/app/add/room/:floor_id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     upload.single('image'),
     async (req, res) => {
         try {
@@ -804,8 +816,8 @@ homeapp.post('/app/add/room/:floor_id',
 
 // Display room
 homeapp.get('/app/display/rooms/:floor_id',
-    // validateJwt,
-    // authorizeRoles('customer'), 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const floorId = req.params.floor_id; // Extract floor ID from the request URL
@@ -844,7 +856,10 @@ homeapp.get('/app/display/rooms/:floor_id',
         }
     });
 //change room from floor to other floor
-homeapp.put('/api/room/:room_id/change-floor/:floor_id', async (req, res) => {
+homeapp.put('/api/room/:room_id/change-floor/:floor_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const client = await db.connect();
     try {
         const room_id = req.params.room_id;
@@ -907,8 +922,8 @@ homeapp.put('/api/room/:room_id/change-floor/:floor_id', async (req, res) => {
 
 // Update room
 homeapp.put('/app/update/rooms/:id',
-    // validateJwt,
-    // authorizeRoles('customer'), 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     upload.single('image'), async (req, res) => {
         try {
             const roomId = req.params.id; // Extract room ID from the request URL
@@ -978,8 +993,8 @@ homeapp.put('/app/update/rooms/:id',
 
 //Delete Room
 homeapp.delete('/app/delete/room/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const roomId = req.params.id; // Get the room ID from the URL parameter
@@ -1003,8 +1018,8 @@ homeapp.delete('/app/delete/room/:id',
 
 // share access to customer with macAddress and securityKey
 homeapp.post('/api/access/customer/:roomid',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         const client = await db.connect(); // Get a client from the db
         try {
@@ -1160,7 +1175,10 @@ homeapp.post('/api/access/customer/:roomid',
 //     }
 // });
 
-homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
+homeapp.delete('/api/remove/access/:roomid/:thingid',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const client = await db.connect(); // Get a client from the database pool
 
 
@@ -1233,7 +1251,11 @@ homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
 });
 
 //reorder devices in an room
-homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
+homeapp.put('/api/reorder/devices/:roomid',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    
+    async (req, res) => {
     const client = await db.connect();
     try {
         const { roomid } = req.params;
@@ -1263,7 +1285,10 @@ homeapp.put('/api/reorder/devices/:roomid', async (req, res) => {
 });
 
 //change device to other rooms
-homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
+homeapp.put('/api/devices/:device_id/change/:newroomid', 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { device_id, newroomid } = req.params;
     // const { newroomid } = req.body;
 
@@ -1512,7 +1537,11 @@ homeapp.put('/api/devices/:device_id/change/:newroomid', async (req, res) => {
 //         res.status(500).json({ error: 'Internal Server Error' });
 //     }
 // });
-homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
+
+homeapp.get('/api/display/all/devices/:userId',
+     validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
     const userId = req.params.userId;
     const limit = parseInt(req.query.limit) || 10; // Default limit to 10
     const page = parseInt(req.query.page) || 1; // Default page to 1
@@ -1866,7 +1895,10 @@ homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
 //     }
 // });
 
-homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
+homeapp.put('/api/device/favorite/:deviceid',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
     const client = await db.connect(); // Get a client from the db
     try {
         const deviceid = req.params.deviceid;
@@ -1910,7 +1942,6 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
         client.release(); // Release the client back to the pool
     }
 });
-
 
 
 // homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
@@ -2085,7 +2116,10 @@ homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
 //     }
 // });
 
-homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
+homeapp.get('/api/favorite-devices/:userId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
     const { userId } = req.params;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
     const client = await db.connect();
@@ -2326,7 +2360,10 @@ homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
 
 // 1. Create a Scene
 
-homeapp.post('/app/add/scenes/:userid', upload.single('icon'), async (req, res) => {
+homeapp.post('/app/add/scenes/:userid', upload.single('icon'),
+validateJwt,
+authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+ async (req, res) => {
     const user_id = req.params.userid
     const createdBy = req.user?.username || req.body.createdBy
     const { name, aliasName, type } = req.body;
@@ -2361,7 +2398,10 @@ homeapp.post('/app/add/scenes/:userid', upload.single('icon'), async (req, res) 
 });
 
 //  Get All Scenes by userid
-homeapp.get('/app/display/scenes/:userid', async (req, res) => {
+homeapp.get('/app/display/scenes/:userid',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const { userid } = req.params;
         const result = await db.query('SELECT * FROM Scenes WHERE user_id = $1', [userid]);
@@ -2373,7 +2413,10 @@ homeapp.get('/app/display/scenes/:userid', async (req, res) => {
 });
 
 //  Update a Scene
-homeapp.put('/app/update/scenes/:id', upload.single('icon'), async (req, res) => {
+homeapp.put('/app/update/scenes/:id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    upload.single('icon'), async (req, res) => {
     const { id } = req.params;
     const fields = req.body; // Extract other fields from the request body
     const file = req.file; // Extract the uploaded file (if any)
@@ -2440,7 +2483,10 @@ homeapp.put('/app/update/scenes/:id', upload.single('icon'), async (req, res) =>
 });
 
 // 5. Delete a Scene
-homeapp.delete('/app/delete/scenes/:id', async (req, res) => {
+homeapp.delete('/app/delete/scenes/:id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { id } = req.params;
     try {
         const result = await db.query('DELETE FROM Scenes WHERE id = $1 RETURNING *', [id]);
@@ -2453,7 +2499,10 @@ homeapp.delete('/app/delete/scenes/:id', async (req, res) => {
     }
 });
 
-homeapp.post('/app/create/scene_devices/:scene_id/:device_id', async (req, res) => {
+homeapp.post('/app/create/scene_devices/:scene_id/:device_id',
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     // const { device_id, scene_id } = req.body;
     const { device_id, scene_id } = req.params;
     try {
@@ -2470,7 +2519,10 @@ homeapp.post('/app/create/scene_devices/:scene_id/:device_id', async (req, res) 
 });
 
 //display devices in scenes with scene_id
-homeapp.get('/api/display/scenes/:scene_id/devices', async (req, res) => {
+homeapp.get('/api/display/scenes/:scene_id/devices',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { scene_id } = req.params;
 
     try {
@@ -2501,7 +2553,10 @@ homeapp.get('/api/display/scenes/:scene_id/devices', async (req, res) => {
 
 
 // 4. Update a Scene Device
-homeapp.put('/app/Update/scene_devices/:id', async (req, res) => {
+homeapp.put('/app/Update/scene_devices/:id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { id } = req.params;
     const fields = req.body;
 
@@ -2542,7 +2597,10 @@ homeapp.put('/app/Update/scene_devices/:id', async (req, res) => {
 });
 
 // 5. Delete a Scene Device
-homeapp.delete('/api/delete/scene_devices/:id', async (req, res) => {
+homeapp.delete('/api/delete/scene_devices/:id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
     const { id } = req.params;
     try {
         const result = await db.query(
@@ -2562,7 +2620,10 @@ homeapp.delete('/api/delete/scene_devices/:id', async (req, res) => {
 });
 
 // 1. Create a new SceneEvent
-homeapp.post('/api/scene-events', async (req, res) => {
+homeapp.post('/api/scene-events', 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { sceneId, deviceId, action, datatime } = req.body;
 
     try {
@@ -2580,7 +2641,10 @@ homeapp.post('/api/scene-events', async (req, res) => {
     }
 });
 
-homeapp.put('/scene-events/scene/:sceneId', async (req, res) => {
+homeapp.put('/scene-events/scene/:sceneId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { sceneId } = req.params; // Scene ID from the route parameters
     const { deviceId, action, datatime } = req.body; // Fields to update
 
@@ -2612,7 +2676,10 @@ homeapp.put('/scene-events/scene/:sceneId', async (req, res) => {
     }
 });
 
-homeapp.get('/api/scene-events/scene/:sceneId', async (req, res) => {
+homeapp.get('/api/scene-events/scene/:sceneId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { sceneId } = req.params;
 
     try {
@@ -2699,8 +2766,8 @@ homeapp.get('/api/scene-events/scene/:sceneId', async (req, res) => {
 //     }
 // );
 homeapp.get('/api/display/device/rooms/:roomid',
-    // validateJwt,
-    // authorizeRoles('customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         const client = await db.connect();
         try {
@@ -2781,7 +2848,10 @@ homeapp.get('/api/display/device/rooms/:roomid',
 //     }
 //   });
 
-homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
+homeapp.put('/api/update/devices/:deviceid',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const device_id = req.params.deviceid; // Get device ID from the URL
     const { name, icon, newroomid } = req.body; // Get the fields to update from the request body
 
@@ -2878,7 +2948,10 @@ homeapp.put('/api/update/devices/:deviceid', async (req, res) => {
 
 
 // update the enable/disable
-homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
+homeapp.put('app/devices/enable/:deviceId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const deviceId = req.params.deviceId;
     const { enable } = req.body;
 
@@ -2912,7 +2985,11 @@ homeapp.put('app/devices/enable/:deviceId', async (req, res) => {
 
 
 // 1. Add a new FCM token
-homeapp.post('/api/register/fcmtoken', async (req, res) => {
+homeapp.post('/api/register/fcmtoken',
+    
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { fcmToken } = req.body;
     const { userId } = req.user?.id || req.body.id
 
@@ -2928,7 +3005,10 @@ homeapp.post('/api/register/fcmtoken', async (req, res) => {
     }
 });
 
-homeapp.get('/api/retrieve/fcmtokens/:userId', async (req, res) => {
+homeapp.get('/api/retrieve/fcmtokens/:userId', 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { userId } = req.params;
 
     try {
@@ -2944,7 +3024,10 @@ homeapp.get('/api/retrieve/fcmtokens/:userId', async (req, res) => {
 });
 
 // 1. Create a new notification
-homeapp.post('/api/notifications', async (req, res) => {
+homeapp.post('/api/notifications',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { userId, deviceId, message } = req.body;
 
     try {
@@ -2974,7 +3057,10 @@ homeapp.post('/api/notifications', async (req, res) => {
 });
 
 // 2. Retrieve notifications for a user
-homeapp.get('/api/notifications/:userId', async (req, res) => {
+homeapp.get('/api/notifications/:userId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { userId } = req.params;
 
     try {
@@ -2993,7 +3079,11 @@ homeapp.get('/api/notifications/:userId', async (req, res) => {
 });
 
 // 3. Delete a notification
-homeapp.delete('/api/notifications/:notificationId', async (req, res) => {
+homeapp.delete('/api/notifications/:notificationId',
+    
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { notificationId } = req.params;
 
     try {
@@ -3014,7 +3104,10 @@ homeapp.delete('/api/notifications/:notificationId', async (req, res) => {
 });
 
 // -------------------------
-homeapp.post('/app/share/access', async (req, res) => {
+homeapp.post('/app/share/access',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const { entity_id, entity_type, shared_with_user_email, access_type } = req.body;
         const user_id = req.user?.id || req.body.userid;
@@ -3043,7 +3136,10 @@ homeapp.post('/app/share/access', async (req, res) => {
 });
 
 
-homeapp.get('/app/shared/access', async (req, res) => {
+homeapp.get('/app/shared/access',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
     try {
         const { user_id, email } = req.user || req.query; // Retrieve user details from req.user or fallback to req.body
 
@@ -3111,7 +3207,10 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
 
 const path = require('path');
 
-homeapp.get('/accept-share/:shareRequestId', async (req, res) => {
+homeapp.get('/accept-share/:shareRequestId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const shareRequestId = req.params.shareRequestId;
 
@@ -3141,7 +3240,10 @@ homeapp.get('/accept-share/:shareRequestId', async (req, res) => {
     }
 });
 
-homeapp.post('/app/revoke/access', async (req, res) => {
+homeapp.post('/app/revoke/access', 
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const { share_id } = req.body; // The ID of the shared access record to revoke
         const user_id = req.user?.id || req.body.userid; // The ID of the user performing the action
@@ -3183,7 +3285,10 @@ homeapp.post('/app/revoke/access', async (req, res) => {
     }
 });
 
-homeapp.delete('/app/shared/access/:shareId', async (req, res) => {
+homeapp.delete('/app/shared/access/:shareId',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const { id: userId } = req.user || req.body; // Get user details from the authenticated user
         const { shareId } = req.params; // Get the shareId from the URL parameter
@@ -3225,7 +3330,10 @@ homeapp.delete('/app/shared/access/:shareId', async (req, res) => {
     }
 });
 
-homeapp.post('/app/update/access/status', async (req, res) => {
+homeapp.post('/app/update/access/status',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     try {
         const { share_id, new_status } = req.body; // The ID of the shared access record and the new status
         const user_id = req.user?.id || req.body.userid; // The ID of the user performing the action
@@ -3267,7 +3375,10 @@ homeapp.post('/app/update/access/status', async (req, res) => {
         res.status(500).json({ error: 'An error occurred while updating the access status.' });
     }
 });
-homeapp.get('/api/list/macaddress/user/:user_id', async (req, res) => {
+homeapp.get('/api/list/macaddress/user/:user_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
     const { user_id } = req.params;
 
   try {

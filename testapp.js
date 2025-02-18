@@ -30,8 +30,8 @@ testapp.get('/testapp', (req, res) => {
 })
 // Protect the /app/addThing endpoint for admins and staff
 testapp.post("/app/addThing",
-    // validateJwt,
-    // authorizeRoles("admin", "staff"), // Allow only admin and staff
+    validateJwt,
+    authorizeRoles("admin", "staff"), // Allow only admin and staff
     async (req, res) => {
         // const { error } = bodySchema.validate(req.body);
         // if (error) {
@@ -65,7 +65,7 @@ testapp.post("/app/addThing",
                 thing.macaddress,
                 thing.type || null,
                 securityKey,
-                new Date()
+                new Date() 
             ]);
             const thingId = thingResult.rows[0].id; // Retrieve the inserted thing ID
             console.log(thingResult);
@@ -226,7 +226,10 @@ testapp.post("/app/addThing",
 );
 
 // API endpoint to get devices by thingId
-testapp.get('/api/devices/things/:thingId', async (req, res) => {
+testapp.get('/api/devices/things/:thingId',
+    validateJwt,
+    authorizeRoles("admin", "staff"),
+     async (req, res) => {
     const { thingId } = req.params; // Extract thingId from the URL
     try {
         const result = await db.query('SELECT * FROM Devices WHERE thingId = $1', [thingId]);
@@ -242,8 +245,8 @@ testapp.get('/api/devices/things/:thingId', async (req, res) => {
 
 //display all things     
 testapp.get('/api/display/things',
-    // validateJwt,
-    // authorizeRoles('admin,staff'), 
+    validateJwt,
+    authorizeRoles('admin,staff'), 
     async (req, res) => {
         try {
             // Get `page` and `limit` query parameters, with default values if not provided
@@ -283,8 +286,8 @@ testapp.get('/api/display/things',
 
 // display things with id 
 testapp.get('/api/display/things/:id',
-    // validateJwt,
-    // authorizeRoles('customer'),
+     validateJwt,
+    authorizeRoles("admin", "staff"),
     async (req, res) => {
         const id = req.params.id;
         try {
@@ -308,7 +311,10 @@ testapp.get('/api/display/things/:id',
     });
 
 //count the stock item with status is new , rework etc
-testapp.get('/api/adminstock/:status/count', async (req, res) => {
+testapp.get('/api/adminstock/:status/count',
+     validateJwt,
+    authorizeRoles("admin", "staff"),
+    async (req, res) => {
     try {
         console.log("working admin stock");
         const { status } = req.params;
@@ -359,8 +365,8 @@ testapp.get('/api/adminstock/:status/count', async (req, res) => {
 });
 
 testapp.get('/app/searchThings/:status',
-    // validateJwt,
-    // authorizeRoles("admin", "staff"), 
+    validateJwt,
+    authorizeRoles("admin", "staff"), 
     async (req, res) => {
         const { status } = req.params;
         const { limit, offset } = req.query; // Get status, limit, and offset from query parameters
@@ -430,7 +436,10 @@ testapp.get('/app/searchThings/:status',
     });
 
 //display thing with status "new","rework",etc.. and search on serialno
-testapp.get('/api/searchThings/working/:status', async (req, res) => {
+testapp.get('/api/searchThings/working/:status', 
+     validateJwt,
+    authorizeRoles("admin", "staff"),
+    async (req, res) => {
     const { serialno } = req.query;
     const { status } = req.params;
 
@@ -489,8 +498,8 @@ testapp.get('/api/searchThings/working/:status', async (req, res) => {
 
 // 
 testapp.get('/api/adminstock/search/:model',
-    // validateJwt,
-    // authorizeRoles("admin", "staff"), 
+    validateJwt,
+    authorizeRoles("admin", "staff"), 
     async (req, res) => {
         const { page = 1, limit = 10, status } = req.query; // Extract query params with defaults
         const { model } = req.params;
@@ -629,7 +638,10 @@ testapp.get('/api/adminstock/search/:model',
 //       client.release(); // Release the client back to the pool
 //     }
 //   });
-testapp.put("/api/update_adminstock/status/:macAddress", async (req, res) => {
+testapp.put("/api/update_adminstock/status/:macAddress",
+     validateJwt,
+    authorizeRoles("admin", "staff"),
+    async (req, res) => {
     const { macAddress } = req.params;
     const { status } = req.body;
     const fixedBy = req.user?.username || req.body.fixedBy;
@@ -690,7 +702,10 @@ testapp.put("/api/update_adminstock/status/:macAddress", async (req, res) => {
     }
 });
 
-testapp.get('/api/recent/adminstock/activities', async (req, res) => {
+testapp.get('/api/recent/adminstock/activities',
+     validateJwt,
+    authorizeRoles("admin", "staff"),
+    async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
         const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
@@ -755,8 +770,8 @@ testapp.get('/api/recent/adminstock/activities', async (req, res) => {
 
 // DELETE endpoint to delete a Thing by ID
 testapp.delete('/api/delete/things/:id',
-    // validateJwt,
-    // authorizeRoles("admin", "staff"), 
+    validateJwt,
+    authorizeRoles("admin", "staff"), 
     async (req, res) => {
         const { id } = req.params;
 
@@ -779,6 +794,8 @@ testapp.delete('/api/delete/things/:id',
 
 // DELETE endpoint to delete all Things
 testapp.delete('/api/delete/all/things',
+    // validateJwt,
+    // authorizeRoles("admin", "staff"), 
     async (req, res) => {
         try {
             // Query to delete all records from Things
@@ -799,7 +816,10 @@ testapp.delete('/api/delete/all/things',
     });
 
 //search details of thing adminstock test with 
-testapp.get('/api/search/things', async (req, res) => {
+testapp.get('/api/search/things',
+     validateJwt,
+    authorizeRoles("admin", "staff"),
+    async (req, res) => {
     const { searchTerm, page = 1, pageSize = 10 } = req.query;
 
     if (!searchTerm) {
@@ -884,8 +904,8 @@ testapp.get('/api/search/things', async (req, res) => {
 });
 
 testapp.get('/api/display/thingattribute/:serialno',
-    // validateJwt,
-    // authorizeRoles('admin', 'staff'),
+    validateJwt,
+    authorizeRoles('admin', 'staff'),
     async (req, res) => {
         const serialno = req.params.serialno; // Get the serialno from the route parameter
         const page = parseInt(req.query.page, 10) || 1; // Default to page 1
@@ -953,8 +973,8 @@ testapp.get('/api/display/thingattribute/:serialno',
 
 //display things with  status
 testapp.get('/api/display/status/:status',
-    // validateJwt,
-    // authorizeRoles('admin', 'staff'),
+    validateJwt,
+    authorizeRoles('admin', 'staff'),
     async (req, res) => {
         try {
             // Get the 'status' parameter and pagination parameters from the request
@@ -1025,8 +1045,8 @@ testapp.get('/api/display/status/:status',
 );
 //display devices with thingid
 testapp.get('/api/display/devices/:thingid',
-    // validateJwt,
-    // authorizeRoles('admin','staff'),
+    validateJwt,
+    authorizeRoles('admin','staff'),
     async (req, res) => {
         const thingid = req.params.thingid; // Extract the thingid from the route parameter
         try {
