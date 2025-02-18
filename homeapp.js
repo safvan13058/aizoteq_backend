@@ -84,8 +84,8 @@ homeapp.post("/api/users/profile-pic",
         }
     });
 homeapp.put('/api/users/:id/name', 
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         const { id } = req.params;
         const { name } = req.body;
@@ -112,8 +112,8 @@ homeapp.put('/api/users/:id/name',
     })
 //ADD home
 homeapp.post('/app/add/home/',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         console.log(req.body)
         console.log(req.body.id)
@@ -172,8 +172,8 @@ homeapp.post('/app/add/home/',
 
 //display home
 homeapp.get('/app/display/homes/',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             console.log(req.body)
@@ -252,8 +252,8 @@ homeapp.get('/app/display/homes/',
 
 
 homeapp.put('/app/update/home/:id',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const homeId = req.params.id; // Get home ID from URL parameter
