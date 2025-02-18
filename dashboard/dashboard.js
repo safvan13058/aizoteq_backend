@@ -1526,8 +1526,8 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 
       // If model is provided, add a WHERE clause for model filtering
       if (model) {
-          whereClauses.push(`LOWER(pt.model) = LOWER($${queryParams.length + 1})`);
-          queryParams.push(model);
+        whereClauses.push(`LOWER(pt.model) LIKE LOWER($${queryParams.length + 1})`);
+        queryParams.push(`%${model}%`);
       }
 
       // Process attribute conditions
