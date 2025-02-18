@@ -1469,118 +1469,119 @@ dashboard.post("/api/billing/return/:status", returned)
 // API Endpoint to search price_table by model and/or attributes
 
 
-dashboard.get('/api/search/model/price', async (req, res) => {
-  try {
-      const { query } = req.query;
+// dashboard.get('/api/search/model/price', async (req, res) => {
+//   try {
+//       const { query } = req.query;
 
-      if (!query) {
-          return res.status(400).json({ error: "Missing query parameter" });
-      }
+//       if (!query) {
+//           return res.status(400).json({ error: "Missing query parameter" });
+//       }
 
-      // Parse query parameters into attribute conditions
-      const parts = query.split(',').map(item => item.trim());
-      let model = null;
-      const conditions = [];
-      if (parts[0] && !parts[0].includes(' ')) {
-        model = parts[0]; // First part is the model name
-        conditions = parts.slice(1).map(item => {
-            const [attributeName, attributeValue] = item.split(' ');
-            return { attributeName, attributeValue };
-        });
-    } else {
-        return res.status(400).json({ error: "Model name is required at the beginning of the query" });
-    }
-      parts.forEach(item => {
-          const [attributeName, attributeValue] = item.split(' ');
-          if (attributeName && attributeValue !== undefined) {
-              conditions.push({
-                  attributeName: attributeName.trim(),
-                  attributeValue: attributeValue.trim()
-              });
-          }
-      });
+//       // Parse query parameters into attribute conditions
+//       const parts = query.split(',').map(item => item.trim());
+//       let model = null;
+//       const conditions = [];
+//       if (parts[0] && !parts[0].includes(' ')) {
+//         model = parts[0]; // First part is the model name
+//         conditions = parts.slice(1).map(item => {
+//             const [attributeName, attributeValue] = item.split(' ');
+//             return { attributeName, attributeValue };
+//         });
+//     } else {
+//         return res.status(400).json({ error: "Model name is required at the beginning of the query" });
+//     }
+//       parts.forEach(item => {
+//           const [attributeName, attributeValue] = item.split(' ');
+//           if (attributeName && attributeValue !== undefined) {
+//               conditions.push({
+//                   attributeName: attributeName.trim(),
+//                   attributeValue: attributeValue.trim()
+//               });
+//           }
+//       });
 
-      if (conditions.length === 0) {
-          return res.status(400).json({ error: "Invalid query format" });
-      }
+//       if (conditions.length === 0) {
+//           return res.status(400).json({ error: "Invalid query format" });
+//       }
 
-      let sqlQuery = `
-          SELECT 
-              pt.model, 
-              pt.mrp, 
-              pt.retail_price, 
-              pt.sgst, 
-              pt.cgst, 
-              pt.igst, 
-              pt.discount, 
-              pt.warranty_period, 
-              pt.lastmodified, 
-              JSON_AGG(
-                  DISTINCT JSONB_BUILD_OBJECT(
-                      'attributeName', ta.attributeName, 
-                      'attributeValue', ta.attributeValue
-                  )
-              ) AS attributes
-          FROM price_table pt
-          JOIN Things t ON pt.model = t.model
-          JOIN ThingAttributes ta ON t.id = ta.thingId
-      `;
+//       let sqlQuery = `
+//           SELECT 
+//               pt.model, 
+//               pt.mrp, 
+//               pt.retail_price, 
+//               pt.sgst, 
+//               pt.cgst, 
+//               pt.igst, 
+//               pt.discount, 
+//               pt.warranty_period, 
+//               pt.lastmodified, 
+//               JSON_AGG(
+//                   DISTINCT JSONB_BUILD_OBJECT(
+//                       'attributeName', ta.attributeName, 
+//                       'attributeValue', ta.attributeValue
+//                   )
+//               ) AS attributes
+//           FROM price_table pt
+//           JOIN Things t ON pt.model = t.model
+//           JOIN ThingAttributes ta ON t.id = ta.thingId
+//       `;
 
-      const queryParams = [];
-      const whereClauses = [];
+//       const queryParams = [];
+//       const whereClauses = [];
 
-      // Ensure light is between the given value and +2 tolerance
-      conditions.forEach((condition, index) => {
-          const { attributeName, attributeValue } = condition;
-          const isNumeric = !isNaN(attributeValue);
+//       // Ensure light is between the given value and +2 tolerance
+//       conditions.forEach((condition, index) => {
+//           const { attributeName, attributeValue } = condition;
+//           const isNumeric = !isNaN(attributeValue);
 
-          if (isNumeric) {
-              const upperBound = parseInt(attributeValue) + 2; // Only +2 tolerance
+//           if (isNumeric) {
+//               const upperBound = parseInt(attributeValue) + 2; // Only +2 tolerance
 
-              whereClauses.push(`
-                  EXISTS (
-                      SELECT 1 FROM ThingAttributes ta_sub
-                      WHERE ta_sub.thingId = t.id
-                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
-                      AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3}
-                  )
-              `);
-              queryParams.push(attributeName, parseInt(attributeValue), upperBound); // Range: light value +2
-          } else {
-              whereClauses.push(`
-                  EXISTS (
-                      SELECT 1 FROM ThingAttributes ta_sub
-                      WHERE ta_sub.thingId = t.id
-                      AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
-                      AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
-                  )
-              `);
-              queryParams.push(attributeName, attributeValue);
-          }
-      });
+//               whereClauses.push(`
+//                   EXISTS (
+//                       SELECT 1 FROM ThingAttributes ta_sub
+//                       WHERE ta_sub.thingId = t.id
+//                       AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+//                       AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3}
+//                   )
+//               `);
+//               queryParams.push(attributeName, parseInt(attributeValue), upperBound); // Range: light value +2
+//           } else {
+//               whereClauses.push(`
+//                   EXISTS (
+//                       SELECT 1 FROM ThingAttributes ta_sub
+//                       WHERE ta_sub.thingId = t.id
+//                       AND LOWER(ta_sub.attributeName) = LOWER($${queryParams.length + 1})
+//                       AND LOWER(ta_sub.attributeValue) = LOWER($${queryParams.length + 2})
+//                   )
+//               `);
+//               queryParams.push(attributeName, attributeValue);
+//           }
+//       });
 
-      if (whereClauses.length > 0) {
-          sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
-      }
+//       if (whereClauses.length > 0) {
+//           sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
+//       }
 
-      sqlQuery += `
-          GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
-      `;
+//       sqlQuery += `
+//           GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
+//       `;
 
-      const { rows } = await db.query(sqlQuery, queryParams);
+//       const { rows } = await db.query(sqlQuery, queryParams);
 
-      // If no models are found, send a custom message
-      if (rows.length === 0) {
-          return res.status(404).json({ message: "No models found with the given criteria." });
-      }
+//       // If no models are found, send a custom message
+//       if (rows.length === 0) {
+//           return res.status(404).json({ message: "No models found with the given criteria." });
+//       }
 
-      res.json(rows);
+//       res.json(rows);
 
-  } catch (error) {
-      console.error("Error fetching data:", error);
-      res.status(500).json({ error: "Internal Server Error" });
-  }
-});
+//   } catch (error) {
+//       console.error("Error fetching data:", error);
+//       res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
 // dashboard.get('/api/search/model/price', async (req, res) => {
 //   try {
 //       const { query } = req.query;
@@ -1684,98 +1685,98 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 //   }
 // });
 
-// dashboard.get('/api/search/model/price', async (req, res) => {
-//   try {
-//       const { query } = req.query;
+dashboard.get('/api/search/model/price', async (req, res) => {
+  try {
+      const { query } = req.query;
 
-//       if (!query) {
-//           return res.status(400).json({ error: "Missing query parameter" });
-//       }
+      if (!query) {
+          return res.status(400).json({ error: "Missing query parameter" });
+      }
 
-//       // Split query into parts
-//       const parts = query.split(',').map(item => item.trim());
+      // Split query into parts
+      const parts = query.split(',').map(item => item.trim());
 
-//       if (!parts[0]) {
-//           return res.status(400).json({ error: "Model name is required at the beginning of the query" });
-//       }
+      if (!parts[0]) {
+          return res.status(400).json({ error: "Model name is required at the beginning of the query" });
+      }
 
-//       let model = parts[0]; // First part is the model name
-//       let conditions = [];
+      let model = parts[0]; // First part is the model name
+      let conditions = [];
 
-//       // Process remaining parts as attribute conditions
-//       if (parts.length > 1) {
-//           conditions = parts.slice(1).map(item => {
-//               const [attributeName, attributeValue] = item.split(' ');
+      // Process remaining parts as attribute conditions
+      if (parts.length > 1) {
+          conditions = parts.slice(1).map(item => {
+              const [attributeName, attributeValue] = item.split(' ');
 
-//               return {
-//                   attributeName: attributeName.trim(),
-//                   attributeValue: attributeValue.trim()
-//               };
-//           });
-//       }
+              return {
+                  attributeName: attributeName.trim(),
+                  attributeValue: attributeValue.trim()
+              };
+          });
+      }
 
-//       // Step 1: Find matching Things with LIKE search for model
-//       let thingQuery = `
-//           SELECT id FROM Things WHERE LOWER(model) LIKE LOWER($1) LIMIT 1
-//       `;
-//       const thingResult = await db.query(thingQuery, [`%${model}%`]);
+      // Step 1: Find matching Things with LIKE search for model
+      let thingQuery = `
+          SELECT id FROM Things WHERE LOWER(model) LIKE LOWER($1) LIMIT 1
+      `;
+      const thingResult = await db.query(thingQuery, [`%${model}%`]);
 
-//       if (thingResult.rows.length === 0) {
-//           return res.status(404).json({ error: "No matching Thing found for the model" });
-//       }
+      if (thingResult.rows.length === 0) {
+          return res.status(404).json({ error: "No matching Thing found for the model" });
+      }
 
-//       const thingId = thingResult.rows[0].id;
+      const thingId = thingResult.rows[0].id;
 
-//       // Step 2: Check if the Thing has attributes matching the query
-//       if (conditions.length > 0) {
-//           let attributeQuery = `
-//               SELECT COUNT(*) AS match_count
-//               FROM ThingAttributes
-//               WHERE thingId = $1 AND (
-//           `;
-//           const queryParams = [thingId];
+      // Step 2: Check if the Thing has attributes matching the query
+      if (conditions.length > 0) {
+          let attributeQuery = `
+              SELECT COUNT(*) AS match_count
+              FROM ThingAttributes
+              WHERE thingId = $1 AND (
+          `;
+          const queryParams = [thingId];
 
-//           conditions.forEach((condition, index) => {
-//               const isNumeric = !isNaN(condition.attributeValue);
+          conditions.forEach((condition, index) => {
+              const isNumeric = !isNaN(condition.attributeValue);
               
-//               if (isNumeric) {
-//                   attributeQuery += `(LOWER(attributeName) = LOWER($${queryParams.length + 1}) 
-//                                       AND CAST(attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3})`;
-//                   queryParams.push(condition.attributeName, parseInt(condition.attributeValue), parseInt(condition.attributeValue) + 2);
-//               } else {
-//                   attributeQuery += `(LOWER(attributeName) = LOWER($${queryParams.length + 1}) 
-//                                       AND LOWER(attributeValue) = LOWER($${queryParams.length + 2}))`;
-//                   queryParams.push(condition.attributeName, condition.attributeValue);
-//               }
+              if (isNumeric) {
+                  attributeQuery += `(LOWER(attributeName) = LOWER($${queryParams.length + 1}) 
+                                      AND CAST(attributeValue AS INTEGER) BETWEEN $${queryParams.length + 2} AND $${queryParams.length + 3})`;
+                  queryParams.push(condition.attributeName, parseInt(condition.attributeValue), parseInt(condition.attributeValue) + 2);
+              } else {
+                  attributeQuery += `(LOWER(attributeName) = LOWER($${queryParams.length + 1}) 
+                                      AND LOWER(attributeValue) = LOWER($${queryParams.length + 2}))`;
+                  queryParams.push(condition.attributeName, condition.attributeValue);
+              }
 
-//               if (index < conditions.length - 1) attributeQuery += " OR ";
-//           });
+              if (index < conditions.length - 1) attributeQuery += " OR ";
+          });
 
-//           attributeQuery += ")";
+          attributeQuery += ")";
 
-//           const attributeResult = await db.query(attributeQuery, queryParams);
+          const attributeResult = await db.query(attributeQuery, queryParams);
 
-//           if (parseInt(attributeResult.rows[0].match_count) === 0) {
-//               return res.status(404).json({ error: "No matching attributes found for the Thing" });
-//           }
-//       }
+          if (parseInt(attributeResult.rows[0].match_count) === 0) {
+              return res.status(404).json({ error: "No matching attributes found for the Thing" });
+          }
+      }
 
-//       // Step 3: Fetch the corresponding price_table entry for the model
-//       let priceQuery = `
-//           SELECT * FROM price_table WHERE LOWER(model) LIKE LOWER($1)
-//       `;
-//       const priceResult = await db.query(priceQuery, [`%${model}%`]);
+      // Step 3: Fetch the corresponding price_table entry for the model
+      let priceQuery = `
+          SELECT * FROM price_table WHERE LOWER(model) LIKE LOWER($1)
+      `;
+      const priceResult = await db.query(priceQuery, [`%${model}%`]);
 
-//       if (priceResult.rows.length === 0) {
-//           return res.status(404).json({ error: "No pricing data found for the model" });
-//       }
+      if (priceResult.rows.length === 0) {
+          return res.status(404).json({ error: "No pricing data found for the model" });
+      }
 
-//       res.json(priceResult.rows);
-//   } catch (error) {
-//       console.error("Error fetching data:", error);
-//       res.status(500).json({ error: "Internal Server Error" });
-//   }
-// });
+      res.json(priceResult.rows);
+  } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 
 
 dashboard.get("/price/:serialno", async (req, res) => {
