@@ -142,7 +142,7 @@ homeapp.post('/app/add/home/',
 
             // Insert query for the sharedaccess table
             const sharedAccessQuery = `
-                 INSERT INTO sharedaccess (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
+                 INSERT INTO sharedusers (user_id, shared_with_user_email, entity_id, entity_type, access_type, status) 
                  VALUES ($1, $2, $3, $4, $5, $6)
              `;
 
