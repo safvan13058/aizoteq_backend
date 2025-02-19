@@ -96,7 +96,7 @@ login.post('/login', async (req, res) => {
 // * Refresh Token Route
 // */
 login.post('/refresh-token', async (req, res) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
     if (!refreshToken) {
         return res.status(400).json({ message: 'Refresh token is required' });
