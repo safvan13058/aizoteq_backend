@@ -7348,7 +7348,110 @@ const Swaggerdoc = {
       }
     }
   },
-  };
+
+  "/refresh-token": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Refresh JWT tokens using a refresh token",
+        "description": "This endpoint refreshes the user's ID and Access tokens using AWS Cognito's REFRESH_TOKEN_AUTH flow.",
+        "operationId": "refreshToken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username associated with the refresh token.",
+                    "example": "johndoe"
+                  }
+                },
+                "required": ["username"]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "refreshToken",
+            "in": "cookie",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Refresh token stored in HTTP-only cookies."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token refreshed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Token refreshed successfully"
+                    },
+                    "jwtsub": {
+                      "type": "string",
+                      "description": "The user's Cognito sub claim from the refreshed IdToken.",
+                      "example": "abc123-sub-id"
+                    }
+                  }
+                }
+              }
+            },
+            "headers": {
+              "Set-Cookie": {
+                "description": "HTTP-only cookie containing the refreshed IdToken.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request or failed token refresh",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Refresh token and username are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error during token refresh",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during token refresh"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Internal server error details"
+                    }
+                  }
+                }
+              }
+            }
+          }}}},
+  
+        };
 
 
 module.exports = Swaggerdoc;
