@@ -95,19 +95,73 @@ login.post('/login', async (req, res) => {
 
 // * Refresh Token Route
 // */
-login.post('/refresh-token', async (req, res) => {
-    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
+// login.post('/refresh-token', async (req, res) => {
+//     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
 
-    if (!refreshToken) {
-        return res.status(400).json({ message: 'Refresh token is required' });
+//     if (!refreshToken) {
+//         return res.status(400).json({ message: 'Refresh token is required' });
+//     }
+
+//     const params = {
+//         AuthFlow: 'REFRESH_TOKEN_AUTH',
+//         ClientId: process.env.clientId,
+//         AuthParameters: {
+//             REFRESH_TOKEN: refreshToken,
+//             // No SECRET_HASH or USERNAME needed when using just the refresh token
+//         },
+//     };
+
+//     try {
+//         const response = await cognito.initiateAuth(params).promise();
+//         const { IdToken, AccessToken } = response.AuthenticationResult;
+
+//         if (!IdToken || !AccessToken) {
+//             return res.status(400).json({ message: 'Failed to refresh tokens' });
+//         }
+//         if (!IdToken || typeof IdToken !== 'string' || !IdToken.includes('.')) {
+//             return res.status(400).json({ message: 'Invalid IdToken received from Cognito' });
+//         }
+//         const decoded = jwt.decode(IdToken);
+//         if (!decoded?.sub) {
+//             return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
+//         }
+
+//         // Set the new idToken in an HTTP-only secure cookie
+//         res.cookie('idToken', IdToken, {
+//             httpOnly: true,
+//             secure: true,
+//             sameSite: 'Strict',
+//             maxAge: 3600000, // 1 hour
+//         });
+
+//         res.status(200).json({
+//             message: 'Token refreshed successfully',
+//             IdToken:IdToken,
+//             AccessToken:  AccessToken ,
+//             jwtsub: decoded.sub,
+//         });
+
+//     } catch (err) {
+//         res.status(500).json({ message: 'Error during token refresh', error: err.message });
+//     }
+// });
+login.post('/refresh-token', async (req, res) => {
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    const username = req.body.username; // Required for SECRET_HASH
+
+    if (!refreshToken || !username) {
+        return res.status(400).json({ message: 'Refresh token and username are required' });
     }
+
+    const clientId = process.env.clientId;
+    const clientSecret = process.env.clientSecret;
 
     const params = {
         AuthFlow: 'REFRESH_TOKEN_AUTH',
-        ClientId: process.env.clientId,
+        ClientId: clientId,
         AuthParameters: {
             REFRESH_TOKEN: refreshToken,
-            // No SECRET_HASH or USERNAME needed when using just the refresh token
+            SECRET_HASH: calculateSecretHash(username, clientId, clientSecret),
         },
     };
 
@@ -118,15 +172,12 @@ login.post('/refresh-token', async (req, res) => {
         if (!IdToken || !AccessToken) {
             return res.status(400).json({ message: 'Failed to refresh tokens' });
         }
-        if (!IdToken || typeof IdToken !== 'string' || !IdToken.includes('.')) {
-            return res.status(400).json({ message: 'Invalid IdToken received from Cognito' });
-        }
+
         const decoded = jwt.decode(IdToken);
         if (!decoded?.sub) {
             return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
         }
 
-        // Set the new idToken in an HTTP-only secure cookie
         res.cookie('idToken', IdToken, {
             httpOnly: true,
             secure: true,
@@ -136,12 +187,13 @@ login.post('/refresh-token', async (req, res) => {
 
         res.status(200).json({
             message: 'Token refreshed successfully',
-            IdToken:IdToken,
-            AccessToken:  AccessToken ,
+            IdToken,
+            AccessToken,
             jwtsub: decoded.sub,
         });
 
     } catch (err) {
+        console.error("❌ Token refresh error:", err.message);
         res.status(500).json({ message: 'Error during token refresh', error: err.message });
     }
 });
