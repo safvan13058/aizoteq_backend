@@ -96,48 +96,56 @@ login.post('/login', async (req, res) => {
 // * Refresh Token Route
 // */
 login.post('/refresh-token', async (req, res) => {
-   const refreshToken = req.cookies.refreshToken;
-   const username = req.body.username;
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
 
-   if (!refreshToken || !username) {
-       return res.status(400).json({ message: 'Refresh token and username are required' });
-   }
+    if (!refreshToken) {
+        return res.status(400).json({ message: 'Refresh token is required' });
+    }
 
-   const params = {
-       AuthFlow: 'REFRESH_TOKEN_AUTH',
-       ClientId: process.env.clientId,
-       AuthParameters: {
-           REFRESH_TOKEN: refreshToken,
-           SECRET_HASH: calculateSecretHash(username),
-       },
-   };
+    const params = {
+        AuthFlow: 'REFRESH_TOKEN_AUTH',
+        ClientId: process.env.clientId,
+        AuthParameters: {
+            REFRESH_TOKEN: refreshToken,
+            // No SECRET_HASH or USERNAME needed when using just the refresh token
+        },
+    };
 
-   try {
-       const response = await cognito.initiateAuth(params).promise();
-       const { IdToken, AccessToken } = response.AuthenticationResult;
+    try {
+        const response = await cognito.initiateAuth(params).promise();
+        const { IdToken, AccessToken } = response.AuthenticationResult;
 
-       if (!IdToken || !AccessToken) {
-           return res.status(400).json({ message: 'Failed to refresh tokens' });
-       }
+        if (!IdToken || !AccessToken) {
+            return res.status(400).json({ message: 'Failed to refresh tokens' });
+        }
 
-       const decoded = jwt.decode(IdToken);
-       if (!decoded?.sub) {
-           return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
-       }
+        const decoded = jwt.decode(IdToken);
+        if (!decoded?.sub) {
+            return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
+        }
 
-       res.cookie('idToken', IdToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+        // Set the new idToken in an HTTP-only secure cookie
+        res.cookie('idToken', IdToken, {
+            httpOnly: true,
+            secure: true,
+            sameSite: 'Strict',
+            maxAge: 3600000, // 1 hour
+        });
 
-       res.status(200).json({
-           message: 'Token refreshed successfully',
-           jwtsub: decoded.sub,
-       });
+        res.status(200).json({
+            message: 'Token refreshed successfully',
+            IdToken:IdToken,
+            AccessToken:  AccessToken ,
+            jwtsub: decoded.sub,
+        });
 
-   } catch (err) {
-       res.status(500).json({ message: 'Error during token refresh', error: err.message });
-   }
+    } catch (err) {
+        res.status(500).json({ message: 'Error during token refresh', error: err.message });
+    }
 });
 
-// Logout API
+// Logout API  
+
 login.post('/logout', async (req, res) => {
     const accessToken = req.cookies.accessToken || req.body.accessToken;
 
