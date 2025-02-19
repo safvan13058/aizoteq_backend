@@ -7356,7 +7356,6 @@ const Swaggerdoc = {
         "description": "This endpoint refreshes the user's ID and Access tokens using AWS Cognito's REFRESH_TOKEN_AUTH flow.",
         "operationId": "refreshToken",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
