@@ -7349,25 +7349,25 @@ const Swaggerdoc = {
     }
   },
 
-  "/signup/refresh-token": {
+"/signup/refresh-token": {
       "post": {
         "tags": ["Authentication"],
         "summary": "Refresh JWT tokens using a refresh token",
-        "description": "This endpoint refreshes the user's ID and Access tokens using AWS Cognito's REFRESH_TOKEN_AUTH flow.",
+        "description": "Refreshes the user's ID and Access tokens using AWS Cognito's REFRESH_TOKEN_AUTH flow. The refresh token can be provided either via cookies or in the request body.",
         "operationId": "refreshToken",
         "requestBody": {
+          "required": false,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "username": {
+                  "refreshToken": {
                     "type": "string",
-                    "description": "The username associated with the refresh token.",
-                    "example": "johndoe"
+                    "description": "Refresh token provided in the request body (optional if already in cookies).",
+                    "example": "eyJraWQiOiJrZXktaWQiLCJhbGciOiJSUzI1NiJ9..."
                   }
-                },
-                "required": ["username"]
+                }
               }
             }
           }
@@ -7376,11 +7376,11 @@ const Swaggerdoc = {
           {
             "name": "refreshToken",
             "in": "cookie",
-            "required": true,
+            "required": false,
             "schema": {
               "type": "string"
             },
-            "description": "Refresh token stored in HTTP-only cookies."
+            "description": "Refresh token provided via HTTP-only cookie."
           }
         ],
         "responses": {
@@ -7395,9 +7395,19 @@ const Swaggerdoc = {
                       "type": "string",
                       "example": "Token refreshed successfully"
                     },
+                    "IdToken": {
+                      "type": "string",
+                      "description": "Newly issued ID token.",
+                      "example": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    },
+                    "AccessToken": {
+                      "type": "string",
+                      "description": "Newly issued access token.",
+                      "example": "eyJraWQiOiJrZXktaWQiLCJhbGciOiJSUzI1NiJ9..."
+                    },
                     "jwtsub": {
                       "type": "string",
-                      "description": "The user's Cognito sub claim from the refreshed IdToken.",
+                      "description": "The user's sub claim from the refreshed ID token.",
                       "example": "abc123-sub-id"
                     }
                   }
@@ -7406,15 +7416,16 @@ const Swaggerdoc = {
             },
             "headers": {
               "Set-Cookie": {
-                "description": "HTTP-only cookie containing the refreshed IdToken.",
+                "description": "HTTP-only secure cookie containing the refreshed IdToken.",
                 "schema": {
                   "type": "string"
-                }
+                },
+                "example": "idToken=eyJhbGciOiJSUzI1Ni...; HttpOnly; Secure; SameSite=Strict; Max-Age=3600"
               }
             }
           },
           "400": {
-            "description": "Invalid request or failed token refresh",
+            "description": "Bad request due to missing or invalid refresh token",
             "content": {
               "application/json": {
                 "schema": {
@@ -7422,7 +7433,7 @@ const Swaggerdoc = {
                   "properties": {
                     "message": {
                       "type": "string",
-                      "example": "Refresh token and username are required"
+                      "example": "Refresh token is required"
                     }
                   }
                 }
@@ -7448,7 +7459,8 @@ const Swaggerdoc = {
                 }
               }
             }
-          }}}},
+          }
+        }}},
         
   
 
