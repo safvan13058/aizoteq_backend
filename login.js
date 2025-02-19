@@ -118,7 +118,9 @@ login.post('/refresh-token', async (req, res) => {
         if (!IdToken || !AccessToken) {
             return res.status(400).json({ message: 'Failed to refresh tokens' });
         }
-
+        if (!IdToken || typeof IdToken !== 'string' || !IdToken.includes('.')) {
+            return res.status(400).json({ message: 'Invalid IdToken received from Cognito' });
+        }
         const decoded = jwt.decode(IdToken);
         if (!decoded?.sub) {
             return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
