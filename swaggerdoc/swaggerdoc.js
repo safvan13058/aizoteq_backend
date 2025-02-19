@@ -6861,7 +6861,7 @@ const Swaggerdoc = {
       }
     },
 
-    "/forgotpassword": {
+    "/signup/forgotpassword": {
       "post": {
         "summary": "Initiate password reset",
         "description": "Sends a verification code to the user's email to initiate the password reset process.",
@@ -6918,7 +6918,7 @@ const Swaggerdoc = {
         }
       }
     },
-    "/confirmforgotpassword": {
+    "/signup/confirmforgotpassword": {
       "post": {
         "summary": "Confirm password reset",
         "description": "Confirms the password reset using the verification code and sets a new password.",
@@ -7349,7 +7349,7 @@ const Swaggerdoc = {
     }
   },
 
-  "/refresh-token": {
+  "/signup/refresh-token": {
       "post": {
         "tags": ["Authentication"],
         "summary": "Refresh JWT tokens using a refresh token",
@@ -7452,7 +7452,7 @@ const Swaggerdoc = {
         
   
 
-          "/logout": {
+          "/signup/logout": {
       "post": {
         "summary": "Logs out the user",
         "description": "Revokes the user's access token in AWS Cognito and clears authentication cookies.",
