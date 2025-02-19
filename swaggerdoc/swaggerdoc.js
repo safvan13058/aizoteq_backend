@@ -7006,7 +7006,7 @@ const Swaggerdoc = {
                   },
                   "retail_price": {
                     "type": "number",
-                    "description": "The retail price of the product"
+                     "description": "The retail price of the product"
                   },
                   "discount": {
                     "type": "number",
@@ -7362,6 +7362,11 @@ const Swaggerdoc = {
               "schema": {
                 "type": "object",
                 "properties": {
+                  "username": {
+                    "type": "string",
+                    "description": "The username associated with the Cognito user pool account, required for calculating the SECRET_HASH.",
+                    "example": "johndoe"
+                  },
                   "refreshToken": {
                     "type": "string",
                     "description": "Refresh token provided in the request body (optional if already in cookies).",
