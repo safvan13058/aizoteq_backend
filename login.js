@@ -56,6 +56,7 @@ login.post('/login', async (req, res) => {
     try {
         const response = await cognito.initiateAuth(params).promise();
         const token = response.AuthenticationResult.IdToken;
+        const {IdToken, AccessToken, RefreshToken } = response.AuthenticationResult;
         // console.log(token)
 
         // Decode the JWT
@@ -80,35 +81,87 @@ login.post('/login', async (req, res) => {
         res.set('JWT-Sub', jwtsub);
         res.set('Authorization', `Bearer ${token}`);
         // console.log('User details:');
-        
+         // Set tokens in HTTP-only cookies
+         res.cookie('idToken', IdToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+         res.cookie('refreshToken', RefreshToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
+         res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ message: 'Login successful',token,jwtsub,user: rows[0]});
+        res.status(200).json({ message: 'Login successful',token,jwtsub,AccessToken,user: rows[0]});
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
 });
 
+// * Refresh Token Route
+// */
+login.post('/refresh-token', async (req, res) => {
+   const refreshToken = req.cookies.refreshToken;
+   const username = req.body.username;
+
+   if (!refreshToken || !username) {
+       return res.status(400).json({ message: 'Refresh token and username are required' });
+   }
+
+   const params = {
+       AuthFlow: 'REFRESH_TOKEN_AUTH',
+       ClientId: process.env.clientId,
+       AuthParameters: {
+           REFRESH_TOKEN: refreshToken,
+           SECRET_HASH: calculateSecretHash(username),
+       },
+   };
+
+   try {
+       const response = await cognito.initiateAuth(params).promise();
+       const { IdToken, AccessToken } = response.AuthenticationResult;
+
+       if (!IdToken || !AccessToken) {
+           return res.status(400).json({ message: 'Failed to refresh tokens' });
+       }
+
+       const decoded = jwt.decode(IdToken);
+       if (!decoded?.sub) {
+           return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
+       }
+
+       res.cookie('idToken', IdToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+
+       res.status(200).json({
+           message: 'Token refreshed successfully',
+           jwtsub: decoded.sub,
+       });
+
+   } catch (err) {
+       res.status(500).json({ message: 'Error during token refresh', error: err.message });
+   }
+});
+
 // Logout API
 login.post('/logout', async (req, res) => {
-    const { accessToken } = req.body;
+    const accessToken = req.cookies.accessToken || req.body.accessToken;
 
     if (!accessToken) {
         return res.status(400).json({ message: 'Missing required field: accessToken' });
     }
 
-    const params = {
-        AccessToken: accessToken,
-    };
+    const params = { AccessToken: accessToken };
 
     try {
+        // Revoke access token in Cognito
         await cognito.globalSignOut(params).promise();
+
+        // Clear token cookies
+        res.clearCookie('idToken', { httpOnly: true, secure: true, sameSite: 'Strict' });
+        res.clearCookie('accessToken', { httpOnly: true, secure: true, sameSite: 'Strict' });
+        res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'Strict' });
+
         res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
         res.status(500).json({ message: 'Error during logout', error: err.message });
     }
-
 });
+
 
 // Endpoint to initiate the forgot password process
 login.post('/forgotpassword', async (req, res) => {

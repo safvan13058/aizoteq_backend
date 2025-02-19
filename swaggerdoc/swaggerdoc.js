@@ -7450,7 +7450,86 @@ const Swaggerdoc = {
               }
             }
           }}}},
+        
   
+
+          "/logout": {
+      "post": {
+        "summary": "Logs out the user",
+        "description": "Revokes the user's access token in AWS Cognito and clears authentication cookies.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "accessToken": {
+                    "type": "string",
+                    "description": "The access token to be revoked. Retrieved from cookies or request body."
+                  }
+                }
+              },
+              "example": {
+                "accessToken": "eyJraWQiOiJrZXktaWQ... (sample token)"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logout successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Logout successful"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing required field: accessToken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Missing required field: accessToken"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error during logout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Error during logout"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Error details here..."
+                    }
+                  }
+                }
+              }
+            }
+          }}}},
         };
 
 
