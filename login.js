@@ -87,7 +87,7 @@ login.post('/login', async (req, res) => {
          res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ message: 'Login successful',token,jwtsub,AccessToken,user: rows[0]});
+        res.status(200).json({ message: 'Login successful',token,jwtsub,AccessToken,RefreshToken,user: rows[0]});
     } catch (err) {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
