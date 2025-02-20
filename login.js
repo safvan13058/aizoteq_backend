@@ -88,6 +88,7 @@ login.post('/login', async (req, res) => {
          // Set tokens in HTTP-only cookies
          res.cookie('idToken', IdToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
          res.cookie('refreshToken', RefreshToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
+         res.cookie('username', username, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
          res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -154,7 +155,7 @@ login.post('/refresh-token', async (req, res) => {
     console.log('Cookies:', req.cookies); 
     console.log('Body:', req.body); 
     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
-    const username = req.body.username; // Required for SECRET_HASH
+    const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
   
     if (!refreshToken || !username) {
         return res.status(400).json({ message: 'Refresh token and username are required' });
