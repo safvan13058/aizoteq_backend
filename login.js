@@ -159,8 +159,8 @@ login.post('/refresh-token', async (req, res) => {
         return res.status(400).json({ message: 'Refresh token and username are required' });
     }
 
-    const clientId = process.env.clientId;
-    const clientSecret = process.env.clientSecret;
+    // const clientId = process.env.clientId;
+    // const clientSecret = process.env.clientSecret;
 
     const params = {
         AuthFlow: 'REFRESH_TOKEN_AUTH',
