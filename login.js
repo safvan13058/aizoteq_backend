@@ -6,7 +6,11 @@ require('dotenv').config();
 const db = require('./middlewares/dbconnection');
 const login = express.Router();
 login.use(express.json());
-
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+login.use(cookieParser()); 
+login.use(bodyParser.json());
+login.use(bodyParser.urlencoded({ extended: true }));
 const cors = require('cors');
 login.use(cors({
     origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500'], // Allow all origins
@@ -146,7 +150,9 @@ login.post('/login', async (req, res) => {
 //     }
 // });
 login.post('/refresh-token', async (req, res) => {
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    console.log('Cookies:', req.cookies); 
+    console.log('Body:', req.body); 
+    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
     const username = req.body.username; // Required for SECRET_HASH
 
     if (!refreshToken || !username) {
@@ -161,7 +167,7 @@ login.post('/refresh-token', async (req, res) => {
         ClientId: clientId,
         AuthParameters: {
             REFRESH_TOKEN: refreshToken,
-            SECRET_HASH: calculateSecretHash(username, clientId, clientSecret),
+            SECRET_HASH: calculateSecretHash(username),
         },
     };
 
