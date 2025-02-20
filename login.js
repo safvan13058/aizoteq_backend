@@ -186,7 +186,7 @@ login.post('/refresh-token', async (req, res) => {
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME:username, // REQUIRED for SECRET_HASH to match
-            SECRET_HASH:secretHash,
+            // SECRET_HASH:secretHash,
         },
     };
 
