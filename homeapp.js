@@ -222,7 +222,7 @@ homeapp.get('/app/display/homes/',
 //                 h.name AS home_name,
 //                 sa.access_type AS access_type,
 //                 sa.status AS share_status
-//             FROM sharedaccess sa
+//             FROM sharedusers sa
 //             INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
 //             WHERE 
 //                 (sa.shared_with_user_email = $1 OR sa.user_id = $2)
@@ -2120,7 +2120,7 @@ homeapp.get('/api/favorite-devices/:userId',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
      async (req, res) => {
-    const { userId } = req.params;
+    const  userId  = req.user?.id||req.params.userId;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
     const client = await db.connect();
 
