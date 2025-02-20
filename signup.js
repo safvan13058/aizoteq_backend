@@ -164,7 +164,7 @@ signup.post('/verify-otp', async (req, res) => {
     console.log(`otpp session ${req.session.username}`)
     console.log(`jwt,role==${ jwtsub, role}`)
     console.log(`jwtsub==${req.session.jwtsub}`)
-    console.log(req.cookies)
+    console.log(req.cookies.jwtsub)
     
 
     if (!username|| !otp) {
