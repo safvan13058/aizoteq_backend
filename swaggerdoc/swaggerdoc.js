@@ -1894,7 +1894,7 @@ const Swaggerdoc = {
       {
         "name": "userId",
         "in": "query",
-        "required": true,
+        "required": false,
         "description": "The ID of the user",
         "schema": {
           "type": "integer"

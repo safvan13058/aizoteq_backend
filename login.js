@@ -98,7 +98,7 @@ login.post('/login', async (req, res) => {
         res.status(500).json({ message: 'Error during login', error: err.message });
     }
 });
-
+ 
 // * Refresh Token Route
 // */
 // login.post('/refresh-token', async (req, res) => {
@@ -224,7 +224,6 @@ login.post('/refresh-token', async (req, res) => {
 });
 
 // Logout API  
-
 login.post('/logout', async (req, res) => {
     const accessToken = req.cookies.accessToken || req.body.accessToken;
 
@@ -295,4 +294,6 @@ login.post('/confirmforgotpassword', async (req, res) => {
         res.status(500).json({ message: 'Error during password confirmation', error: err.message });
     }
 });
+
+
 module.exports = login;
