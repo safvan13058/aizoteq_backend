@@ -164,7 +164,7 @@ login.post('/refresh-token', async (req, res) => {
 
     const params = {
         AuthFlow: 'REFRESH_TOKEN_AUTH',
-        ClientId: clientId,
+        ClientId: process.env.clientId,
         AuthParameters: {
             REFRESH_TOKEN: refreshToken,
             SECRET_HASH: calculateSecretHash(username),
