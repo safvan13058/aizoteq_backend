@@ -56,6 +56,7 @@ login.post('/login', async (req, res) => {
             SECRET_HASH: calculateSecretHash(username),
         },
     };
+    console.log(`login${calculateSecretHash(username)}`)
 
     try {
         const response = await cognito.initiateAuth(params).promise();
@@ -178,7 +179,7 @@ login.post('/refresh-token', async (req, res) => {
 
     // const clientId = process.env.clientId;
     // const clientSecret = process.env.clientSecret;
-
+    console.log(`refresh${secretHash}`)
     const params = {
         AuthFlow: 'REFRESH_TOKEN_AUTH',
         ClientId: process.env.clientId,
