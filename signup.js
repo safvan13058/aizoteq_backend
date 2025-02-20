@@ -5,7 +5,9 @@ const AWS=require('aws-sdk');
 require('dotenv').config();
 signup.use(express.json());
 const crypto = require('crypto');
-
+const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
+signup.use(cookieParser()); 
 
 const session = require('express-session');
 // const PgSession = require('connect-pg-simple')(session);
@@ -88,7 +90,9 @@ async function handleSignup(req, res, role) {
         // await db.query(query, values);
 
         req.session.username = userName; // Store username in session
-        
+        res.cookie('username', userName, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+        res.cookie('jwtsub', jwtsub, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+        res.cookie('role', role, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
    
         
         console.log(req.session)
@@ -153,16 +157,17 @@ signup.get('/get-session', (req, res) => {
 // Verify OTP API
 signup.post('/verify-otp', async (req, res) => {
     const {username, otp, fullName, jwtsub, role } = req.body;
+
     console.log(`req.body: ${JSON.stringify(req.body, null, 2)}`);
 
     console.log(`get otp${otp}`)
     console.log(`otpp session ${req.session.username}`)
     console.log(`jwt,role==${ jwtsub, role}`)
     console.log(`jwtsub==${req.session.jwtsub}`)
-    console.log(req.session)
+    console.log(req.cookies)
     
 
-    if (!username|| !otp||!jwtsub ||!role) {
+    if (!username|| !otp) {
         return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
     }
     // const username = req.session.username;
@@ -177,7 +182,7 @@ signup.post('/verify-otp', async (req, res) => {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
         const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2,$3,$4)';
-        const values = [username, jwtsub||req.session.jwtsub, role||req.session.role,fullName];
+        const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName];
 
         await db.query(query, values);
         console.log("workings")
