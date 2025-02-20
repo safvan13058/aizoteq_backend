@@ -150,11 +150,12 @@ login.post('/login', async (req, res) => {
 //     }
 // });
 login.post('/refresh-token', async (req, res) => {
+    console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
     console.log('Cookies:', req.cookies); 
     console.log('Body:', req.body); 
     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
     const username = req.body.username; // Required for SECRET_HASH
-
+  
     if (!refreshToken || !username) {
         return res.status(400).json({ message: 'Refresh token and username are required' });
     }
