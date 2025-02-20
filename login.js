@@ -169,6 +169,7 @@ login.post('/refresh-token', async (req, res) => {
         ClientId: process.env.clientId,
         AuthParameters: {
             REFRESH_TOKEN: refreshToken,
+            USERNAME: username, // REQUIRED for SECRET_HASH to match
             SECRET_HASH: calculateSecretHash(username),
         },
     };
