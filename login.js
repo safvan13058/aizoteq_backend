@@ -150,10 +150,24 @@ login.post('/login', async (req, res) => {
 //         res.status(500).json({ message: 'Error during token refresh', error: err.message });
 //     }
 // });
+
+function calculateSecretHashs(username, clientId, clientSecret) {
+    if (!clientId || !clientSecret) {
+        console.error("❌ Missing clientId or clientSecret");
+        return null;
+    }
+
+    return crypto
+        .createHmac('sha256', clientSecret)     // clientSecret is the key
+        .update(username + clientId)           // message is username + clientId
+        .digest('base64');                     // base64-encoded hash
+}
+
 login.post('/refresh-token', async (req, res) => {
     console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
     console.log('Cookies:', req.cookies); 
     console.log('Body:', req.body); 
+    const secretHash = calculateSecretHashs(username, clientId, clientSecret); 
     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
     const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
     console.log('Body:', username); 
@@ -170,7 +184,7 @@ login.post('/refresh-token', async (req, res) => {
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME: username, // REQUIRED for SECRET_HASH to match
-            // SECRET_HASH: calculateSecretHash(username),
+            SECRET_HASH: secretHash,
         },
     };
 
