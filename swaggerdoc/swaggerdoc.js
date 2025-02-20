@@ -1885,7 +1885,7 @@ const Swaggerdoc = {
 //         }
 //       }
 //     },
-"/api/favorite-devices/{userId}": {
+"/api/favorite-devices": {
   "get": {
     "tags": ["device"],
     "summary": "Get favorite devices grouped by room",
@@ -1893,7 +1893,7 @@ const Swaggerdoc = {
     "parameters": [
       {
         "name": "userId",
-        "in": "path",
+        "in": "query",
         "required": true,
         "description": "The ID of the user",
         "schema": {

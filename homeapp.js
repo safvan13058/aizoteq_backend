@@ -2116,11 +2116,11 @@ homeapp.put('/api/device/favorite/:deviceid',
 //     }
 // });
 
-homeapp.get('/api/favorite-devices/:userId',
+homeapp.get('/api/favorite-devices',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
      async (req, res) => {
-    const  userId  = req.user?.id||req.params.userId;
+    const  userId  = req.user?.id||req.query.userId;
     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
     const client = await db.connect();
 
