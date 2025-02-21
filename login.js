@@ -152,18 +152,6 @@ login.post('/login', async (req, res) => {
 //     }
 // });
 
-function calculateSecretHashs(username, clientId, clientSecret) {
-    if (!clientId || !clientSecret) {
-        console.error("❌ Missing clientId or clientSecret");
-        return null;
-    }
-
-    return crypto
-        .createHmac('sha256', clientSecret)     // clientSecret is the key
-        .update(username + clientId)           // message is username + clientId
-        .digest('base64');                     // base64-encoded hash
-}
-
 login.post('/refresh-token', async (req, res) => {
     console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
     console.log('Cookies:',req.cookies); 
@@ -172,7 +160,7 @@ login.post('/refresh-token', async (req, res) => {
     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
     const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
     console.log(`Body:${username}`); 
-    const secretHash = calculateSecretHashs(username, clientId, clientSecret); 
+    const secretHash = calculateSecretHash(username); 
     if (!refreshToken || !username) {
         return res.status(400).json({ message: 'Refresh token and username are required' });
     }
@@ -186,7 +174,7 @@ login.post('/refresh-token', async (req, res) => {
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME:username, // REQUIRED for SECRET_HASH to match
-            SECRET_HASH:"93U3fj7dTyczgd8zxHNfX5cGsC7+zEOcFWiVhGSZxIw=",
+            SECRET_HASH:secretHash
         },
     };
 
