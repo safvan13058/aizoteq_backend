@@ -816,8 +816,8 @@ homeapp.post('/app/add/room/:floor_id',
 
 // Display room
 homeapp.get('/app/display/rooms/:floor_id',
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const floorId = req.params.floor_id; // Extract floor ID from the request URL
