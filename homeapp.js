@@ -816,8 +816,8 @@ homeapp.post('/app/add/room/:floor_id',
 
 // Display room
 homeapp.get('/app/display/rooms/:floor_id',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const floorId = req.params.floor_id; // Extract floor ID from the request URL
@@ -993,8 +993,8 @@ homeapp.put('/app/update/rooms/:id',
 
 //Delete Room
 homeapp.delete('/app/delete/room/:id',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const roomId = req.params.id; // Get the room ID from the URL parameter
