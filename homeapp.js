@@ -993,8 +993,8 @@ homeapp.put('/app/update/rooms/:id',
 
 //Delete Room
 homeapp.delete('/app/delete/room/:id',
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const roomId = req.params.id; // Get the room ID from the URL parameter
