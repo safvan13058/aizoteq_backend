@@ -19,7 +19,7 @@ homeapp.get("/api/display/user",
     async (req, res) => {
         console.log(`display user==${req.user}`)
         const userId = req.user.id;
-        const fetchUserQuery = "SELECT  userName,userRole,name,profilePic FROM Users WHERE id = $1";
+        const fetchUserQuery = "SELECT id, userName,userRole,name,profilePic FROM Users WHERE id = $1";
 
         try {
             const result = await db.query(fetchUserQuery, [userId]);
