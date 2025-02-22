@@ -264,7 +264,7 @@ async function processBilling(data, stockTable, username, res) {
       }
       for (const item of billingItems) {
                   await client.query(
-                    `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, mrp,item_discount,sgst,cgst,igst,final_price, type) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9,$10,$11,$12)`,
+                    `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, mrp,item_discount,sgst,cgst,igst,final_price, type) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9,$10,$11)`,
                     [receiptNo, item.item_name, item.model, item.serial_no,item.mrp,item.item_discount,item.sgst,item.cgst,item.igst,item.final_price, "sold"]
                   );
                 }
