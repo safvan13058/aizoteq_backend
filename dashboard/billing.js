@@ -46,13 +46,13 @@ const {getThingBySerialNo,removeFromStock,removeFromStockdealers,addToStock,gene
     const userRole = userRoleQuery.rows[0].userrole;
 
     // Validate session
-    if (!sessionid) {
-      return res.status(400).json({ error: "Session ID is required" });
-    }
-    const sessionValidation = await isSessionOpen(sessionid, db);
-    if (!sessionValidation.isValid) {
-      return res.status(400).json({ error: sessionValidation.message });
-    }
+    // if (!sessionid) {
+    //   return res.status(400).json({ error: "Session ID is required" });
+    // }
+    // const sessionValidation = await isSessionOpen(sessionid, db);
+    // if (!sessionValidation.isValid) {
+    //   return res.status(400).json({ error: sessionValidation.message });
+    // }
      
     const username=email;
     // Handle billing based on user role
@@ -156,8 +156,8 @@ async function processBilling(data, stockTable, username, res) {
   
         // Calculate item-specific discount and final price
         const itemDiscountPercentage = parseFloat(discount) || 0; // discount in percentage
-        const itemDiscount = (retail_price * itemDiscountPercentage) / 100; // calculate discount value
-        const discountedPrice = Math.max(0, retail_price - itemDiscount);
+        const itemDiscount = (mrp * itemDiscountPercentage) / 100; // calculate discount value
+        const discountedPrice = Math.max(0, mrp - itemDiscount);
 
   
         // Calculate taxes
@@ -207,7 +207,7 @@ async function processBilling(data, stockTable, username, res) {
           serial_no,
           model,
           mrp,
-          retail_price: parseFloat(retail_price) || 0,
+          // retail_price: parseFloat(retail_price) || 0,
           item_discount: itemDiscount,
           discounted_price: discountedPrice,
           sgst: sgstAmount,
@@ -264,8 +264,8 @@ async function processBilling(data, stockTable, username, res) {
       }
       for (const item of billingItems) {
                   await client.query(
-                    `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, retail_price,mrp,item_discount,sgst,cgst,igst,final_price, type) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9,$10,$11,$12)`,
-                    [receiptNo, item.item_name, item.model, item.serial_no, item.retail_price,item.mrp,item.item_discount,item.sgst,item.cgst,item.igst,item.final_price, "sold"]
+                    `INSERT INTO billing_items (receipt_no, item_name, model, serial_no, mrp,item_discount,sgst,cgst,igst,final_price, type) VALUES ($1, $2, $3, $4, $5, $6,$7,$8,$9,$10,$11,$12)`,
+                    [receiptNo, item.item_name, item.model, item.serial_no,item.mrp,item.item_discount,item.sgst,item.cgst,item.igst,item.final_price, "sold"]
                   );
                 }
   
