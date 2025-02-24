@@ -308,11 +308,11 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: process.env.clientId,
+            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
-                SECRET_HASH: secretHash,
+                // SECRET_HASH: secretHash,
             },
         };
 
