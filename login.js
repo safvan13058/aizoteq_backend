@@ -89,6 +89,7 @@ login.post('/login', async (req, res) => {
          res.cookie('refreshToken', RefreshToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
          res.cookie('username', username, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
          res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
+         res.cookie('SecretHash', calculateSecretHash(username), { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         // Generate a custom JWT if needed
         // const customToken = jwt.sign({ username, sub: jwtsub }, process.env.JWT_SECRET, { expiresIn: '1h' });
         res.status(200).json({ message: 'Login successful',token,jwtsub,AccessToken,RefreshToken,user: rows[0]});
@@ -153,6 +154,7 @@ login.post('/login', async (req, res) => {
 login.post('/refresh-token', async (req, res) => {
     console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
     console.log('Cookies:',req.cookies); 
+    console.log('SecretHash:',req.cookies.SecretHash); 
     console.log('Body:',req.body); 
     
     const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
@@ -172,7 +174,7 @@ login.post('/refresh-token', async (req, res) => {
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME:username, // REQUIRED for SECRET_HASH to match
-            SECRET_HASH:secretHash
+            SECRET_HASH:req.cookies.SecretHash
         },
     };
 
