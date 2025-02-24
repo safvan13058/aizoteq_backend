@@ -285,13 +285,13 @@ login.post('/confirmforgotpassword', async (req, res) => {
 
 login.post('/auth', async (req, res) => {
     const { username, password } = req.body;
-    const refreshToken = req.cookies?.refreshToken;
 
-    console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
-    console.log('Cookies:', req.cookies);
-    console.log('Body:', req.body);
+    if (!username || !password) {
+        console.warn('⚠️ Missing username or password in request body.');
+        return res.status(400).json({ message: 'Username and password are required.' });
+    }
 
-    // 🔑 Helper function for setting cookies
+    // 🔑 Helper: Set cookies
     const setAuthCookies = (IdToken, AccessToken, RefreshToken, username) => {
         res.cookie('idToken', IdToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
         res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
@@ -300,91 +300,103 @@ login.post('/auth', async (req, res) => {
         res.cookie('SecretHash', calculateSecretHash(username), { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
     };
 
-    // 🟢 LOGIN FLOW
-    if (username && password) {
-        console.log('🔑 Performing login...');
-        const params = {
+    try {
+        // 🟢 STEP 1: LOGIN FLOW
+        console.log('🔑 [LOGIN] Starting login process...');
+        const secretHash = calculateSecretHash(username);
+        console.log(`🔑 [LOGIN] Calculated SECRET_HASH: ${secretHash}`);
+
+        const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
             ClientId: process.env.clientId,
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
-                SECRET_HASH: calculateSecretHash(username),
-            },
-        };
-
-        try {
-            const response = await cognito.initiateAuth(params).promise();
-            const { IdToken, AccessToken, RefreshToken } = response.AuthenticationResult;
-            const decoded = jwt.decode(IdToken);
-
-            if (!decoded?.sub) return res.status(400).json({ message: 'Invalid token: Missing `sub` claim' });
-
-            const jwtsub = decoded.sub;
-            const query = 'SELECT * FROM Users WHERE jwtsub = $1';
-            const { rows } = await db.query(query, [jwtsub]);
-
-            if (rows.length === 0) return res.status(404).json({ message: 'User not found for the provided sub' });
-
-            setAuthCookies(IdToken, AccessToken, RefreshToken, username);
-
-            return res.status(200).json({
-                message: 'Login successful',
-                IdToken,
-                AccessToken,
-                RefreshToken,
-                jwtsub,
-                user: rows[0],
-            });
-        } catch (err) {
-            console.error('❌ Login error:', err.message);
-            return res.status(500).json({ message: 'Error during login', error: err.message });
-        }
-    }
-
-    // 🔄 REFRESH TOKEN FLOW
-    if (refreshToken && req.cookies?.username) {
-        const usernameFromCookie = req.cookies.username;
-        const secretHash = calculateSecretHash(usernameFromCookie);
-
-        console.log('🔄 Attempting token refresh...');
-        console.log(`refresh::${secretHash}`);
-
-        const params = {
-            AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: process.env.clientId,
-            AuthParameters: {
-                REFRESH_TOKEN: refreshToken,
-                USERNAME: usernameFromCookie,
                 SECRET_HASH: secretHash,
             },
         };
 
-        try {
-            const response = await cognito.initiateAuth(params).promise();
-            const { IdToken, AccessToken } = response.AuthenticationResult;
+        console.log('🔑 [LOGIN] Sending login request to Cognito...');
+        const loginResponse = await cognito.initiateAuth(loginParams).promise();
+        console.log('✅ [LOGIN] Cognito login response:', JSON.stringify(loginResponse, null, 2));
 
-            if (!IdToken || !AccessToken) return res.status(400).json({ message: 'Failed to refresh tokens' });
-
-            const decoded = jwt.decode(IdToken);
-            if (!decoded?.sub) return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
-
-            setAuthCookies(IdToken, AccessToken, refreshToken, usernameFromCookie);
-
-            return res.status(200).json({
-                message: 'Token refreshed successfully',
-                IdToken,
-                AccessToken,
-                jwtsub: decoded.sub,
-            });
-        } catch (err) {
-            console.error('❌ Token refresh error:', err.message);
-            return res.status(500).json({ message: 'Error during token refresh', error: err.message });
+        const { IdToken: loginIdToken, AccessToken: loginAccessToken, RefreshToken: loginRefreshToken } = loginResponse.AuthenticationResult;
+        if (!loginRefreshToken) {
+            console.error('❌ [LOGIN] Refresh token not returned from Cognito.');
+            return res.status(500).json({ message: 'Login successful but no refresh token returned.' });
         }
-    }
 
-    // 🚫 If neither login nor refresh conditions are met
-    return res.status(400).json({ message: 'Provide username & password for login or have a valid refresh token.' });
+        const decodedLogin = jwt.decode(loginIdToken);
+        if (!decodedLogin?.sub) {
+            console.error('❌ [LOGIN] Invalid login token: Missing `sub` claim.');
+            return res.status(400).json({ message: 'Invalid login token: Missing `sub` claim' });
+        }
+
+        const jwtsub = decodedLogin.sub;
+        console.log(`🔑 [LOGIN] JWT sub: ${jwtsub}`);
+
+        const { rows } = await db.query('SELECT * FROM Users WHERE jwtsub = $1', [jwtsub]);
+        if (rows.length === 0) {
+            console.warn('⚠️ [LOGIN] No user found for the provided sub.');
+            return res.status(404).json({ message: 'User not found for the provided sub' });
+        }
+
+        setAuthCookies(loginIdToken, loginAccessToken, loginRefreshToken, username);
+        console.log('✅ [LOGIN] Tokens set in cookies.');
+
+        // 🔄 STEP 2: REFRESH TOKEN FLOW (Immediately after login)
+        console.log('🔄 [REFRESH] Starting token refresh using login refreshToken...');
+        console.log(`🔄 [REFRESH] Using refreshToken: ${loginRefreshToken}`);
+
+        const refreshParams = {
+            AuthFlow: 'REFRESH_TOKEN_AUTH',
+            ClientId: process.env.clientId,
+            AuthParameters: {
+                REFRESH_TOKEN: loginRefreshToken,
+                USERNAME: username,
+                SECRET_HASH: calculateSecretHash(username),
+            },
+        };
+
+        console.log('🔄 [REFRESH] Sending refresh request to Cognito...');
+        const refreshResponse = await cognito.initiateAuth(refreshParams).promise();
+        console.log('✅ [REFRESH] Cognito refresh response:', JSON.stringify(refreshResponse, null, 2));
+
+        const { IdToken: refreshedIdToken, AccessToken: refreshedAccessToken } = refreshResponse.AuthenticationResult;
+        if (!refreshedIdToken || !refreshedAccessToken) {
+            console.error('❌ [REFRESH] Failed to get refreshed tokens.');
+            return res.status(400).json({ message: 'Failed to refresh tokens after login.' });
+        }
+
+        const decodedRefresh = jwt.decode(refreshedIdToken);
+        if (!decodedRefresh?.sub) {
+            console.error('❌ [REFRESH] Invalid refreshed token: Missing `sub` claim.');
+            return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
+        }
+
+        setAuthCookies(refreshedIdToken, refreshedAccessToken, loginRefreshToken, username);
+        console.log('✅ [REFRESH] Refreshed tokens set in cookies.');
+
+        // ✅ RESPONSE
+        return res.status(200).json({
+            message: 'Login and token refresh successful',
+            loginTokens: {
+                IdToken: loginIdToken,
+                AccessToken: loginAccessToken,
+                RefreshToken: loginRefreshToken,
+            },
+            refreshedTokens: {
+                IdToken: refreshedIdToken,
+                AccessToken: refreshedAccessToken,
+            },
+            jwtsub,
+            user: rows[0],
+        });
+
+    } catch (err) {
+        console.error('❌ [ERROR] During login or token refresh:', err.message);
+        return res.status(500).json({ message: 'Error during login or token refresh', error: err.message });
+    }
 });
 
 
