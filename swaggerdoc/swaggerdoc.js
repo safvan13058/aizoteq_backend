@@ -7360,7 +7360,7 @@ const Swaggerdoc = {
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
+                "type": "object", 
                 "properties": {
                   "username": {
                     "type": "string",
@@ -7546,6 +7546,126 @@ const Swaggerdoc = {
               }
             }
           }}}},
+
+          "/signup/auth": {
+      "post": {
+        "summary": "Login or Refresh Token",
+        "description": "Performs user login if username and password are provided. Refreshes token if refreshToken cookie is present.",
+        "tags": ["Authentication"],
+        "requestBody": {
+          "description": "Login credentials (required for login flow). Omit body for refresh token flow.",
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "user@example.com" },
+                  "password": { "type": "string", "example": "your_password" }
+                },
+                "required": ["username", "password"]
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "refreshToken",
+            "in": "cookie",
+            "description": "Refresh token cookie (required for refresh flow).",
+            "required": false,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "username",
+            "in": "cookie",
+            "description": "Username cookie (used with refresh token).",
+            "required": false,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful login or token refresh.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "message": { "type": "string", "example": "Login successful" },
+                        "IdToken": { "type": "string" },
+                        "AccessToken": { "type": "string" },
+                        "RefreshToken": { "type": "string" },
+                        "jwtsub": { "type": "string" },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": { "type": "integer", "example": 1 },
+                            "email": { "type": "string", "example": "user@example.com" },
+                            "name": { "type": "string", "example": "John Doe" }
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "message": { "type": "string", "example": "Token refreshed successfully" },
+                        "IdToken": { "type": "string" },
+                        "AccessToken": { "type": "string" },
+                        "jwtsub": { "type": "string" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing fields or invalid tokens.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Provide username & password for login or have a valid refresh token." }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "User not found for the provided sub" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error during login or refresh.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Error during login" },
+                    "error": { "type": "string", "example": "InvalidParameterException: SECRET_HASH does not match" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
         };
 
 
