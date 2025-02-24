@@ -1466,7 +1466,7 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
-// API Endpoint to search price_table by model and/or attributes
+// API Endpoint to search price_table by model and or attributes
 
 
 dashboard.get('/api/search/model/price', async (req, res) => {
@@ -3506,6 +3506,7 @@ const diskStorage = multer.diskStorage({
 });
 
 // Multer Middleware for File Uploads
+
 const uploads = multer({
   storage: diskStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
@@ -3570,6 +3571,7 @@ dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
 //     res.status(500).json({ message: "Internal server error" });
 //   }
 // });
+
 dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
   console.log("Uploaded files:", req.files);
@@ -3674,6 +3676,7 @@ dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), as
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) => {
   const { modelid_or_modelno } = req.params;
 
@@ -4013,8 +4016,8 @@ dashboard.post('/open-session',
 const PDFDocument = require('pdfkit');
 // 2. Close Billing Session
 dashboard.post('/close-session',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { session_id, closed_by } = req.body;
 
@@ -4975,6 +4978,7 @@ dashboard.delete('/api/raw_materials/delete/:id',
 //       res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
 //     }
 //   });
+
 dashboard.get('/api/raw_materials',
     // validateJwt,
     // authorizeRoles('admin'),
@@ -5816,7 +5820,7 @@ dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
-
+ 
 dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) => {
   try {
     const { id } = req.params; // Extract id from the route params
@@ -5828,6 +5832,7 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
   }
 });
 
+ 
 // dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
 //   const { id } = req.params;
 
@@ -5858,6 +5863,7 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
 //     client.release();
 //   }
 // });
+
 dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
   const { id } = req.params;
 
