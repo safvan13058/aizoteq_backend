@@ -312,7 +312,7 @@ login.post('/auth', async (req, res) => {
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
-                SECRET_HASH: secretHash,
+                // SECRET_HASH: secretHash,
             },
         };
 
