@@ -51,7 +51,7 @@ login.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME:username,
             PASSWORD:password,
-            SECRET_HASH: calculateSecretHash(username),
+            // SECRET_HASH: calculateSecretHash(username),
         },
     };
     console.log(`login${calculateSecretHash(username)}`)
@@ -174,7 +174,7 @@ login.post('/refresh-token', async (req, res) => {
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME:username, // REQUIRED for SECRET_HASH to match
-            SECRET_HASH:req.cookies.SecretHash
+            // SECRET_HASH:req.cookies.SecretHash
         },
     };
 
@@ -248,7 +248,7 @@ login.post('/forgotpassword', async (req, res) => {
     const params = {
         ClientId: process.env.clientId,
         Username: username,
-        SecretHash: calculateSecretHash(username),
+        // SecretHash: calculateSecretHash(username),
     };
 
     try {
@@ -272,7 +272,7 @@ login.post('/confirmforgotpassword', async (req, res) => {
         Username: username,
         ConfirmationCode: verificationCode,
         Password: newPassword,
-        SecretHash: calculateSecretHash(username),
+        // SecretHash: calculateSecretHash(username),
     };
 
     try {
