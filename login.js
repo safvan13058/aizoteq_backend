@@ -13,7 +13,7 @@ login.use(bodyParser.json());
 login.use(bodyParser.urlencoded({ extended: true }));
 const cors = require('cors');
 login.use(cors({
-    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500'], // Allow all origins
+    origin:['http://127.0.0.1:5500', 'http://172.20.10.7:5500',"http://localhost:5500"], // Allow all origins
     credentials: true, // Allow cookies to be sent
 }));
 
@@ -42,17 +42,15 @@ AWS.config.update({ region: process.env.COGNITO_REGION });
 // Login API
 login.post('/login', async (req, res) => {
     const { username, password } = req.body;
-
     if (!username || !password) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
-
     const params = {
         AuthFlow: 'USER_PASSWORD_AUTH',
         ClientId: process.env.clientId,
         AuthParameters: {
-            USERNAME: username,
-            PASSWORD: password,
+            USERNAME:username,
+            PASSWORD:password,
             SECRET_HASH: calculateSecretHash(username),
         },
     };
@@ -167,7 +165,7 @@ login.post('/refresh-token', async (req, res) => {
 
     // const clientId = process.env.clientId;
     // const clientSecret = process.env.clientSecret;
-    console.log(`refresh${secretHash}`)
+    console.log(`refresh::${secretHash}`)
     const params = {
         AuthFlow:'REFRESH_TOKEN_AUTH',
         ClientId:process.env.clientId,
