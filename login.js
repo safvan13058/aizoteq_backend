@@ -157,8 +157,8 @@ login.post('/refresh-token', async (req, res) => {
     console.log('SecretHash:',req.cookies.SecretHash); 
     console.log('Body:',req.body); 
     
-    const refreshToken = req.cookies?.refreshToken || req.body.refreshToken;
-    const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
+    const refreshToken = req.cookies?.refreshToken ;
+    const username = req.cookies?.username; // Required for SECRET_HASH
     console.log(`Body:${username}`); 
     const secretHash = calculateSecretHash(username); 
     if (!refreshToken || !username) {
