@@ -170,11 +170,11 @@ login.post('/refresh-token', async (req, res) => {
     console.log(`refresh::${secretHash}`)
     const params = {
         AuthFlow:'REFRESH_TOKEN_AUTH',
-        ClientId:process.env.clientId,
+        ClientId:"2h3nid8ifjsojo4hsk96me5ntt",
         AuthParameters: {
             REFRESH_TOKEN:refreshToken,
             USERNAME:username, // REQUIRED for SECRET_HASH to match
-            SECRET_HASH:req.cookies.SecretHash
+            // SECRET_HASH:req.cookies.SecretHash
         },
     };
 
@@ -308,7 +308,7 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: process.env.clientId,
+            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
