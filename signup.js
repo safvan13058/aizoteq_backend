@@ -72,7 +72,7 @@ async function handleSignup(req, res, role) {
             { Name: 'phone_number', Value: phoneNumber },
             { Name: 'name', Value: fullName },
         ],
-        SecretHash: secretHash,
+        // SecretHash: secretHash,
     };
 
     try {
@@ -175,7 +175,7 @@ signup.post('/verify-otp', async (req, res) => {
         ClientId: process.env.clientId,
         Username: username,
         ConfirmationCode: otp,
-        SecretHash: calculateSecretHash(username),
+        // SecretHash: calculateSecretHash(username),
     };
 
     try {
@@ -282,7 +282,7 @@ signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
     const params = {
         ClientId: process.env.clientId,
         Username: username,
-        SecretHash: calculateSecretHash(username),
+        // SecretHash: calculateSecretHash(username),
     };
 
     try {
