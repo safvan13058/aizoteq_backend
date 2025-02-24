@@ -2580,8 +2580,8 @@ dashboard.post('/api/create/account/for/:Party',
 
 //Api to display
 dashboard.get('/api/display/party/:Party',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles('admin'),
   async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
@@ -2681,8 +2681,8 @@ dashboard.get('/api/display/party/:Party',
 
 //delete account 
 dashboard.delete('/api/delete/account/for/:Party/:id',
-  validateJwt,
-  authorizeRoles('admin', 'dealer'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { Party, id } = req.params;
 
@@ -3996,8 +3996,8 @@ dashboard.get("/api/billing/:entity_type/:entity_id",
 
 // 1. Open Billing Session
 dashboard.post('/open-session',
-  // validateJwt,
-  // authorizeRoles('admin', 'dealer'),
+  validateJwt,
+  authorizeRoles('admin','dealer'),
   async (req, res) => {
     const { opened_by } = req.body;
     const userid = req.user?.id || req.body.userid||76;
@@ -4016,8 +4016,8 @@ dashboard.post('/open-session',
 const PDFDocument = require('pdfkit');
 // 2. Close Billing Session
 dashboard.post('/close-session',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin'),
   async (req, res) => {
     const { session_id, closed_by } = req.body;
 
