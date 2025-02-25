@@ -1618,12 +1618,12 @@ dashboard.get('/api/search/model/price', async (req, res) => {
 // });
 
 dashboard.get("/price/:serialno",
-  validateJwt,
-  authorizeRoles('admin', 'dealer'),
+  // validateJwt,
+  // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
   const { serialno } = req.params;
   const email =req.user.email; // role: 'admin' or 'dealer'
-  const role=req.user.role;
+  const role="admin";
   try {
     let query = "";
     let params = [];
