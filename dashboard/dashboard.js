@@ -1704,9 +1704,7 @@ dashboard.get("/price/:serialno",
       cgst: parseFloat(data.cgst).toFixed(2),
       igst: parseFloat(data.igst).toFixed(2),
       discount: parseFloat(data.discount).toFixed(2),
-      warranty_period: {
-        months: data.warranty_period
-      },
+      warranty_period: data.warranty_period,
       lastmodified: data.lastmodified
     };
 
