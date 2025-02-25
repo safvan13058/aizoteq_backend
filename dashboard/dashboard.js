@@ -1622,7 +1622,7 @@ dashboard.get("/price/:serialno",
   authorizeRoles('admin', 'dealer'),
   async (req, res) => {
   const { serialno } = req.params;
-  const email =req.user.email; // role: 'admin' or 'dealer'
+  const email =req.user.username; // role: 'admin' or 'dealer'
   const role=req.user.role;
   try {
     let query = "";
@@ -1990,7 +1990,10 @@ dashboard.get("/api/billing/:receipt_no", async (req, res) => {
 });
 
 
-dashboard.get('/api/recent-bills', async (req, res) => {
+dashboard.get('/api/recent-bills',
+  validateJwt,
+  authorizeRoles('admin','dealer'),
+   async (req, res) => {
   // Get the search term from the query string
   const { search_term } = req.query;
 
@@ -2064,6 +2067,103 @@ dashboard.get('/api/recent-bills', async (req, res) => {
     const result = await db.query(query, queryParams);
 
     // Send the result as a JSON response
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching recent billing details:', err);
+    res.status(500).send('Internal Server Error');
+  }
+});
+dashboard.get('/api/recent-bills', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+  const { search_term } = req.query;
+  const { role:userRole, id: userId } = req.user; // Extracted from JWT
+
+  let query = `
+    SELECT 
+      br.id AS billing_id,
+      br.receipt_no,
+      br.name AS customer_name,
+      br.phone,
+      br.email,
+      br.billing_address,
+      br.shipping_address,
+      br.dealer_or_customer,
+      br.total_amount,
+      br.paid_amount,
+      br.balance,
+      br.billing_createdby,
+      br.datetime AS billing_datetime,
+      br.lastmodified,
+      -- Payments aggregation
+      COALESCE(
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'payment_method', pd.payment_method,
+            'payment_amount', pd.amount
+          )
+        ) FILTER (WHERE pd.id IS NOT NULL), '[]'
+      ) AS payments,
+      -- Items aggregation
+      COALESCE(
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'item_name', bi.item_name,
+            'model', bi.model,
+            'mrp', bi.mrp,
+            'serial_no', bi.serial_no,
+            'retail_price', bi.retail_price,
+            'item_discount', bi.item_discount,
+            'sgst', bi.sgst,
+            'cgst', bi.cgst,
+            'igst', bi.igst,
+            'final_price', bi.final_price,
+            'item_type', bi.type
+          )
+        ) FILTER (WHERE bi.id IS NOT NULL), '[]'
+      ) AS items
+    FROM 
+      billing_receipt br
+    LEFT JOIN 
+      payment_details pd ON br.id = pd.receipt_id
+    LEFT JOIN 
+      billing_items bi ON br.receipt_no = bi.receipt_no
+    JOIN 
+      Users u ON br.created_by = u.id
+  `;
+
+  const queryParams = [];
+  const conditions = [];
+
+  if (userRole === 'admin') {
+    // ✅ Admins see bills created only by admins
+    conditions.push(`u.userRole = 'admin'`);
+  } else if (userRole === 'dealer') {
+    // ✅ Dealers see only their own bills
+    conditions.push(`br.dealers_id = $${queryParams.length + 1}`);
+    queryParams.push(userId);
+  }
+
+  if (search_term) {
+    conditions.push(`
+      (br.name ILIKE $${queryParams.length + 1} OR
+       br.phone ILIKE $${queryParams.length + 1} OR
+       br.receipt_no ILIKE $${queryParams.length + 1})
+    `);
+    queryParams.push(`%${search_term}%`);
+  }
+
+  // Add WHERE clause if conditions exist
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  // Group and order results
+  query += `
+    GROUP BY br.id
+    ORDER BY br.lastmodified DESC;
+  `;
+
+  try {
+    const result = await db.query(query, queryParams);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching recent billing details:', err);
@@ -2679,8 +2779,8 @@ dashboard.post('/api/create/account/for/:Party',
 
 //Api to display
 dashboard.get('/api/display/party/:Party',
-  // validateJwt,
-  // authorizeRoles('admin'),
+  validateJwt,
+  authorizeRoles('admin','dealer'),
   async (req, res) => {
     const { Party } = req.params; // Get the table name from route parameters
     const { query } = req.query; // Get search query from query parameters (optional)
