@@ -20,11 +20,11 @@ CREATE TABLE Things (
     longitude NUMERIC(11, 8),
     model VARCHAR(255),
     serialno VARCHAR(255),
-    macaddress varchar(255)
+    macaddress varchar(255),
     type VARCHAR(255),
     securityKey VARCHAR(255) UNIQUE,
-    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-
+    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    added_at TIMESTAMP
 );
 
 -- Table to store attributes of things
@@ -116,7 +116,9 @@ CREATE TABLE room_device (
     room_id INT NOT NULL, -- Foreign key referencing room table
     device_id VARCHAR(255) NOT NULL, -- Foreign key referencing device table
     FOREIGN KEY (room_id) REFERENCES room(id),
-    FOREIGN KEY (device_id) REFERENCES Devices(deviceId)
+    FOREIGN KEY (device_id) REFERENCES Devices(deviceId),
+    CONSTRAINT room_device_room_id_fkey
+     FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE;
 );
  
 -- Table to store Scenes
@@ -372,6 +374,7 @@ CREATE TABLE model_features (
     feature_value VARCHAR(255) ,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 model_no varchar(255)
 CREATE TABLE model_features_image (
     id SERIAL PRIMARY KEY,
@@ -497,20 +500,66 @@ CREATE TABLE daily_report (
 
 
 -------------------------------
+-- CREATE TABLE raw_materials_stock (
+--     id SERIAL PRIMARY KEY,        -- Unique identifier, automatically increments
+--     Component VARCHAR(255) NOT NULL,    -- Name of the raw material
+--     category VARCHAR(100),   -- Category (e.g., capacitor, resistor)
+--     package VARCHAR(100),        
+--     value VARCHAR(100),            -- Value or cost of the raw material
+--     reference_no VARCHAR(100),     -- Reference number (ensures uniqueness)
+--     unit_price_in_rupees DECIMAL(10, 2) DEFAULT 0.00,
+--     unit_price_in_dollars DECIMAL(10, 2) DEFAULT 0.00,
+--     tax int,
+--     shipping_charge int,
+--     total_price int ,
+--     image VARCHAR(2080),           -- Path or URL to the image of the material
+--     stock_quantity INT DEFAULT 0,  -- Stock quantity
+--     reorder_level INT DEFAULT 0    -- Reorder level
+-- );
 CREATE TABLE raw_materials_stock (
-    id SERIAL PRIMARY KEY,        -- Unique identifier, automatically increments
-    Component VARCHAR(255) NOT NULL,    -- Name of the raw material
-    category VARCHAR(100),   -- Category (e.g., capacitor, resistor)
+    id SERIAL PRIMARY KEY,        
+    Component VARCHAR(255) NOT NULL,    
+    category VARCHAR(100),   
     package VARCHAR(100),        
-    value VARCHAR(100),            -- Value or cost of the raw material
-    reference_no VARCHAR(100),     -- Reference number (ensures uniqueness)
+    value VARCHAR(100),            
+    reference_no VARCHAR(100),     
     unit_price_in_rupees DECIMAL(10, 2) DEFAULT 0.00,
     unit_price_in_dollars DECIMAL(10, 2) DEFAULT 0.00,
-    image VARCHAR(2080),           -- Path or URL to the image of the material
-    stock_quantity INT DEFAULT 0,  -- Stock quantity
-    reorder_level INT DEFAULT 0    -- Reorder level
+    tax DECIMAL(5, 2) DEFAULT 0.00,  -- Store tax as a percentage
+    shipping_charge DECIMAL(5, 2) DEFAULT 0.00,  -- Store shipping charge as a percentage
+    total_price DECIMAL(10, 2) DEFAULT 0.00,  -- Calculated total price
+    image VARCHAR(2080),           
+    stock_quantity INT DEFAULT 0,  
+    reorder_level INT DEFAULT 0    
 );
 
+CREATE TABLE raw_material_features (
+    id SERIAL PRIMARY KEY,
+    material_id INT NOT NULL,
+    raw_material_feature VARCHAR(255) NULL,
+    raw_material_value VARCHAR(255)  NULL,
+    FOREIGN KEY (material_id) REFERENCES raw_materials_stock(id) ON DELETE CASCADE
+);
+CREATE TABLE raw_materials_stock_history (
+    id SERIAL PRIMARY KEY,        
+    raw_material_id INT NOT NULL,   
+    unit_price_in_rupees DECIMAL(10, 2), 
+    unit_price_in_dollars DECIMAL(10, 2),
+    stock_quantity DECIMAL(10, 2),  
+    tax DECIMAL(10, 2),
+    shipping_charge DECIMAL(10, 2),
+    total_price DECIMAL(10, 2),
+    updated_at TIMESTAMP DEFAULT NOW(), 
+    updated_by VARCHAR(100)
+);
+
+CREATE TABLE sales_graph (
+    id          SERIAL PRIMARY KEY,  -- Unique identifier for each sale
+    sale_by    INT NOT NULL,        -- ID of the seller
+    sale_to     VARCHAR(2550) ,        -- ID of the buyer/customer
+    thing_id    INT,        -- ID of the item/product being sold
+    timeanddate TIMESTAMP NOT NULL,  -- Timestamp of the sale
+);
 
 CREATE TABLE thing_raw_materials (
     id SERIAL PRIMARY KEY,                       -- Unique identifier for each record

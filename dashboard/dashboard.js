@@ -86,6 +86,42 @@ dashboard.get("/api/production/graph", async (req, res) => {
       res.status(500).json({ error: "Internal Server Error" });
     }
   });  
+dashboard.get('/api/sales/count', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+    const { role:userRole, id: userId } = req.user; // Extracted from JWT
+  
+    try {
+      let query = "";
+      let params = [];
+  
+      if (userRole === 'admin') {
+        // ✅ Count all sales made by admins
+        query = `
+          SELECT COUNT(*) AS total_sales
+          FROM sales_graph sg
+          JOIN Users u ON sg.sale_by = u.id
+          WHERE u.userRole = 'admin';
+        `;
+      } else if (userRole === 'dealer') {
+        // ✅ Count sales made by this dealer
+        query = `
+          SELECT COUNT(*) AS total_sales
+          FROM sales_graph
+          WHERE sale_by = $1;
+        `;
+        params = [userId];
+      } else {
+        return res.status(403).json({ error: 'Unauthorized role' });
+      }
+  
+      const result = await db.query(query, params);
+      res.json({ total_sales: parseInt(result.rows[0].total_sales, 10) });
+  
+    } catch (error) {
+      console.error('Error counting sales:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+  
 // 📊 API to get total sales count (Filtered by `sale_by`)
 dashboard.get('/api/sales/total', async (req, res) => {
   try {
@@ -129,57 +165,130 @@ dashboard.get('/api/sales/total', async (req, res) => {
   }
 });
 
+dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+  const { role:userRole, id: userId } = req.user; // Extracted from JWT
 
-// 📈 API to get sales data for graph (Filtered by `sale_by`)
-dashboard.get('/api/sales/graph', async (req, res) => {
   try {
-      const  sale_by  = req.user?.username||req.query.sale_by;
+    const params = [];
+    let roleCondition = "";
 
-      if (!sale_by) {
-          return res.status(400).json({ error: "sale_by parameter is required" });
-      }
+    if (userRole === 'admin') {
+      roleCondition = "u.userRole = 'admin'";
+    } else if (userRole === 'dealer') {
+      roleCondition = "sg.sale_by = $1";
+      params.push(userId);
+    } else {
+      return res.status(403).json({ error: 'Unauthorized role' });
+    }
 
-      // Step 1: Get user role
-      const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
+    // Queries
+    const dailyQuery = `
+      SELECT 
+        DATE(timeanddate) AS sale_date,
+        EXTRACT(DAY FROM timeanddate) AS sale_day,
+        EXTRACT(MONTH FROM timeanddate) AS sale_month,
+        EXTRACT(YEAR FROM timeanddate) AS sale_year,
+        COUNT(*) AS total_sales
+      FROM sales_graph sg
+      JOIN Users u ON sg.sale_by = u.id
+      WHERE ${roleCondition}
+      GROUP BY sale_date, sale_day, sale_month, sale_year
+      ORDER BY sale_date ASC;
+    `;
 
-      if (userResult.rows.length === 0) {
-          return res.status(404).json({ error: "User not found" });
-      }
+    const monthlyQuery = `
+      SELECT 
+        TO_CHAR(timeanddate, 'YYYY-MM') AS sale_month_str,
+        EXTRACT(MONTH FROM timeanddate) AS sale_month,
+        EXTRACT(YEAR FROM timeanddate) AS sale_year,
+        COUNT(*) AS total_sales
+      FROM sales_graph sg
+      JOIN Users u ON sg.sale_by = u.id
+      WHERE ${roleCondition}
+      GROUP BY sale_month_str, sale_month, sale_year
+      ORDER BY sale_year ASC, sale_month ASC;
+    `;
 
-      const userRole = userResult.rows[0].userrole; // Make sure column names match
+    const yearlyQuery = `
+      SELECT 
+        EXTRACT(YEAR FROM timeanddate) AS sale_year,
+        COUNT(*) AS total_sales
+      FROM sales_graph sg
+      JOIN Users u ON sg.sale_by = u.id
+      WHERE ${roleCondition}
+      GROUP BY sale_year
+      ORDER BY sale_year ASC;
+    `;
 
-      let query;
-      let values = [];
+    // Execute queries
+    const [dailyResult, monthlyResult, yearlyResult] = await Promise.all([
+      db.query(dailyQuery, params),
+      db.query(monthlyQuery, params),
+      db.query(yearlyQuery, params),
+    ]);
 
-      // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
-      if (userRole === 'admin') {
-          query = `
-              SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
-              FROM sales_graph
-              WHERE sale_by IN (SELECT userName FROM Users WHERE userRole = 'admin')
-              GROUP BY sale_date
-              ORDER BY sale_date
-          `;
-      } else {
-          query = `
-              SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
-              FROM sales_graph
-              WHERE sale_by = $1
-              GROUP BY sale_date
-              ORDER BY sale_date
-          `;
-          values.push(sale_by);
-      }
+    res.json({
+      daily_sales: dailyResult.rows,
+      monthly_sales: monthlyResult.rows,
+      yearly_sales: yearlyResult.rows,
+    });
 
-      // Step 3: Execute query
-      const result = await db.query(query, values);
-      res.json(result.rows);
-
-  } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Server error' });
+  } catch (error) {
+    console.error('Error generating sales graph:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+// 📈 API to get sales data for graph (Filtered by `sale_by`)
+// dashboard.get('/api/sales/graph', async (req, res) => {
+//   try {
+//       const  sale_by  = req.user?.username||req.query.sale_by;
+
+//       if (!sale_by) {
+//           return res.status(400).json({ error: "sale_by parameter is required" });
+//       }
+
+//       // Step 1: Get user role
+//       const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
+
+//       if (userResult.rows.length === 0) {
+//           return res.status(404).json({ error: "User not found" });
+//       }
+
+//       const userRole = userResult.rows[0].userrole; // Make sure column names match
+
+//       let query;
+//       let values = [];
+
+//       // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
+//       if (userRole === 'admin') {
+//           query = `
+//               SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
+//               FROM sales_graph
+//               WHERE sale_by IN (SELECT userName FROM Users WHERE userRole = 'admin')
+//               GROUP BY sale_date
+//               ORDER BY sale_date
+//           `;
+//       } else {
+//           query = `
+//               SELECT timeanddate::DATE AS sale_date, COUNT(*) AS sale_count
+//               FROM sales_graph
+//               WHERE sale_by = $1
+//               GROUP BY sale_date
+//               ORDER BY sale_date
+//           `;
+//           values.push(sale_by);
+//       }
+
+//       // Step 3: Execute query
+//       const result = await db.query(query, values);
+//       res.json(result.rows);
+
+//   } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ error: 'Server error' });
+//   }
+// });
 
 //api for sale graph
 dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
@@ -991,6 +1100,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 //   }
 // );
 
+
 dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res) => {
   const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
   const { stock, status } = req.params;
@@ -1466,8 +1576,8 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 dashboard.post("/api/billing/create", billing);
 
 dashboard.post("/api/billing/return/:status", returned)
-// API Endpoint to search price_table by model and or attributes
 
+// API Endpoint to search price_table by model and or attributes
 
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
@@ -5573,8 +5683,11 @@ dashboard.get('/api/display/customer/dealers/:dealerid', async (req, res) => {
     });
   }
 });
+
 // API to get stock things details by email and optional status
+
 // API to get stock things details by email, status, and serialno
+
 // Route: Fetch dealersStock with thing details
 
 dashboard.get('/api/dealersstock/:status', async (req, res) => {
@@ -6127,6 +6240,7 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
 //     client.release();
 //   }
 // });
+
 
 dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
   const { id } = req.params;
