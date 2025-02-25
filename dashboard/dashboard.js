@@ -1622,7 +1622,7 @@ dashboard.get("/price/:serialno",
   // authorizeRoles('admin', 'dealer'),
   async (req, res) => {
   const { serialno } = req.params;
-  const email =req.user.email; // role: 'admin' or 'dealer'
+  // const email =req.user.email; // role: 'admin' or 'dealer'
   const role="admin";
   try {
     let query = "";
