@@ -1583,36 +1583,137 @@ dashboard.get('/api/search/model/price', async (req, res) => {
   }
 });
 
-dashboard.get("/price/:serialno", async (req, res) => {
-  const serialno = req.params.serialno;
+// dashboard.get("/price/:serialno", async (req, res) => {
+//   const serialno = req.params.serialno;
 
+//   try {
+//     const query = `
+//       SELECT 
+//           t.serialno,
+//           t.model,
+//           p.mrp,
+//           p.retail_price,
+//           p.sgst,
+//           p.cgst,
+//           p.igst,
+//           p.discount,
+//           p.warranty_period,
+//           p.lastmodified
+//       FROM Things t
+//       JOIN price_table p ON t.model = p.model
+//       WHERE t.serialno = $1;
+//     `;
+
+//     const result = await db.query(query, [serialno]);
+
+//     if (result.rows.length === 0) {
+//       return res.status(404).json({ message: "No data found for this serial number" });
+//     }
+
+//     res.json(result.rows[0]); // Return the first matching result
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
+dashboard.get("/price/:serialno",
+  validateJwt,
+  authorizeRoles('admin', 'dealer'),
+  async (req, res) => {
+  const { serialno } = req.params;
+  const email =req.user.email; // role: 'admin' or 'dealer'
+  const role=req.user.role;
   try {
-    const query = `
-      SELECT 
-          t.serialno,
-          t.model,
-          p.mrp,
-          p.retail_price,
-          p.sgst,
-          p.cgst,
-          p.igst,
-          p.discount,
-          p.warranty_period,
-          p.lastmodified
-      FROM Things t
-      JOIN price_table p ON t.model = p.model
-      WHERE t.serialno = $1;
-    `;
+    let query = "";
+    let params = [];
 
-    const result = await db.query(query, [serialno]);
+    if (role === "admin") {
+      // ✅ Admin: Check AdminStock with status = 'new'
+      query = `
+        SELECT 
+            t.serialno,
+            t.model,
+            p.mrp,
+            p.retail_price,
+            p.sgst,
+            p.cgst,
+            p.igst,
+            p.discount,
+            p.warranty_period,
+            p.lastmodified
+        FROM AdminStock a
+        JOIN Things t ON a.thingId = t.id
+        JOIN price_table p ON t.model = p.model
+        WHERE t.serialno = $1 AND a.status = 'new';
+      `;
+      params = [serialno];
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "No data found for this serial number" });
+    } else if (role === "dealer" && email) {
+      // ✅ Dealer: Verify dealer and check dealersStock with status = 'new'
+      const dealerQuery = `
+        SELECT id FROM dealers_details WHERE email = $1;
+      `;
+      const dealerResult = await db.query(dealerQuery, [email]);
+
+      if (dealerResult.rows.length === 0) {
+        return res.status(404).json({ message: "Dealer not found with the provided email." });
+      }
+
+      const dealerId = dealerResult.rows[0].id;
+
+      query = `
+        SELECT 
+            t.serialno,
+            t.model,
+            p.mrp,
+            p.retail_price,
+            p.sgst,
+            p.cgst,
+            p.igst,
+            p.discount,
+            p.warranty_period,
+            p.lastmodified
+        FROM dealersStock ds
+        JOIN Things t ON ds.thingid = t.id
+        JOIN price_table p ON t.model = p.model
+        WHERE t.serialno = $1 AND ds.user_id = $2 AND ds.status = 'new';
+      `;
+      params = [serialno, dealerId];
+
+    } else {
+      return res.status(400).json({ message: "Invalid request. Provide 'role' ('admin' or 'dealer') and 'email' if dealer." });
     }
 
-    res.json(result.rows[0]); // Return the first matching result
+    // Execute the query
+    const result = await db.query(query, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "No 'new' stock found for this serial number." });
+    }
+
+    const data = result.rows[0];
+
+    // 📝 Construct the response in the desired format
+    const response = {
+      serialno: data.serialno,
+      model: data.model,
+      mrp: parseFloat(data.mrp).toFixed(2),
+      retail_price: parseFloat(data.retail_price).toFixed(2),
+      sgst: parseFloat(data.sgst).toFixed(2),
+      cgst: parseFloat(data.cgst).toFixed(2),
+      igst: parseFloat(data.igst).toFixed(2),
+      discount: parseFloat(data.discount).toFixed(2),
+      warranty_period: {
+        months: data.warranty_period
+      },
+      lastmodified: data.lastmodified
+    };
+
+    res.json(response);
+
   } catch (error) {
-    console.error("Error fetching data:", error);
+    console.error("Error fetching price details:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
