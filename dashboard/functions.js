@@ -86,7 +86,8 @@ const getThingBySerialNo = async (serialNo) => {
   //   }
   
   //   return Object.values(grouped); // Convert the grouped object back to an array
-  // }
+  // }  
+  
   function groupItemsByModel(items) {
     const grouped = {};
     let totalSGST = 0; // To accumulate total SGST
@@ -313,7 +314,25 @@ async function generatePDF(filePath, data) {
 
   await browser.close();
 }
+function printPDF(pdfPath) {
+  const platform = process.platform;
 
+  let command;
+
+  if (platform === 'win32') {
+    // Windows
+    command = `start /min acrord32.exe /t "${pdfPath}"`;
+  } else if (platform === 'darwin') {
+    // macOS
+    command = `lp "${pdfPath}"`;
+  } else if (platform === 'linux') {
+    // Linux
+    command = `lp "${pdfPath}"`;
+  } else {
+    console.error('Unsupported OS for printing.');
+    return;
+  }
+}
 const nodemailer = require("nodemailer");
 
 /**
@@ -360,4 +379,4 @@ async function sendEmailWithAttachment(toEmail, name, receiptNo, pdfPath) {
   }
 }
 
-  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStockdealers,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock}
+  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStockdealers,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock,printPDF}

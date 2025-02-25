@@ -3,7 +3,8 @@ const express = require("express");
 const db = require('../middlewares/dbconnection');// Replace with your actual database connection
 const path = require("path");
 const fs = require("fs");
-const {getThingBySerialNo,removeFromStock,removeFromStockdealers,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock}= require("./functions"); // Utility functions
+const { exec } = require('child_process');
+const {getThingBySerialNo,removeFromStock,removeFromStockdealers,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock,printPDF}= require("./functions"); // Utility functions
 
  const billing=async (req, res) => {
   const {
@@ -207,7 +208,7 @@ async function processBilling(data, stockTable, username, res) {
           serial_no,
           model,
           mrp,
-          // retail_price: parseFloat(retail_price) || 0,
+          retail_price: parseFloat(retail_price) || 0,
           item_discount: itemDiscount,
           discounted_price: discountedPrice,
           sgst: sgstAmount,
@@ -281,7 +282,7 @@ async function processBilling(data, stockTable, username, res) {
   
       await client.query("COMMIT");
       
-      if (email) {
+      // if (email) {
                   const receiptDir = path.join(__dirname, "receipt");
                   if (!fs.existsSync(receiptDir)) {
                     fs.mkdirSync(receiptDir);
@@ -314,12 +315,17 @@ async function processBilling(data, stockTable, username, res) {
                     // salesman
                   });
                   
-                  await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
+                  // await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
                 
                   if (fs.existsSync(pdfPath)) {
                     fs.unlinkSync(pdfPath);
                   }
+                // }
+                if(email){
+                  await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
                 }
+
+                printPDF(pdfPath);
 
       res.status(200).json({
         message: "Billing receipt created successfully",
@@ -327,6 +333,7 @@ async function processBilling(data, stockTable, username, res) {
         total_amount: totalAmount,
         discount: discountValue,
         balance,
+        pdfpath:pdfPath,
         errors: errors.length ? errors : null,
       });
     } catch (error) {
