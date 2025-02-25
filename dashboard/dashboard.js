@@ -1990,89 +1990,89 @@ dashboard.get("/api/billing/:receipt_no", async (req, res) => {
 });
 
 
-dashboard.get('/api/recent-bills',
-  validateJwt,
-  authorizeRoles('admin','dealer'),
-   async (req, res) => {
-  // Get the search term from the query string
-  const { search_term } = req.query;
+// dashboard.get('/api/recent-bills',
+//   validateJwt,
+//   authorizeRoles('admin','dealer'),
+//    async (req, res) => {
+//   // Get the search term from the query string
+//   const { search_term } = req.query;
 
-  // Base query to fetch data
-  let query = `
-    SELECT 
-      br.id AS billing_id,
-      br.receipt_no,
-      br.name AS customer_name,
-      br.phone,
-      br.email,
-      br.billing_address,
-      br.shipping_address,
-      br.dealer_or_customer,
-      br.total_amount,
-      br.paid_amount,
-      br.balance,
-      br.billing_createdby,
-      br.datetime AS billing_datetime,
-      br.lastmodified,
-      -- Aggregate payments into an array of objects
-      COALESCE(
-        JSON_AGG(
-          DISTINCT jsonb_build_object(
-            'payment_method', pd.payment_method,
-            'payment_amount', pd.amount
-          )
-        ) FILTER (WHERE pd.id IS NOT NULL), '[]') AS payments,
-      -- Aggregate items into an array of objects
-      COALESCE(
-        JSON_AGG(
-          DISTINCT jsonb_build_object(
-            'item_name', bi.item_name,
-            'model', bi.model,
-            'mrp', bi.mrp,
-            'serial_no', bi.serial_no,
-            'retail_price', bi.retail_price,
-            'item_type', bi.type
-          )
-        ) FILTER (WHERE bi.id IS NOT NULL), '[]') AS items
-    FROM 
-      billing_receipt br
-    LEFT JOIN 
-      payment_details pd ON br.id = pd.receipt_id
-    LEFT JOIN 
-      billing_items bi ON br.receipt_no = bi.receipt_no
-  `;
+//   // Base query to fetch data
+//   let query = `
+//     SELECT 
+//       br.id AS billing_id,
+//       br.receipt_no,
+//       br.name AS customer_name,
+//       br.phone,
+//       br.email,
+//       br.billing_address,
+//       br.shipping_address,
+//       br.dealer_or_customer,
+//       br.total_amount,
+//       br.paid_amount,
+//       br.balance,
+//       br.billing_createdby,
+//       br.datetime AS billing_datetime,
+//       br.lastmodified,
+//       -- Aggregate payments into an array of objects
+//       COALESCE(
+//         JSON_AGG(
+//           DISTINCT jsonb_build_object(
+//             'payment_method', pd.payment_method,
+//             'payment_amount', pd.amount
+//           )
+//         ) FILTER (WHERE pd.id IS NOT NULL), '[]') AS payments,
+//       -- Aggregate items into an array of objects
+//       COALESCE(
+//         JSON_AGG(
+//           DISTINCT jsonb_build_object(
+//             'item_name', bi.item_name,
+//             'model', bi.model,
+//             'mrp', bi.mrp,
+//             'serial_no', bi.serial_no,
+//             'retail_price', bi.retail_price,
+//             'item_type', bi.type
+//           )
+//         ) FILTER (WHERE bi.id IS NOT NULL), '[]') AS items
+//     FROM 
+//       billing_receipt br
+//     LEFT JOIN 
+//       payment_details pd ON br.id = pd.receipt_id
+//     LEFT JOIN 
+//       billing_items bi ON br.receipt_no = bi.receipt_no
+//   `;
 
-  // Create an array to hold the query parameters
-  const queryParams = [];
+//   // Create an array to hold the query parameters
+//   const queryParams = [];
 
-  // If search term is provided, add conditions to the query
-  if (search_term) {
-    query += `
-      WHERE 
-        br.name ILIKE $1 OR
-        br.phone ILIKE $1 OR
-        br.receipt_no ILIKE $1
-    `;
-    queryParams.push(`%${search_term}%`); // Add search term to query parameters
-  }
+//   // If search term is provided, add conditions to the query
+//   if (search_term) {
+//     query += `
+//       WHERE 
+//         br.name ILIKE $1 OR
+//         br.phone ILIKE $1 OR
+//         br.receipt_no ILIKE $1
+//     `;
+//     queryParams.push(`%${search_term}%`); // Add search term to query parameters
+//   }
 
-  // Add the GROUP BY and ORDER BY clauses
-  query += `
-    GROUP BY br.id
-    ORDER BY br.lastmodified DESC
-  `;
+//   // Add the GROUP BY and ORDER BY clauses
+//   query += `
+//     GROUP BY br.id
+//     ORDER BY br.lastmodified DESC
+//   `;
 
-  try {
-    // Execute the query with dynamic parameters (search term if provided)
-    const result = await db.query(query, queryParams);
+//   try {
+//     // Execute the query with dynamic parameters (search term if provided)
+//     const result = await db.query(query, queryParams);
 
-    // Send the result as a JSON response
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching recent billing details:', err);
-    res.status(500).send('Internal Server Error');
-  }
-});
+//     // Send the result as a JSON response
+//     res.json(result.rows);
+//   } catch (err) {
+//     console.error('Error fetching recent billing details:', err);
+//     res.status(500).send('Internal Server Error');
+//   }
+// });
 dashboard.get('/api/recent-bills', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { search_term } = req.query;
   const { role:userRole, id: userId } = req.user; // Extracted from JWT
@@ -2778,49 +2778,113 @@ dashboard.post('/api/create/account/for/:Party',
   });
 
 //Api to display
-dashboard.get('/api/display/party/:Party',
-  validateJwt,
-  authorizeRoles('admin','dealer'),
-  async (req, res) => {
-    const { Party } = req.params; // Get the table name from route parameters
-    const { query } = req.query; // Get search query from query parameters (optional)
+// dashboard.get('/api/display/party/:Party',
+//   validateJwt,
+//   authorizeRoles('admin','dealer'),
+//   async (req, res) => {
+//     const { Party } = req.params; // Get the table name from route parameters
+//     const { query } = req.query; // Get search query from query parameters (optional)
 
-    // Validate the Party parameter
+//     // Validate the Party parameter
+//     const validParties = ['onlinecustomer', 'customers', 'dealers'];
+
+//     if (!validParties.includes(Party)) {
+//       return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
+//     }
+
+//     try {
+//       console.log(`party table${Party}`) 
+//       // Construct the table name dynamically
+//       const tableName = `${Party}_details`;
+
+//       // SQL query for fetching data
+//       let sql = `SELECT * FROM ${tableName}`;
+//       const values = [];
+
+//       // Add search functionality if a query is provided
+//       if (query) {
+//         sql += ` WHERE name ILIKE $1 OR address ILIKE $1 OR phone ILIKE $1`;
+//         values.push(`%${query}%`); // Case-insensitive matching
+//       }
+
+//       const client = await db.connect();
+//       const result = await client.query(sql, values);
+//       client.release();
+
+//       // Respond with the fetched data
+//       res.status(200).json({
+//         message: `Data retrieved successfully from ${tableName}.`,
+//         data: result.rows,
+//       });
+//     } catch (error) {
+//       console.error('Error fetching data:', error);
+//       res.status(500).json({ error: 'An error occurred while fetching data.' });
+//     }
+//   });
+
+  dashboard.get('/api/display/party/:Party', 
+    validateJwt, authorizeRoles('admin', 'dealer'),
+    async (req, res) => {
+    const { Party } = req.params; // Party parameter: 'onlinecustomer', 'customers', 'dealers'
+    const { query: searchQuery } = req.query; // Optional search query
+    const { userRole, id: userId } = req.user; // Extracted from JWT
+  
+    // ✅ Allowed parties
     const validParties = ['onlinecustomer', 'customers', 'dealers'];
-
     if (!validParties.includes(Party)) {
-      return res.status(400).json({ error: 'Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers.' });
+      return res.status(400).json({
+        error: "Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers."
+      });
     }
-
+  
     try {
-      console.log(`party table${Party}`) 
-      // Construct the table name dynamically
       const tableName = `${Party}_details`;
-
-      // SQL query for fetching data
-      let sql = `SELECT * FROM ${tableName}`;
+      const conditions = [];
       const values = [];
-
-      // Add search functionality if a query is provided
-      if (query) {
-        sql += ` WHERE name ILIKE $1 OR address ILIKE $1 OR phone ILIKE $1`;
-        values.push(`%${query}%`); // Case-insensitive matching
+  
+      if (userRole === 'admin') {
+        // ✅ Admin: Show records added by any admin
+        conditions.push(`u.userRole = 'admin'`);
+      } else if (userRole === 'dealer') {
+        // ✅ Dealer: Show records added by the logged-in dealer
+        conditions.push(`d.addedby = $${values.length + 1}`);
+        values.push(userId);
       }
-
+  
+      // 🔍 Search functionality
+      if (searchQuery) {
+        conditions.push(`
+          (d.name ILIKE $${values.length + 1} OR 
+           d.address ILIKE $${values.length + 1} OR 
+           d.phone ILIKE $${values.length + 1})
+        `);
+        values.push(`%${searchQuery}%`);
+      }
+  
+      // SQL query with Users join to verify roles for admin filtering
+      const sql = `
+        SELECT d.* 
+        FROM ${tableName} d
+        JOIN Users u ON d.addedby = u.id
+        ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
+        ORDER BY d.lastmodified DESC;
+      `;
+  
       const client = await db.connect();
       const result = await client.query(sql, values);
       client.release();
-
-      // Respond with the fetched data
+  
       res.status(200).json({
         message: `Data retrieved successfully from ${tableName}.`,
-        data: result.rows,
+        data: result.rows
       });
+  
     } catch (error) {
       console.error('Error fetching data:', error);
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
+  
 // dashboard.get('/api/display/party/:Party',
 //   // validateJwt,
 //   // authorizeRoles('admin', 'dealer'),
