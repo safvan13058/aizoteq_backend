@@ -1990,94 +1990,14 @@ dashboard.get("/api/billing/:receipt_no", async (req, res) => {
 });
 
 
-dashboard.get('/api/recent-bills',
-  validateJwt,
-  authorizeRoles('admin','dealer'),
-   async (req, res) => {
-  // Get the search term from the query string
-  const { search_term } = req.query;
-
-  // Base query to fetch data
-  let query = `
-    SELECT 
-      br.id AS billing_id,
-      br.receipt_no,
-      br.name AS customer_name,
-      br.phone,
-      br.email,
-      br.billing_address,
-      br.shipping_address,
-      br.dealer_or_customer,
-      br.total_amount,
-      br.paid_amount,
-      br.balance,
-      br.billing_createdby,
-      br.datetime AS billing_datetime,
-      br.lastmodified,
-      -- Aggregate payments into an array of objects
-      COALESCE(
-        JSON_AGG(
-          DISTINCT jsonb_build_object(
-            'payment_method', pd.payment_method,
-            'payment_amount', pd.amount
-          )
-        ) FILTER (WHERE pd.id IS NOT NULL), '[]') AS payments,
-      -- Aggregate items into an array of objects
-      COALESCE(
-        JSON_AGG(
-          DISTINCT jsonb_build_object(
-            'item_name', bi.item_name,
-            'model', bi.model,
-            'mrp', bi.mrp,
-            'serial_no', bi.serial_no,
-            'retail_price', bi.retail_price,
-            'item_type', bi.type
-          )
-        ) FILTER (WHERE bi.id IS NOT NULL), '[]') AS items
-    FROM 
-      billing_receipt br
-    LEFT JOIN 
-      payment_details pd ON br.id = pd.receipt_id
-    LEFT JOIN 
-      billing_items bi ON br.receipt_no = bi.receipt_no
-  `;
-
-  // Create an array to hold the query parameters
-  const queryParams = [];
-
-  // If search term is provided, add conditions to the query
-  if (search_term) {
-    query += `
-      WHERE 
-        br.name ILIKE $1 OR
-        br.phone ILIKE $1 OR
-        br.receipt_no ILIKE $1
-    `;
-    queryParams.push(`%${search_term}%`); // Add search term to query parameters
-  }
-
-  // Add the GROUP BY and ORDER BY clauses
-  query += `
-    GROUP BY br.id
-    ORDER BY br.lastmodified DESC
-  `;
-
-  try {
-    // Execute the query with dynamic parameters (search term if provided)
-    const result = await db.query(query, queryParams);
-
-    // Send the result as a JSON response
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Error fetching recent billing details:', err);
-    res.status(500).send('Internal Server Error');
-  }
-});
-
-// dashboard.get('/api/recent-bills', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+// dashboard.get('/api/recent-bills',
+//   validateJwt,
+//   authorizeRoles('admin','dealer'),
+//    async (req, res) => {
+//   // Get the search term from the query string
 //   const { search_term } = req.query;
-//   const { role:userRole, id: userId } = req.user; // Extracted from JWT
 
+//   // Base query to fetch data
 //   let query = `
 //     SELECT 
 //       br.id AS billing_id,
@@ -2094,16 +2014,15 @@ dashboard.get('/api/recent-bills',
 //       br.billing_createdby,
 //       br.datetime AS billing_datetime,
 //       br.lastmodified,
-//       -- Payments aggregation
+//       -- Aggregate payments into an array of objects
 //       COALESCE(
 //         JSON_AGG(
 //           DISTINCT jsonb_build_object(
 //             'payment_method', pd.payment_method,
 //             'payment_amount', pd.amount
 //           )
-//         ) FILTER (WHERE pd.id IS NOT NULL), '[]'
-//       ) AS payments,
-//       -- Items aggregation
+//         ) FILTER (WHERE pd.id IS NOT NULL), '[]') AS payments,
+//       -- Aggregate items into an array of objects
 //       COALESCE(
 //         JSON_AGG(
 //           DISTINCT jsonb_build_object(
@@ -2112,59 +2031,42 @@ dashboard.get('/api/recent-bills',
 //             'mrp', bi.mrp,
 //             'serial_no', bi.serial_no,
 //             'retail_price', bi.retail_price,
-//             'item_discount', bi.item_discount,
-//             'sgst', bi.sgst,
-//             'cgst', bi.cgst,
-//             'igst', bi.igst,
-//             'final_price', bi.final_price,
 //             'item_type', bi.type
 //           )
-//         ) FILTER (WHERE bi.id IS NOT NULL), '[]'
-//       ) AS items
+//         ) FILTER (WHERE bi.id IS NOT NULL), '[]') AS items
 //     FROM 
 //       billing_receipt br
 //     LEFT JOIN 
 //       payment_details pd ON br.id = pd.receipt_id
 //     LEFT JOIN 
 //       billing_items bi ON br.receipt_no = bi.receipt_no
-//     JOIN 
-//       Users u ON br.created_by = u.id
 //   `;
 
+//   // Create an array to hold the query parameters
 //   const queryParams = [];
-//   const conditions = [];
 
-//   if (userRole === 'admin') {
-//     // ✅ Admins see bills created only by admins
-//     conditions.push(`u.userRole = 'admin'`);
-//   } else if (userRole === 'dealer') {
-//     // ✅ Dealers see only their own bills
-//     conditions.push(`br.dealers_id = $${queryParams.length + 1}`);
-//     queryParams.push(userId);
-//   }
-
+//   // If search term is provided, add conditions to the query
 //   if (search_term) {
-//     conditions.push(`
-//       (br.name ILIKE $${queryParams.length + 1} OR
-//        br.phone ILIKE $${queryParams.length + 1} OR
-//        br.receipt_no ILIKE $${queryParams.length + 1})
-//     `);
-//     queryParams.push(`%${search_term}%`);
+//     query += `
+//       WHERE 
+//         br.name ILIKE $1 OR
+//         br.phone ILIKE $1 OR
+//         br.receipt_no ILIKE $1
+//     `;
+//     queryParams.push(`%${search_term}%`); // Add search term to query parameters
 //   }
 
-//   // Add WHERE clause if conditions exist
-//   if (conditions.length > 0) {
-//     query += ` WHERE ${conditions.join(' AND ')}`;
-//   }
-
-//   // Group and order results
+//   // Add the GROUP BY and ORDER BY clauses
 //   query += `
 //     GROUP BY br.id
-//     ORDER BY br.lastmodified DESC;
+//     ORDER BY br.lastmodified DESC
 //   `;
 
 //   try {
+//     // Execute the query with dynamic parameters (search term if provided)
 //     const result = await db.query(query, queryParams);
+
+//     // Send the result as a JSON response
 //     res.json(result.rows);
 //   } catch (err) {
 //     console.error('Error fetching recent billing details:', err);
@@ -2172,56 +2074,154 @@ dashboard.get('/api/recent-bills',
 //   }
 // });
 
-dashboard.get("/api/billing/totalsales/all", async (req, res) => {
+dashboard.get('/api/recent-bills', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+  const { search_term } = req.query;
+  const { role:userRole, id: userId } = req.user; // Extracted from JWT
+
+  let query = `
+    SELECT 
+      br.id AS billing_id,
+      br.receipt_no,
+      br.name AS customer_name,
+      br.phone,
+      br.email,
+      br.billing_address,
+      br.shipping_address,
+      br.dealer_or_customer,
+      br.total_amount,
+      br.paid_amount,
+      br.balance,
+      br.billing_createdby,
+      br.datetime AS billing_datetime,
+      br.lastmodified,
+      -- Payments aggregation
+      COALESCE(
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'payment_method', pd.payment_method,
+            'payment_amount', pd.amount
+          )
+        ) FILTER (WHERE pd.id IS NOT NULL), '[]'
+      ) AS payments,
+      -- Items aggregation
+      COALESCE(
+        JSON_AGG(
+          DISTINCT jsonb_build_object(
+            'item_name', bi.item_name,
+            'model', bi.model,
+            'mrp', bi.mrp,
+            'serial_no', bi.serial_no,
+            'retail_price', bi.retail_price,
+            'item_discount', bi.item_discount,
+            'sgst', bi.sgst,
+            'cgst', bi.cgst,
+            'igst', bi.igst,
+            'final_price', bi.final_price,
+            'item_type', bi.type
+          )
+        ) FILTER (WHERE bi.id IS NOT NULL), '[]'
+      ) AS items
+    FROM 
+      billing_receipt br
+    LEFT JOIN 
+      payment_details pd ON br.id = pd.receipt_id
+    LEFT JOIN 
+      billing_items bi ON br.receipt_no = bi.receipt_no
+    JOIN 
+      Users u ON br.created_by = u.id
+  `;
+
+  const queryParams = [];
+  const conditions = [];
+
+  if (userRole === 'admin') {
+    // ✅ Admins see bills created only by admins
+    conditions.push(`u.userRole = 'admin'`);
+  } else if (userRole === 'dealer') {
+    // ✅ Dealers see only their own bills
+    conditions.push(`br.dealers_id = $${queryParams.length + 1}`);
+    queryParams.push(userId);
+  }
+
+  if (search_term) {
+    conditions.push(`
+      (br.name ILIKE $${queryParams.length + 1} OR
+       br.phone ILIKE $${queryParams.length + 1} OR
+       br.receipt_no ILIKE $${queryParams.length + 1})
+    `);
+    queryParams.push(`%${search_term}%`);
+  }
+
+  // Add WHERE clause if conditions exist
+  if (conditions.length > 0) {
+    query += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  // Group and order results
+  query += `
+    GROUP BY br.id
+    ORDER BY br.lastmodified DESC;
+  `;
+
   try {
-    // Helper function to format date for queries
-    const formatDate = (date) => {
-      return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
-    };
-
-    // Get the current date
-    const currentDate = new Date();
-
-    // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
-    const periods = [
-      { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
-      { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
-      { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
-      { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
-      { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
-    ];
-
-    // Function to query total sales for each period
-    const totalSalesQuery = (startDate) => {
-      return `
-          SELECT 
-            COUNT(id) AS total_receipts,
-            SUM(total_amount) AS total_sales
-          FROM billing_receipt
-          WHERE datetime >= '${formatDate(startDate)}'
-        `;
-    };
-
-    // Get sales data for each period
-    const salesData = await Promise.all(periods.map(async (period) => {
-      const result = await db.query(totalSalesQuery(period.date));
-      return {
-        period: period.period,
-        total_receipts: result.rows[0].total_receipts || 0,
-        total_sales: result.rows[0].total_sales || 0
-      };
-    }));
-
-    // Step 2: Return the total sales and receipt count for each period
-    return res.status(200).json({
-      message: "Total sales and receipt data fetched successfully",
-      data: salesData,
-    });
-  } catch (error) {
-    console.error("Error fetching total sales:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    const result = await db.query(query, queryParams);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching recent billing details:', err);
+    res.status(500).send('Internal Server Error');
   }
 });
+
+// dashboard.get("/api/billing/totalsales/all", async (req, res) => {
+//   try {
+//     // Helper function to format date for queries
+//     const formatDate = (date) => {
+//       return date.toISOString().split('T')[0]; // Formats date as 'YYYY-MM-DD'
+//     };
+
+//     // Get the current date
+//     const currentDate = new Date();
+
+//     // Define the periods (1 day, 7 days, 1 month, 6 months, 1 year)
+//     const periods = [
+//       { period: '1 day', date: new Date(currentDate.setDate(currentDate.getDate() - 1)) },
+//       { period: '7 days', date: new Date(currentDate.setDate(currentDate.getDate() - 7)) },
+//       { period: '1 month', date: new Date(currentDate.setMonth(currentDate.getMonth() - 1)) },
+//       { period: '6 months', date: new Date(currentDate.setMonth(currentDate.getMonth() - 6)) },
+//       { period: '1 year', date: new Date(currentDate.setFullYear(currentDate.getFullYear() - 1)) },
+//     ];
+
+//     // Function to query total sales for each period
+//     const totalSalesQuery = (startDate) => {
+//       return `
+//           SELECT 
+//             COUNT(id) AS total_receipts,
+//             SUM(total_amount) AS total_sales
+//           FROM billing_receipt
+//           WHERE datetime >= '${formatDate(startDate)}'
+//         `;
+//     };
+
+//     // Get sales data for each period
+//     const salesData = await Promise.all(periods.map(async (period) => {
+//       const result = await db.query(totalSalesQuery(period.date));
+//       return {
+//         period: period.period,
+//         total_receipts: result.rows[0].total_receipts || 0,
+//         total_sales: result.rows[0].total_sales || 0
+//       };
+//     }));
+
+//     // Step 2: Return the total sales and receipt count for each period
+//     return res.status(200).json({
+//       message: "Total sales and receipt data fetched successfully",
+//       data: salesData,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching total sales:", error);
+//     return res.status(500).json({ error: "Internal server error" });
+//   }
+// });
 
 dashboard.get("/api/billing/totalsales/all2", async (req, res) => {
   try {
