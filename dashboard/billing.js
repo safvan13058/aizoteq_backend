@@ -315,8 +315,8 @@ async function processBilling(data, stockTable, username, res) {
       totalIGST, // Total IGST
       totalAll, // Total amount // Total in words
       totalAmount, // Total invoice amount
-      discount: discountValue,
-      discountedTotal, // Discounted total
+      discount: parseFloat(discountValue).toFixed(2),
+      discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
       paidAmount,
       balance,
       billtype
