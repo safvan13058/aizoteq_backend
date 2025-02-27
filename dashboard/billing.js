@@ -83,6 +83,11 @@ async function handleDealerBilling(data, username, res) {
 }
 
 async function processBilling(data, stockTable, username, res) {
+  console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
+console.log(convertToWords(5005.09)); // Output: "Five Thousand Five Rupees and Nine Paise"
+console.log(convertToWords(1234567.89)); // Output: "Twelve Lakh Thirty-Four Thousand Five Hundred Sixty-Seven Rupees and Eighty-Nine Paise"
+console.log(convertToWords(0.50)); // Output: "Zero Rupees and Fifty Paise"
+console.log(convertToWords(1000000));
   const {
     sessionid,
     type,
