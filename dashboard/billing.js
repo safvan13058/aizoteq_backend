@@ -315,7 +315,7 @@ async function processBilling(data, stockTable, username, res) {
       totalIGST, // Total IGST
       totalAll, // Total amount // Total in words
       totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
-      totalInFigures:convertToWords(parseFloat(totalAmount).toFixed(2)),
+      totalInFigures:convertToWords(parseFloat(totalAmount)),
       discount: parseFloat(discountValue).toFixed(2),
       discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
       paidAmount,

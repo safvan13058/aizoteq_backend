@@ -251,7 +251,7 @@ function convertToWords(amount) {
   const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
   const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-
+  amount = Number(amount); 
   function numberToWords(num) {
       if (num < 10) return ones[num];
       else if (num < 20) return teens[num - 10];
