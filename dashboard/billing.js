@@ -333,7 +333,7 @@ async function processBilling(data, stockTable, username, res) {
       await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
     }
 
-    printPDF(pdfPath);
+    // printPDF(pdfPath);
 
     res.status(200).json({
       message: "Billing receipt created successfully",
