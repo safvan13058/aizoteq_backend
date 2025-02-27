@@ -239,7 +239,9 @@ async function processBilling(data, stockTable, username, res) {
       return res.status(400).json({ error: "Global discount exceeds total amount" });
     }
 
-    const discountedTotal = totalAmount - discountValue;
+    // const discountedTotal = totalAmount - discountValue;
+    const discountedTotal = totalAmount - (totalAmount * discountValue / 100);
+
     const paidAmount = payment_methods.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     //   const finaltotal=discountedTotal-discount
     const balance = parseFloat((discountedTotal - paidAmount).toFixed(2));
