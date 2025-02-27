@@ -39,6 +39,14 @@ const cognito = new AWS.CognitoIdentityServiceProvider({
  
 AWS.config.update({ region: process.env.COGNITO_REGION });
 
+function isEmail(input) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+}
+
+function isPhoneNumber(input) {
+    return /^\+?[1-9]\d{1,14}$/.test(input); // E.164 format
+}
+
 // Login API
 login.post('/login', async (req, res) => {
     const { username, password } = req.body;
@@ -157,8 +165,8 @@ login.post('/refresh-token', async (req, res) => {
     console.log('SecretHash:',req.cookies.SecretHash); 
     console.log('Body:',req.body); 
     
-    const refreshToken = req.cookies?.refreshToken ;
-    const username = req.cookies?.username; // Required for SECRET_HASH
+    const refreshToken = req.cookies?.refreshToken||req.body?.refreshToken ;
+    const username = req.cookies?.username||req.body?.username; // Required for SECRET_HASH
     console.log(`Body:${username}`); 
     const secretHash = calculateSecretHash(username); 
     if (!refreshToken) {

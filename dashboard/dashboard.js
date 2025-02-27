@@ -164,7 +164,7 @@ dashboard.get('/api/sales/total', async (req, res) => {
       res.status(500).json({ error: 'Server error' });
   }
 });
-
+ 
 dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { role:userRole, id: userId } = req.user; // Extracted from JWT
 
