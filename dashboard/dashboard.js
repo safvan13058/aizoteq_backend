@@ -166,7 +166,12 @@ dashboard.get('/api/sales/total', async (req, res) => {
 });
  
 dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
-  const { role:userRole, id: userId } = req.user; // Extracted from JWT
+  const { role: userRole, id: userId } = req.user; // Extracted from JWT
+  const { groupBy } = req.query; // Accept 'day', 'month', 'year' as a query parameter
+
+  if (!["day", "month", "year"].includes(groupBy)) {
+    return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'month', or 'year'." });
+  }
 
   try {
     const params = [];
@@ -181,56 +186,39 @@ dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer')
       return res.status(403).json({ error: 'Unauthorized role' });
     }
 
-    // Queries
-    const dailyQuery = `
+    // Dynamic SQL grouping and sorting expressions
+    const groupByExpression = {
+      day: "DATE(timeanddate)",
+      month: "TO_CHAR(timeanddate, 'YYYY-MM')",
+      year: "EXTRACT(YEAR FROM timeanddate)::INT",
+    };
+
+    const sortExpression = {
+      day: "DATE(timeanddate)",
+      month: "DATE_TRUNC('month', timeanddate)",
+      year: "DATE_TRUNC('year', timeanddate)",
+    };
+
+    const query = `
       SELECT 
-        DATE(timeanddate) AS sale_date,
-        EXTRACT(DAY FROM timeanddate) AS sale_day,
-        EXTRACT(MONTH FROM timeanddate) AS sale_month,
-        EXTRACT(YEAR FROM timeanddate) AS sale_year,
-        COUNT(*) AS total_sales
+        ${groupByExpression[groupBy]} AS period,
+        COUNT(*) AS total_sales,
+        ${sortExpression[groupBy]} AS sort_date
       FROM sales_graph sg
       JOIN Users u ON sg.sale_by = u.id
       WHERE ${roleCondition}
-      GROUP BY sale_date, sale_day, sale_month, sale_year
-      ORDER BY sale_date ASC;
+      GROUP BY period, sort_date
+      ORDER BY sort_date ASC;
     `;
 
-    const monthlyQuery = `
-      SELECT 
-        TO_CHAR(timeanddate, 'YYYY-MM') AS sale_month_str,
-        EXTRACT(MONTH FROM timeanddate) AS sale_month,
-        EXTRACT(YEAR FROM timeanddate) AS sale_year,
-        COUNT(*) AS total_sales
-      FROM sales_graph sg
-      JOIN Users u ON sg.sale_by = u.id
-      WHERE ${roleCondition}
-      GROUP BY sale_month_str, sale_month, sale_year
-      ORDER BY sale_year ASC, sale_month ASC;
-    `;
-
-    const yearlyQuery = `
-      SELECT 
-        EXTRACT(YEAR FROM timeanddate) AS sale_year,
-        COUNT(*) AS total_sales
-      FROM sales_graph sg
-      JOIN Users u ON sg.sale_by = u.id
-      WHERE ${roleCondition}
-      GROUP BY sale_year
-      ORDER BY sale_year ASC;
-    `;
-
-    // Execute queries
-    const [dailyResult, monthlyResult, yearlyResult] = await Promise.all([
-      db.query(dailyQuery, params),
-      db.query(monthlyQuery, params),
-      db.query(yearlyQuery, params),
-    ]);
+    const result = await db.query(query, params);
 
     res.json({
-      daily_sales: dailyResult.rows,
-      monthly_sales: monthlyResult.rows,
-      yearly_sales: yearlyResult.rows,
+      groupBy,
+      sales_data: result.rows.map(row => ({
+        period: row.period,
+        total_sales: row.total_sales,
+      })),
     });
 
   } catch (error) {
@@ -238,6 +226,7 @@ dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer')
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
 
 // 📈 API to get sales data for graph (Filtered by `sale_by`)
 // dashboard.get('/api/sales/graph', async (req, res) => {
