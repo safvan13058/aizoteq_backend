@@ -258,7 +258,7 @@ function convertToWords(amount) {
       else if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + ones[num % 10] : "");
       else return num;
   }
-
+  console.log("amount",amount)
   let [rupees, paise] = amount.toFixed(2).split(".");
   rupees = parseInt(rupees);
   paise = parseInt(paise);
