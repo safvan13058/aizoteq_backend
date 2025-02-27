@@ -252,12 +252,12 @@ function convertToWords(amount) {
       return "Invalid amount";
   }
 
-  amount = Number(amount); // Ensure it's a number
+  amount = Number(amount); // Ensure it's a valid number
 
   const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
   const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  const thousands = ["", "Thousand", "Lakh", "Crore"];
+  const places = ["", "Thousand", "Lakh", "Crore"];
 
   function numberToWords(num) {
       if (num === 0) return "Zero";
@@ -265,29 +265,36 @@ function convertToWords(amount) {
       let words = "";
       let numStr = num.toString();
       let numLength = numStr.length;
+      let placeIndex = 0;
+      let parts = [];
 
-      let i = 0;
       while (numLength > 0) {
           let part;
-          if (i === 0) {
-              // Handle last three digits (hundreds place)
+          if (placeIndex === 0) {
+              // Last 3 digits (Hundreds place)
               part = parseInt(numStr.slice(-3), 10);
               numStr = numStr.slice(0, -3);
               numLength -= 3;
           } else {
-              // Handle two-digit groups (thousands, lakhs, crores)
+              // Handle two-digit groups (Thousands, Lakhs, Crores)
               part = parseInt(numStr.slice(-2), 10);
               numStr = numStr.slice(0, -2);
               numLength -= 2;
           }
 
           if (part > 0) {
-              words = (part < 10 ? ones[part] : part < 20 ? teens[part - 10] : tens[Math.floor(part / 10)] + (part % 10 !== 0 ? " " + ones[part % 10] : "")) +
-                  (thousands[i] ? " " + thousands[i] + " " : " ") + words;
+              let partWords = "";
+              if (part < 10) partWords = ones[part];
+              else if (part < 20) partWords = teens[part - 10];
+              else partWords = tens[Math.floor(part / 10)] + (part % 10 !== 0 ? " " + ones[part % 10] : "");
+
+              parts.unshift(partWords + (places[placeIndex] ? " " + places[placeIndex] : ""));
           }
-          i++;
+
+          placeIndex++;
       }
-      return words.trim();
+
+      return parts.join(" ").trim();
   }
 
   let [rupees, paise] = amount.toFixed(2).split(".");
@@ -299,7 +306,6 @@ function convertToWords(amount) {
 
   return `${rupeesInWords}${paiseInWords ? " and " + paiseInWords : ""}`;
 }
-
   async function isSessionOpen(session_id, client) {
     const result = await client.query(
         `SELECT status FROM billing_session WHERE id = $1`,
