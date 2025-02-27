@@ -102,9 +102,9 @@ async function processBilling(data, stockTable, username, res) {
 
   const entityTable = `${type}_details`;
   const stock = `${type}Stock`;
-  const discountValue = parseFloat(discount) || 0;
+  const discountValues = parseFloat(discount) || 0;
 
-  if (discountValue < 0) {
+  if (discountValues < 0) {
     return res.status(400).json({ error: "Invalid discount value" });
   }
 
@@ -233,14 +233,14 @@ async function processBilling(data, stockTable, username, res) {
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "No valid items for billing", details: errors });
     }
-
+     const discountValue =(totalAmount * discountValues / 100)
     if (discountValue > totalAmount) {
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "Global discount exceeds total amount" });
     }
 
     // const discountedTotal = totalAmount - discountValue;
-    const discountedTotal = totalAmount - (totalAmount * discountValue / 100);
+    const discountedTotal = totalAmount - discountValue;
 
     const paidAmount = payment_methods.reduce((sum, p) => sum + parseFloat(p.amount), 0);
     //   const finaltotal=discountedTotal-discount
