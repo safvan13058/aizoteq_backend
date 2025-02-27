@@ -208,16 +208,16 @@ async function processBilling(data, stockTable, username, res) {
         serial_no,
         model,
         mrp,
-        retail_price: parseFloat(retail_price) || 0,
-        item_discount: itemDiscount,
-        discounted_price: discountedPrice,
-        sgst: sgstAmount,
-        cgst: cgstAmount,
-        igst: igstAmount,
-        psgst: sgst,
-        pcgst: cgst,
-        pigst: igst,
-        final_price: finalPrice,
+        retail_price: parseFloat(retail_price).toFixed(2) || "0.00",
+        item_discount: parseFloat(itemDiscount).toFixed(2),
+        discounted_price: parseFloat(discountedPrice).toFixed(2),
+        sgst: parseFloat(sgstAmount).toFixed(2),
+        cgst: parseFloat(cgstAmount).toFixed(2),
+        igst: parseFloat(igstAmount).toFixed(2),
+        psgst: parseFloat(sgst).toFixed(2),
+        pcgst: parseFloat(cgst).toFixed(2),
+        pigst: parseFloat(igst).toFixed(2),
+        final_price: parseFloat(finalPrice).toFixed(2)
       });
 
       const dueDateQuery = await client.query(
@@ -274,7 +274,7 @@ async function processBilling(data, stockTable, username, res) {
     for (const item of billingItems) {
       await client.query(
         `INSERT INTO sales_graph (sale_by, sale_to, thing_id, timeanddate) VALUES ($1, $2, $3, CURRENT_TIMESTAMP)`,
-        [user_id||req.user?.id, email, item.serial_no]
+        [user_id || req.user?.id, email, item.serial_no]
       );
     }/*  */
 
@@ -327,13 +327,14 @@ async function processBilling(data, stockTable, username, res) {
     if (email) {
       await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
     }
-    if (fs.existsSync(pdfPath)) {
-      fs.unlinkSync(pdfPath);
-    }
+    printPDF(pdfPath);
+    // if (fs.existsSync(pdfPath)) {
+    //   fs.unlinkSync(pdfPath);
     // }
-    
+    // }
 
-    // printPDF(pdfPath);
+
+
 
     res.status(200).json({
       message: "Billing receipt created successfully",
