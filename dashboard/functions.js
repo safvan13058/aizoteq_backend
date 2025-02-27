@@ -88,81 +88,166 @@ const getThingBySerialNo = async (serialNo) => {
   //   return Object.values(grouped); // Convert the grouped object back to an array
   // }  
   
-  function groupItemsByModel(items) {
-    const grouped = {};
-    let totalSGST = 0; // To accumulate total SGST
-    let totalCGST = 0; // To accumulate total CGST
-    let totalIGST = 0; // To accumulate total IGST
-    let totalDiscountedPrice = 0; // To accumulate total discounted price
-    let totalAll = 0;
-    let totalRetailPrice = 0;
-    for (const item of items) {
-        const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst,psgst,pcgst,pigst, final_price } = item;
+//   function groupItemsByModel(items) {
+//     const grouped = {};
+//     let totalSGST = 0; // To accumulate total SGST
+//     let totalCGST = 0; // To accumulate total CGST
+//     let totalIGST = 0; // To accumulate total IGST
+//     let totalDiscountedPrice = 0; // To accumulate total discounted price
+//     let totalAll = 0;
+//     let totalRetailPrice = 0;
+//     for (const item of items) {
+//         const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst,psgst,pcgst,pigst, final_price } = item;
         
-        // Accumulate tax totals
-        totalSGST += sgst;
-        totalCGST += cgst;
-        totalIGST += igst;
+//         // Accumulate tax totals
+//         totalSGST += sgst;
+//         totalCGST += cgst;
+//         totalIGST += igst;
         
-        // Accumulate the total discounted price
-        totalDiscountedPrice += discounted_price;
-        totalAll += sgst + cgst + igst + discounted_price;
-        // Accumulate total retail price
-        totalRetailPrice += retail_price;
+//         // Accumulate the total discounted price
+//         totalDiscountedPrice += discounted_price;
+//         totalAll += sgst + cgst + igst + discounted_price;
+//         // Accumulate total retail price
+//         totalRetailPrice += mrp;
 
-        // Group items by model
-        if (!grouped[model]) {
-            grouped[model] = {
-                model,
-                item_name,
-                retail_price,
-                mrp,
-                qty: 1, // Start with quantity 1 for the first occurrence
-                item_discount,
-                discounted_price,
-                sgst,
-                cgst,
-                igst,
-                psgst,
-                pcgst,
-                pigst,
-                final_price,
-                totalRetailPrice
-            };
-        } else {
-            grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+//         // Group items by model
+//         if (!grouped[model]) {
+//             grouped[model] = {
+//                 model,
+//                 item_name,
+//                 retail_price,
+//                 mrp,
+//                 qty: 1, // Start with quantity 1 for the first occurrence
+//                 item_discount,
+//                 discounted_price,
+//                 sgst,
+//                 cgst,
+//                 igst,
+//                 psgst,
+//                 pcgst,
+//                 pigst,
+//                 final_price,
+//                 totalRetailPrice
+//             };
+//         } else {
+//             grouped[model].qty += 1; // Increment quantity for subsequent occurrences
             
-            // Accumulate the item properties for each model
-            grouped[model].totalRetailPrice += retail_price;
-            grouped[model].item_discount += item_discount;
-            grouped[model].discounted_price += discounted_price;
-            grouped[model].sgst += sgst;
-            grouped[model].cgst += cgst;
-            grouped[model].igst += igst;
-            grouped[model].final_price += final_price;
-        }
-    }
-    console.log(Object.values(grouped), // Convert the grouped object back to an array
-    totalSGST,
-    totalCGST,
-    totalIGST,
-    totalDiscountedPrice, // Return the total discounted price
-    totalAll,
-    totalRetailPrice)
-    return {
+//             // Accumulate the item properties for each model
+//             grouped[model].totalRetailPrice += mrp;
+//             grouped[model].item_discount += item_discount;
+//             grouped[model].discounted_price += discounted_price;
+//             grouped[model].sgst += sgst;
+//             grouped[model].cgst += cgst;
+//             grouped[model].igst += igst;
+//             grouped[model].final_price += final_price;
+//         }
+//     }
+//     console.log(Object.values(grouped), // Convert the grouped object back to an array
+//     totalSGST,
+//     totalCGST,
+//     totalIGST,
+//     totalDiscountedPrice, // Return the total discounted price
+//     totalAll,
+//     totalRetailPrice)
+//     return {
         
-        groupedItems: Object.values(grouped), // Convert the grouped object back to an array
-        totalSGST,
-        totalCGST,
-        totalIGST,
-        totalDiscountedPrice, // Return the total discounted price
-        totalAll,
-        totalRetailPrice
+//         groupedItems: Object.values(grouped), // Convert the grouped object back to an array
+//         totalSGST,
+//         totalCGST,
+//         totalIGST,
+//         totalDiscountedPrice, // Return the total discounted price
+//         totalAll,
+//         totalRetailPrice
 
-      };
+//       };
+// }
+
+function groupItemsByModel(items) {
+  const grouped = {};
+  let totalSGST = 0.00; // Initialize with 0.00
+  let totalCGST = 0.00;
+  let totalIGST = 0.00;
+  let totalDiscountedPrice = 0.00;
+  let totalAll = 0.00;
+  let totalRetailPrice = 0.00;
+
+  for (const item of items) {
+      const { serial_no, model, item_name, retail_price, mrp, item_discount, discounted_price, sgst, cgst, igst, psgst, pcgst, pigst, final_price } = item;
+
+      // Accumulate tax totals
+      totalSGST += parseFloat(sgst) || 0.00;
+      totalCGST += parseFloat(cgst) || 0.00;
+      totalIGST += parseFloat(igst) || 0.00;
+
+      // Accumulate the total discounted price
+      totalDiscountedPrice += parseFloat(discounted_price) || 0.00;
+      totalAll += (parseFloat(sgst) || 0.00) + (parseFloat(cgst) || 0.00) + (parseFloat(igst) || 0.00) + (parseFloat(discounted_price) || 0.00);
+
+      // Accumulate total retail price
+      totalRetailPrice += parseFloat(mrp) || 0.00;
+
+      // Group items by model
+      if (!grouped[model]) {
+          grouped[model] = {
+              model,
+              item_name,
+              retail_price: parseFloat(retail_price).toFixed(2),
+              mrp: parseFloat(mrp).toFixed(2),
+              qty: 1, // Start with quantity 1 for the first occurrence
+              item_discount: parseFloat(item_discount).toFixed(2),
+              discounted_price: parseFloat(discounted_price).toFixed(2),
+              sgst: parseFloat(sgst).toFixed(2),
+              cgst: parseFloat(cgst).toFixed(2),
+              igst: parseFloat(igst).toFixed(2),
+              psgst: parseFloat(psgst).toFixed(2),
+              pcgst: parseFloat(pcgst).toFixed(2),
+              pigst: parseFloat(pigst).toFixed(2),
+              final_price: parseFloat(final_price).toFixed(2),
+              totalRetailPrice: parseFloat(mrp).toFixed(2),
+          };
+      } else {
+          grouped[model].qty += 1; // Increment quantity for subsequent occurrences
+
+          // Accumulate the item properties for each model
+          grouped[model].totalRetailPrice = (parseFloat(grouped[model].totalRetailPrice) + parseFloat(mrp)).toFixed(2);
+          grouped[model].item_discount = (parseFloat(grouped[model].item_discount) + parseFloat(item_discount)).toFixed(2);
+          grouped[model].discounted_price = (parseFloat(grouped[model].discounted_price) + parseFloat(discounted_price)).toFixed(2);
+          grouped[model].sgst = (parseFloat(grouped[model].sgst) + parseFloat(sgst)).toFixed(2);
+          grouped[model].cgst = (parseFloat(grouped[model].cgst) + parseFloat(cgst)).toFixed(2);
+          grouped[model].igst = (parseFloat(grouped[model].igst) + parseFloat(igst)).toFixed(2);
+          grouped[model].final_price = (parseFloat(grouped[model].final_price) + parseFloat(final_price)).toFixed(2);
+      }
+  }
+
+  // Ensure all totals are formatted to 2 decimal places
+  totalSGST = totalSGST.toFixed(2);
+  totalCGST = totalCGST.toFixed(2);
+  totalIGST = totalIGST.toFixed(2);
+  totalDiscountedPrice = totalDiscountedPrice.toFixed(2);
+  totalAll = totalAll.toFixed(2);
+  totalRetailPrice = totalRetailPrice.toFixed(2);
+
+  console.log(
+      Object.values(grouped), // Convert the grouped object back to an array
+      totalSGST,
+      totalCGST,
+      totalIGST,
+      totalDiscountedPrice, // Return the total discounted price
+      totalAll,
+      totalRetailPrice
+  );
+
+  return {
+      groupedItems: Object.values(grouped), // Convert the grouped object back to an array
+      totalSGST,
+      totalCGST,
+      totalIGST,
+      totalDiscountedPrice, // Return the total discounted price
+      totalAll,
+      totalRetailPrice
+  };
 }
 
-  
   async function isSessionOpen(session_id, client) {
     const result = await client.query(
         `SELECT status FROM billing_session WHERE id = $1`,
