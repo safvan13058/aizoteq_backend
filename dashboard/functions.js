@@ -248,26 +248,58 @@ function groupItemsByModel(items) {
   };
 }
 function convertToWords(amount) {
+  if (isNaN(amount) || amount === null || amount === undefined) {
+      return "Invalid amount";
+  }
+
+  amount = Number(amount); // Ensure it's a number
+
   const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
   const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
   const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
-  amount = Number(amount); 
-  function numberToWords(num) {
-      if (num < 10) return ones[num];
-      else if (num < 20) return teens[num - 10];
-      else if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + ones[num % 10] : "");
-      else return num;
-  }
-  console.log("amount",amount)
-  let [rupees, paise] = amount.toFixed(2).split(".");
-  rupees = parseInt(rupees);
-  paise = parseInt(paise);
+  const thousands = ["", "Thousand", "Lakh", "Crore"];
 
-  let rupeesInWords = rupees === 0 ? "Zero" : numberToWords(rupees);
+  function numberToWords(num) {
+      if (num === 0) return "Zero";
+
+      let words = "";
+      let numStr = num.toString();
+      let numLength = numStr.length;
+
+      let i = 0;
+      while (numLength > 0) {
+          let part;
+          if (i === 0) {
+              // Handle last three digits (hundreds place)
+              part = parseInt(numStr.slice(-3), 10);
+              numStr = numStr.slice(0, -3);
+              numLength -= 3;
+          } else {
+              // Handle two-digit groups (thousands, lakhs, crores)
+              part = parseInt(numStr.slice(-2), 10);
+              numStr = numStr.slice(0, -2);
+              numLength -= 2;
+          }
+
+          if (part > 0) {
+              words = (part < 10 ? ones[part] : part < 20 ? teens[part - 10] : tens[Math.floor(part / 10)] + (part % 10 !== 0 ? " " + ones[part % 10] : "")) +
+                  (thousands[i] ? " " + thousands[i] + " " : " ") + words;
+          }
+          i++;
+      }
+      return words.trim();
+  }
+
+  let [rupees, paise] = amount.toFixed(2).split(".");
+  rupees = parseInt(rupees, 10);
+  paise = parseInt(paise, 10);
+
+  let rupeesInWords = numberToWords(rupees) + " Rupees";
   let paiseInWords = paise === 0 ? "" : numberToWords(paise) + " Paise";
 
-  return `${rupeesInWords} Rupees${paiseInWords ? " and " + paiseInWords : ""}`;
+  return `${rupeesInWords}${paiseInWords ? " and " + paiseInWords : ""}`;
 }
+
   async function isSessionOpen(session_id, client) {
     const result = await client.query(
         `SELECT status FROM billing_session WHERE id = $1`,
