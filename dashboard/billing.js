@@ -324,14 +324,14 @@ async function processBilling(data, stockTable, username, res) {
     });
 
     // await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
-
+    if (email) {
+      await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
+    }
     if (fs.existsSync(pdfPath)) {
       fs.unlinkSync(pdfPath);
     }
     // }
-    if (email) {
-      await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
-    }
+    
 
     // printPDF(pdfPath);
 
