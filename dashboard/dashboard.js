@@ -2923,11 +2923,11 @@ dashboard.post('/api/create/account/for/:Party',
 //   });
 
   dashboard.get('/api/display/party/:Party', 
-    validateJwt, authorizeRoles('admin', 'dealer'),
+    // validateJwt, authorizeRoles('admin', 'dealer'),
     async (req, res) => {
     const { Party } = req.params; // Party parameter: 'onlinecustomer', 'customers', 'dealers'
     const { query: searchQuery } = req.query; // Optional search query
-    const { userRole, id: userId } = req.user; // Extracted from JWT
+    const { role:userRole, id: userId } = req.user; // Extracted from JWT
   
     // ✅ Allowed parties
     const validParties = ['onlinecustomer', 'customers', 'dealers'];
