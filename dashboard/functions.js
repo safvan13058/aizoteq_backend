@@ -5,7 +5,7 @@ const getThingBySerialNo = async (serialNo) => {
     const result = await db.query(`SELECT * FROM Things WHERE serialno = $1`, [serialNo]);
     return result.rows[0] || null;
   };
-  
+
   // Helper function: Remove thing from `AdminStock`
   const removeFromAdminStock = async (thingId) => {
     const result = await db.query(`DELETE FROM AdminStock WHERE thingId = $1 RETURNING *`, [thingId]);
@@ -247,7 +247,27 @@ function groupItemsByModel(items) {
       totalRetailPrice
   };
 }
+function convertToWords(amount) {
+  const ones = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
+  const teens = ["Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
+  const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
 
+  function numberToWords(num) {
+      if (num < 10) return ones[num];
+      else if (num < 20) return teens[num - 10];
+      else if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 !== 0 ? " " + ones[num % 10] : "");
+      else return num;
+  }
+
+  let [rupees, paise] = amount.toFixed(2).split(".");
+  rupees = parseInt(rupees);
+  paise = parseInt(paise);
+
+  let rupeesInWords = rupees === 0 ? "Zero" : numberToWords(rupees);
+  let paiseInWords = paise === 0 ? "" : numberToWords(paise) + " Paise";
+
+  return `${rupeesInWords} Rupees${paiseInWords ? " and " + paiseInWords : ""}`;
+}
   async function isSessionOpen(session_id, client) {
     const result = await client.query(
         `SELECT status FROM billing_session WHERE id = $1`,
@@ -464,4 +484,4 @@ async function sendEmailWithAttachment(toEmail, name, receiptNo, pdfPath) {
   }
 }
 
-  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStockdealers,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock,printPDF}
+  module.exports={getThingBySerialNo,removeFromAdminStock,removeFromStockdealers,removeFromStock,addToStock,generatePDF,sendEmailWithAttachment,isSessionOpen,groupItemsByModel,removeFromdealersStock,printPDF,convertToWords}

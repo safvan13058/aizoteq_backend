@@ -4,7 +4,7 @@ const db = require('../middlewares/dbconnection');// Replace with your actual da
 const path = require("path");
 const fs = require("fs");
 const { exec } = require('child_process');
-const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF } = require("./functions"); // Utility functions
+const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF,convertToWords } = require("./functions"); // Utility functions
 
 const billing = async (req, res) => {
   const {
@@ -314,7 +314,8 @@ async function processBilling(data, stockTable, username, res) {
       totalCGST, // Total CGST
       totalIGST, // Total IGST
       totalAll, // Total amount // Total in words
-      totalAmount, // Total invoice amount
+      totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
+      totalInFigures:convertToWords(parseFloat(totalAmount).toFixed(2)),
       discount: parseFloat(discountValue).toFixed(2),
       discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
       paidAmount,
