@@ -1836,7 +1836,9 @@ dashboard.get("/billing_items/:serial_no",validateJwt,
           )
           .join("billing_receipt", "billing_items.receipt_no", "billing_receipt.receipt_no")
           .join("Users", "billing_receipt.created_by", "Users.id")
-          .where("billing_items.serial_no", serial_no);
+          .where("billing_items.serial_no", serial_no)
+          .orderBy("billing_items.id", "desc") // Get the latest entry
+          .first(); // Equivalent to LIMIT 1
 
       if (userRole === "admin" || userRole === "staff") {
           // Admin & Staff can view all billing items created by any admin/staff
