@@ -1102,7 +1102,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
       let query = '';
 
       if (userrole === 'admin') {
-          stockTable = 'AdminStock ';
+          stockTable = 'AdminStock';
           if (stock === 'sold') {
               if (!party) {
                   return res.status(400).json({ message: "Party parameter is required" });
@@ -1814,7 +1814,51 @@ dashboard.get("/price/:serialno",
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+dashboard.get("/billing_items/:serial_no",validateJwt,
+  authorizeRoles('admin', 'dealer'), async (req, res) => {
+  try {
+      const { serial_no } = req.params;
+      const { id: userId, role:userRole } = req.user; // Extract user details from JWT
 
+      let query = db("billing_items")
+          .select(
+              "billing_items.*",
+              "billing_receipt.name as customer_name",
+              "billing_receipt.phone as customer_phone",
+              "billing_receipt.email as customer_email",
+              "billing_receipt.billing_address",
+              "billing_receipt.shipping_address",
+              "billing_receipt.total_amount",
+              "billing_receipt.paid_amount",
+              "billing_receipt.balance",
+              "Users.userName as created_by_username",
+              "Users.userRole as created_by_role"
+          )
+          .join("billing_receipt", "billing_items.receipt_no", "billing_receipt.receipt_no")
+          .join("Users", "billing_receipt.created_by", "Users.id")
+          .where("billing_items.serial_no", serial_no);
+
+      if (userRole === "admin" || userRole === "staff") {
+          // Admin & Staff can view all billing items created by any admin/staff
+          query.whereIn("Users.userRole", ["admin", "staff"]);
+      } else if (userRole === "dealer") {
+          // Dealers can only view their own billing items
+          query.where("billing_receipt.created_by", userId);
+      } else {
+          return res.status(403).json({ message: "Unauthorized access" });
+      }
+
+      const results = await query;
+      if (results.length === 0) {
+          return res.status(404).json({ message: "Billing item not found" });
+      }
+
+      res.json(results);
+  } catch (error) {
+      console.error("Error fetching billing items:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 dashboard.post('/api/pay-balance', async (req, res) => {
   try {
     const {
