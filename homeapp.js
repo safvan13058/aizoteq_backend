@@ -1082,14 +1082,14 @@ homeapp.post('/api/access/customer/:roomid',
                 VALUES ($1, $2)
             `;
             const userDeviceQuery = `
-                INSERT INTO UserDevicesorder (roomid, device_id, orderIndex)
-                VALUES ($1, $2, $3)
+                INSERT INTO UserDevicesorder (userid,roomid, device_id, orderIndex)
+                VALUES ($1, $2, $3,$4)
             `;
 
             for (const { id: device_id, deviceid } of device_ids) {
                 currentOrderIndex += 1; // Increment orderIndex
                 await client.query(roomDeviceQuery, [roomid, deviceid]);
-                await client.query(userDeviceQuery, [roomid, device_id, currentOrderIndex]);
+                await client.query(userDeviceQuery, [user_id,roomid, device_id, currentOrderIndex]);
             }
 
             await client.query('COMMIT'); // Commit the transaction
@@ -2772,7 +2772,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
         const client = await db.connect();
         try {
             const roomid = req.params.roomid;
-            const userId = req.query.userid; // Assuming user information is available in req.user
+            const userId =req.user?.id|| req.query.userid; // Assuming user information is available in req.user
 
             // Fetch unique devices for the room, ordered by orderIndex, and include favorite status
             const query = `
