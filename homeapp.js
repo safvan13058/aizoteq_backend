@@ -2814,6 +2814,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
                 WITH OrderedDevices AS (
                     SELECT d.*, 
                         COALESCE(ufd.favorite, FALSE) AS favorite,
+                        udo.orderIndex,
                         ROW_NUMBER() OVER (PARTITION BY d.id ORDER BY udo.orderIndex ASC) AS row_num
                     FROM devices d
                     INNER JOIN room_device rd ON d.deviceid = rd.device_id
@@ -2822,7 +2823,8 @@ homeapp.get('/api/display/device/rooms/:roomid',
                         ON ufd.device_id = d.id AND ufd.user_id = $2 
                     WHERE rd.room_id = $1
                 )
-                SELECT * FROM OrderedDevices WHERE row_num = 1; -- Ensures only one entry per device
+                SELECT * FROM OrderedDevices WHERE row_num = 1
+                ORDER BY orderIndex ASC; -- Ensure correct ordering
             `;
 
             const devicesResult = await client.query(query, [roomid, userId]);
@@ -2840,6 +2842,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
         }
     }
 );
+
 
 
 // homeapp.put('/api/update/devices/:id', async (req, res) => {
