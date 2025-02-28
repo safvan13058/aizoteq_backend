@@ -2804,11 +2804,13 @@ homeapp.get('/api/scene-events/scene/:sceneId',
 //     }
 // );
 homeapp.get('/api/display/device/rooms/:roomid',
+      validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         const client = await db.connect();
         try {
             const roomid = req.params.roomid;
-            const userId = 87; // Assuming user information is available in req.user
+            const userId = req.user?.id||req.query.user_id; // Assuming user information is available in req.user
 
             const query = `
                 WITH OrderedDevices AS (
