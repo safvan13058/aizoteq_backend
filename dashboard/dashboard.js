@@ -1814,48 +1814,60 @@ dashboard.get("/price/:serialno",
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-dashboard.get("/billing_items/:serial_no",validateJwt,
-  authorizeRoles('admin', 'dealer'), async (req, res) => {
+dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", "dealer"), async function (req, res) {
   try {
-      const { serial_no } = req.params;
-      const { id: userId, role:userRole } = req.user; // Extract user details from JWT
+      const serial_no = req.params.serial_no;
+      const userId = req.user.id;
+      const userRole = req.user.role;
 
-      let query = db("billing_items")
-          .select(
-              "billing_items.*",
-              "billing_receipt.name as customer_name",
-              "billing_receipt.phone as customer_phone",
-              "billing_receipt.email as customer_email",
-              "billing_receipt.billing_address",
-              "billing_receipt.shipping_address",
-              "billing_receipt.total_amount",
-              "billing_receipt.paid_amount",
-              "billing_receipt.balance",
-              "Users.userName as created_by_username",
-              "Users.userRole as created_by_role"
-          )
-          .join("billing_receipt", "billing_items.receipt_no", "billing_receipt.receipt_no")
-          .join("Users", "billing_receipt.created_by", "Users.id")
-          .where("billing_items.serial_no", serial_no)
-          .orderBy("billing_items.id", "desc") // Get the latest entry
-          .first(); // Equivalent to LIMIT 1
+      let query = `
+          SELECT 
+              bi.serial_no,
+              bi.model,
+              bi.mrp,
+              bi.retail_price,
+              bi.sgst,
+              bi.cgst,
+              bi.igst,
+              bi.item_discount,
+              bi.final_price,
+              br.name AS customer_name,
+              br.phone AS customer_phone,
+              br.email AS customer_email,
+              br.billing_address,
+              br.shipping_address,
+              br.total_amount,
+              br.paid_amount,
+              br.balance,
+              br.datetime AS billing_date,
+              u.userName AS created_by_username,
+              u.userRole AS created_by_role
+          FROM billing_items bi
+          JOIN billing_receipt br ON bi.receipt_no = br.receipt_no
+          JOIN Users u ON br.created_by = u.id
+          WHERE bi.serial_no = $1
+      `;
 
+      // Role-based filtering
       if (userRole === "admin" || userRole === "staff") {
-          // Admin & Staff can view all billing items created by any admin/staff
-          query.whereIn("Users.userRole", ["admin", "staff"]);
+          query += ` AND u.userRole IN ('admin', 'staff') `;
       } else if (userRole === "dealer") {
-          // Dealers can only view their own billing items
-          query.where("billing_receipt.created_by", userId);
+          query += ` AND br.created_by = $2 `;
       } else {
           return res.status(403).json({ message: "Unauthorized access" });
       }
 
-      const results = await query;
-      if (results.length === 0) {
+      query += ` ORDER BY bi.id DESC LIMIT 1;`;
+
+      const params = userRole === "dealer" ? [serial_no, userId] : [serial_no];
+
+      const { rows } = await db.query(query, params);
+
+      if (rows.length === 0) {
           return res.status(404).json({ message: "Billing item not found" });
       }
 
-      res.json(results);
+      res.json(rows[0]);
   } catch (error) {
       console.error("Error fetching billing items:", error);
       res.status(500).json({ message: "Internal Server Error" });
