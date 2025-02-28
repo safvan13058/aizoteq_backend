@@ -2785,7 +2785,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
                 LEFT JOIN UserFavoriteDevices ufd 
                     ON ufd.device_id = d.id AND ufd.user_id = $2 -- Join on user_id and device_id
                 WHERE rd.room_id = $1
-                ORDER BY d.id, udo.orderIndex ASC
+                ORDER BY udo.orderIndex ASC
             `;
             const devicesResult = await client.query(query, [roomid, userId]);
 
