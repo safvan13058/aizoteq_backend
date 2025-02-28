@@ -1265,7 +1265,7 @@ homeapp.put('/api/reorder/devices/:roomid',
 
         // Update orderIndex for each device
         const updateQuery = `
-            UPDATE UserDevices
+            UPDATE UserDevicesorder
             SET orderIndex = $1
             WHERE roomid = $2 AND device_id = $3
         `;
