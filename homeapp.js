@@ -2810,17 +2810,19 @@ homeapp.get('/api/display/device/rooms/:roomid',
             const roomid = req.params.roomid;
             const userId = 87; // Assuming user information is available in req.user
 
-            // Fetch unique devices for the room, ordered by orderIndex, and include favorite status
             const query = `
-                SELECT d.*, 
-                    COALESCE(ufd.favorite, FALSE) AS favorite -- Include favorite field
-                FROM devices d
-                INNER JOIN room_device rd ON d.deviceid = rd.device_id
-                INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
-                LEFT JOIN UserFavoriteDevices ufd 
-                    ON ufd.device_id = d.id AND ufd.user_id = $2 -- Join on user_id and device_id
-                WHERE rd.room_id = $1
-                ORDER BY udo.orderIndex ASC; -- Ensure proper ordering
+                WITH OrderedDevices AS (
+                    SELECT d.*, 
+                        COALESCE(ufd.favorite, FALSE) AS favorite,
+                        ROW_NUMBER() OVER (PARTITION BY d.id ORDER BY udo.orderIndex ASC) AS row_num
+                    FROM devices d
+                    INNER JOIN room_device rd ON d.deviceid = rd.device_id
+                    INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
+                    LEFT JOIN UserFavoriteDevices ufd 
+                        ON ufd.device_id = d.id AND ufd.user_id = $2 
+                    WHERE rd.room_id = $1
+                )
+                SELECT * FROM OrderedDevices WHERE row_num = 1; -- Ensures only one entry per device
             `;
 
             const devicesResult = await client.query(query, [roomid, userId]);
@@ -2829,7 +2831,6 @@ homeapp.get('/api/display/device/rooms/:roomid',
                 return res.status(404).json({ message: 'No devices found for this room.' });
             }
 
-            // Return the ordered device data with the favorite field
             res.status(200).json({ devices: devicesResult.rows });
         } catch (error) {
             console.error('Error fetching devices:', error);
@@ -2839,6 +2840,7 @@ homeapp.get('/api/display/device/rooms/:roomid',
         }
     }
 );
+
 
 // homeapp.put('/api/update/devices/:id', async (req, res) => {
 //     const { id } = req.params; // Get device ID from the URL
