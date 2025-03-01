@@ -864,7 +864,6 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     const item = await locateItem(client, serialNo);
     if (!item) throw new Error(`Item with serial number ${serialNo} not found or already returned`);
 
-    const thingdata = await fetchRetailPrice(client, serialNo);
     const items = await fetchItemsBySerialNumbers(client, serialNo);
     const { id, serial_no, model, final_price, thing_id, } = items;
     // Remove from original stock and add to AdminStock
