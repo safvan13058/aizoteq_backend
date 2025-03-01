@@ -934,61 +934,137 @@ async function fetchItemsBySerialNumbers(client, serialNo) {
   if (result.rows.length === 0) throw new Error(`Retail price not found for serial number ${serialNo}`);
   return result.rows[0];
 }
+// async function generateReceipt(client, receiptItems, totalReturnAmount, status, returnedBy) {
+//   // Generate the next receipt number
+//   const lastReceipt = await client.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
+//   const receiptNo = lastReceipt.rows.length > 0 ? parseInt(lastReceipt.rows[0].receipt_no) + 1 : 1000;
+
+//   // Insert into billing_receipt
+//   await client.query(
+//     `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime)
+//        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+//     [receiptNo, -totalReturnAmount, returnedBy, status]
+//   );
+//   // Insert into billing_items
+//   for (const item of receiptItems) {
+//     await client.query(
+//       `INSERT INTO billing_items (receipt_no, serial_no, mrp,model,retail_price) VALUES ($1, $2, $3)`,
+//       [receiptNo, item.serial_no, item.mrp,item.model,item.mrp]
+//     );
+//   }
+//   const receiptDir = path.join(__dirname, "returned");
+//     if (!fs.existsSync(receiptDir)) {
+//       fs.mkdirSync(receiptDir);
+//     }
+//   const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
+//   const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
+//   await generatePDF(pdfPath, {
+//     receiptNo,
+//     date: new Date().toLocaleDateString(),
+//     name,
+//     phone,
+//     gstin,
+//     address,
+//     shipping_address,
+//     items: groupedItems, // This will be the grouped items array
+//     totalDiscountedPrice, // Total discounted price
+//     totalSGST, // Total SGST
+//     totalCGST, // Total CGST
+//     totalIGST, // Total IGST
+//     totalAll, // Total amount // Total in words
+//     totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
+//     totalInFigures:convertToWords(parseFloat(totalAmount)),
+//     discount: parseFloat(discountValue).toFixed(2),
+//     discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
+//     paidAmount,
+//     balance,
+//     billtype: status
+//     // preparedBy,
+//     // salesman
+//   });
+  
+//     await sendEmailWithAttachment('safvan13473@gmail.com', name, "000", pdfPath);
+  
+//   printPDF(pdfPath);
+//   return receiptNo;
+// }
 async function generateReceipt(client, receiptItems, totalReturnAmount, status, returnedBy) {
-  // Generate the next receipt number
-  const lastReceipt = await client.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
-  const receiptNo = lastReceipt.rows.length > 0 ? parseInt(lastReceipt.rows[0].receipt_no) + 1 : 1000;
+  try {
+    // Step 1: Find the receipt_no for the given serial numbers
+    const serialNumbers = receiptItems.map(item => item.serial_no);
+    const receiptNosQuery = `SELECT DISTINCT receipt_no FROM billing_items WHERE serial_no = ANY($1)`;
+    const receiptNosResult = await client.query(receiptNosQuery, [serialNumbers]);
 
-  // Insert into billing_receipt
-  await client.query(
-    `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
-    [receiptNo, -totalReturnAmount, returnedBy, status]
-  );
+    if (receiptNosResult.rows.length === 0) {
+      throw new Error("No matching receipt found for the given serial numbers.");
+    }
 
-  // Insert into billing_items
-  for (const item of receiptItems) {
+    const receiptNo = receiptNosResult.rows[0].receipt_no; // Assume all items belong to the same receipt
+
+    // Step 2: Fetch customer/dealer details from billing_receipt
+    const receiptDetailsQuery = `SELECT name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id 
+                                 FROM billing_receipt WHERE receipt_no = $1`;
+    const receiptDetailsResult = await client.query(receiptDetailsQuery, [receiptNo]);
+
+    if (receiptDetailsResult.rows.length === 0) {
+      throw new Error(`No receipt details found for receipt number ${receiptNo}`);
+    }
+
+    const { name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id } =
+      receiptDetailsResult.rows[0];
+
+    // Step 3: Generate a new return receipt number
+    const lastReceipt = await client.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
+    const newReceiptNo = lastReceipt.rows.length > 0 ? parseInt(lastReceipt.rows[0].receipt_no) + 1 : 1000;
+
+    // Step 4: Insert the return transaction into billing_receipt
     await client.query(
-      `INSERT INTO billing_items (receipt_no, serial_no, mrp,model,retail_price) VALUES ($1, $2, $3)`,
-      [receiptNo, item.serial_no, item.mrp,item.model,item.mrp]
+      `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9, $10, $11, $12)`,
+      [newReceiptNo, -totalReturnAmount, returnedBy, status, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id]
     );
-  }
-  const receiptDir = path.join(__dirname, "returned");
+
+    // Step 5: Insert returned items into billing_items
+    for (const item of receiptItems) {
+      await client.query(
+        `INSERT INTO billing_items (receipt_no, serial_no, mrp, model, retail_price, final_price) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [newReceiptNo, item.serial_no, item.mrp, item.model, item.retail_price, -item.retail_price]
+      );
+    }
+
+    // Step 6: Generate PDF receipt
+    const receiptDir = path.join(__dirname, "returned");
     if (!fs.existsSync(receiptDir)) {
       fs.mkdirSync(receiptDir);
     }
-  const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
-  const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
-  await generatePDF(pdfPath, {
-    receiptNo,
-    date: new Date().toLocaleDateString(),
-    name,
-    phone,
-    gstin,
-    address,
-    shipping_address,
-    items: groupedItems, // This will be the grouped items array
-    totalDiscountedPrice, // Total discounted price
-    totalSGST, // Total SGST
-    totalCGST, // Total CGST
-    totalIGST, // Total IGST
-    totalAll, // Total amount // Total in words
-    totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
-    totalInFigures:convertToWords(parseFloat(totalAmount)),
-    discount: parseFloat(discountValue).toFixed(2),
-    discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
-    paidAmount,
-    balance,
-    billtype: status
-    // preparedBy,
-    // salesman
-  });
-  
-    await sendEmailWithAttachment('safvan13473@gmail.com', name, "000", pdfPath);
-  
-  printPDF(pdfPath);
-  return receiptNo;
-}
+    const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
+    const pdfPath = path.join(receiptDir, `receipt_${newReceiptNo}.pdf`);
+    await generatePDF(pdfPath, {
+      receiptNo: newReceiptNo,
+      date: new Date().toLocaleDateString(),
+      name,
+      phone,
+      email,
+      address: billing_address,
+      shipping_address,
+      items: groupedItems,
+      totalAmount: parseFloat(totalReturnAmount).toFixed(2),
+      totalInFigures: convertToWords(parseFloat(totalReturnAmount)),
+      billtype: status,
+    });
 
+    if(email){
+    // Step 7: Send the email with the attached receipt
+    await sendEmailWithAttachment(email, name, phone, pdfPath);
+    }
+    // Step 8: Print PDF
+    printPDF(pdfPath);
+
+    return newReceiptNo;
+  } catch (error) {
+    console.error("Error generating receipt:", error.message);
+    throw error;
+  }
+}
 
 module.exports = { billing, returned };
