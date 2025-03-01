@@ -1969,11 +1969,7 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
               return res.status(404).json({ message: "Billing item not found" });
           }
 
-          res.json({
-              thingId: thingId,
-              stock_source: stockCheckResult.rows.map(row => row.source),
-              billing_item: rows[0]
-          });
+          res.json(rows[0]);
 
       } catch (error) {
           await client.query("ROLLBACK");
