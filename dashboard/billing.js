@@ -1002,7 +1002,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     const receiptNo = receiptNosResult.rows[0].receipt_no; // Assume all items belong to the same receipt
 
     // Step 2: Fetch customer/dealer details from billing_receipt
-    const receiptDetailsQuery = `SELECT name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id 
+    const receiptDetailsQuery = `SELECT name, phone, email, billing_address, shipping_address,dealer_or_customer, dealers_id, customers_id, onlinecustomer_id 
                                  FROM billing_receipt WHERE receipt_no = $1`;
     const receiptDetailsResult = await client.query(receiptDetailsQuery, [receiptNo]);
 
@@ -1010,7 +1010,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       throw new Error(`No receipt details found for receipt number ${receiptNo}`);
     }
 
-    const { name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id } =
+    const { name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer } =
       receiptDetailsResult.rows[0];
 
     // Step 3: Generate a new return receipt number
@@ -1019,9 +1019,9 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
 
     // Step 4: Insert the return transaction into billing_receipt
     await client.query(
-      `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id)
-       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9, $10, $11, $12)`,
-      [newReceiptNo, -totalReturnAmount, returnedBy, status, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id]
+      `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer)
+       VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9, $10, $11, $12,$13)`,
+      [newReceiptNo, -totalReturnAmount, returnedBy, status, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer]
     );
 
     // Step 5: Insert returned items into billing_items
