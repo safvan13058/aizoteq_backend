@@ -1956,7 +1956,7 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
           if (rows.length === 0) {
               return res.status(404).json({ message: "Billing item not found" });
           }
-
+          console.log( rows[0])
           res.json(rows[0])
 
       } catch (error) {
