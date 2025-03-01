@@ -769,7 +769,7 @@ console.log(convertToWords(1000000));
 const returned = async (req, res) => {
   const { serial_numbers, userid } = req.body;
   const { status } = req.params;
-
+  console.log("serialno",JSON.stringify(serial_numbers,null,2))
   // Validate input
   if (!serial_numbers || serial_numbers.length === 0) {
     return res.status(400).json({ error: "At least one serial number is required" });
