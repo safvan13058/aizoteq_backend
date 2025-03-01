@@ -1040,7 +1040,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
     const pdfPath = path.join(receiptDir, `receipt_${newReceiptNo}.pdf`);
     await generatePDF(pdfPath, {
-      receiptNo: newReceiptNo,
+      receiptNo:"000",
       date: new Date().toLocaleDateString(),
       name,
       phone,

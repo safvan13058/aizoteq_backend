@@ -1814,65 +1814,168 @@ dashboard.get("/price/:serialno",
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+// dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", "dealer"), async function (req, res) {
+//   try {
+//       const serial_no = req.params.serial_no;
+//       const userId = req.user.id;
+//       const userRole = req.user.role;
+ 
+//       let query = `
+//           SELECT 
+//               bi.serial_no,
+//               bi.model,
+//               bi.mrp,
+//               bi.retail_price,
+//               bi.sgst,
+//               bi.cgst,
+//               bi.igst,
+//               bi.item_discount,
+//               bi.final_price,
+//               br.name AS customer_name,
+//               br.phone AS customer_phone,
+//               br.email AS customer_email,
+//               br.billing_address,
+//               br.shipping_address,
+//               br.total_amount,
+//               br.paid_amount,
+//               br.balance,
+//               br.datetime AS billing_date,
+//               u.userName AS created_by_username,
+//               u.userRole AS created_by_role
+//           FROM billing_items bi
+//           JOIN billing_receipt br ON bi.receipt_no = br.receipt_no
+//           JOIN Users u ON br.created_by = u.id
+//           WHERE bi.serial_no = $1
+//       `;
+
+//       // Role-based filtering
+//       if (userRole === "admin" || userRole === "staff") {
+//           query += ` AND u.userRole IN ('admin', 'staff') `;
+//       } else if (userRole === "dealer") {
+//           query += ` AND br.created_by = $2 `;
+//       } else {
+//           return res.status(403).json({ message: "Unauthorized access" });
+//       }
+
+//       query += ` ORDER BY bi.id DESC LIMIT 1;`;
+
+//       const params = userRole === "dealer" ? [serial_no, userId] : [serial_no];
+
+//       const { rows } = await db.query(query, params);
+
+//       if (rows.length === 0) {
+//           return res.status(404).json({ message: "Billing item not found" });
+//       }
+
+//       res.json(rows[0]);
+//   } catch (error) {
+//       console.error("Error fetching billing items:", error);
+//       res.status(500).json({ message: "Internal Server Error" });
+//   }
+// });
+
 dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", "dealer"), async function (req, res) {
   try {
       const serial_no = req.params.serial_no;
       const userId = req.user.id;
       const userRole = req.user.role;
+      
+      const client = await db.connect(); // Connect to DB
+      try {
+          await client.query("BEGIN"); // Start transaction
 
-      let query = `
-          SELECT 
-              bi.serial_no,
-              bi.model,
-              bi.mrp,
-              bi.retail_price,
-              bi.sgst,
-              bi.cgst,
-              bi.igst,
-              bi.item_discount,
-              bi.final_price,
-              br.name AS customer_name,
-              br.phone AS customer_phone,
-              br.email AS customer_email,
-              br.billing_address,
-              br.shipping_address,
-              br.total_amount,
-              br.paid_amount,
-              br.balance,
-              br.datetime AS billing_date,
-              u.userName AS created_by_username,
-              u.userRole AS created_by_role
-          FROM billing_items bi
-          JOIN billing_receipt br ON bi.receipt_no = br.receipt_no
-          JOIN Users u ON br.created_by = u.id
-          WHERE bi.serial_no = $1
-      `;
+          let stockCheckQuery = "";
+          let stockCheckParams = [];
 
-      // Role-based filtering
-      if (userRole === "admin" || userRole === "staff") {
-          query += ` AND u.userRole IN ('admin', 'staff') `;
-      } else if (userRole === "dealer") {
-          query += ` AND br.created_by = $2 `;
-      } else {
-          return res.status(403).json({ message: "Unauthorized access" });
+          if (userRole === "admin") {
+              stockCheckQuery = `
+                  SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1
+                  UNION
+                  SELECT 'dealersStock' AS source FROM dealersStock WHERE thingid = $1
+                  UNION
+                  SELECT 'onlinecustomersStock' AS source FROM onlinecustomersStock WHERE thingid = $1;
+              `;
+              stockCheckParams = [serial_no];
+          } else if (userRole === "dealer") {
+              stockCheckQuery = `SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1 AND user_id = $2;`;
+              stockCheckParams = [serial_no, userId];
+          } else {
+              return res.status(403).json({ message: "Unauthorized access" });
+          }
+
+          // Check if item is available in stock
+          const stockCheckResult = await client.query(stockCheckQuery, stockCheckParams);
+
+          if (stockCheckResult.rows.length === 0) {
+              await client.query("ROLLBACK");
+              return res.status(404).json({ message: "Item not available in stock" });
+          }
+
+          let billingQuery = `
+              SELECT 
+                  bi.serial_no,
+                  bi.model,
+                  bi.mrp,
+                  bi.retail_price,
+                  bi.sgst,
+                  bi.cgst,
+                  bi.igst,
+                  bi.item_discount,
+                  bi.final_price,
+                  br.name AS customer_name,
+                  br.phone AS customer_phone,
+                  br.email AS customer_email,
+                  br.billing_address,
+                  br.shipping_address,
+                  br.total_amount,
+                  br.paid_amount,
+                  br.balance,
+                  br.datetime AS billing_date,
+                  u.userName AS created_by_username,
+                  u.userRole AS created_by_role
+              FROM billing_items bi
+              JOIN billing_receipt br ON bi.receipt_no = br.receipt_no
+              JOIN Users u ON br.created_by = u.id
+              WHERE bi.serial_no = $1
+          `;
+
+          if (userRole === "admin" || userRole === "staff") {
+              billingQuery += ` AND u.userRole IN ('admin', 'staff') `;
+          } else if (userRole === "dealer") {
+              billingQuery += ` AND br.created_by = $2 `;
+          }
+
+          billingQuery += ` ORDER BY bi.id DESC LIMIT 1;`;
+
+          const billingParams = userRole === "dealer" ? [serial_no, userId] : [serial_no];
+          const { rows } = await client.query(billingQuery, billingParams);
+
+          await client.query("COMMIT"); // Commit transaction
+
+          if (rows.length === 0) {
+              return res.status(404).json({ message: "Billing item not found" });
+          }
+
+          res.json({ 
+              stock_source: stockCheckResult.rows.map(row => row.source), 
+              billing_item: rows[0] 
+          });
+
+      } catch (error) {
+          await client.query("ROLLBACK");
+          console.error("Error fetching billing items:", error);
+          res.status(500).json({ message: "Internal Server Error" });
+      } finally {
+          client.release();
       }
-
-      query += ` ORDER BY bi.id DESC LIMIT 1;`;
-
-      const params = userRole === "dealer" ? [serial_no, userId] : [serial_no];
-
-      const { rows } = await db.query(query, params);
-
-      if (rows.length === 0) {
-          return res.status(404).json({ message: "Billing item not found" });
-      }
-
-      res.json(rows[0]);
   } catch (error) {
-      console.error("Error fetching billing items:", error);
-      res.status(500).json({ message: "Internal Server Error" });
+      console.error("Database connection error:", error);
+      res.status(500).json({ message: "Database connection error" });
   }
 });
+
+
 dashboard.post('/api/pay-balance', async (req, res) => {
   try {
     const {
@@ -3520,6 +3623,7 @@ dashboard.post('/api/model/features/add/:model_id',
 //       res.status(500).json({ error: "Failed to fetch data" });
 //     }
 //   });
+
 dashboard.get("/api/display/prices-table", 
   // validateJwt, authorizeRoles("admin","dealer"), 
   async (req, res) => {
@@ -3659,6 +3763,7 @@ dashboard.get("/api/display/prices-table",
 //     });
   
 // Read a single entry by ID
+
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
   authorizeRoles('admin'),
@@ -4770,7 +4875,7 @@ dashboard.get('/api/sales', async (req, res) => {
   // );
   dashboard.post('/api/raw_materials/create',
     validateJwt,
-    authorizeRoles('admin'),
+    authorizeRoles('admin','staff'),
     upload.single('image'),
     async (req, res) => {
       // console.log(`rawww==${req.body}`)
@@ -5494,6 +5599,7 @@ dashboard.get('/api/raw_materials',
       }
     }
   );
+
 dashboard.get('/api/raw/stock/history/:raw_material_id',
     // validateJwt,
     // authorizeRoles('admin'),
