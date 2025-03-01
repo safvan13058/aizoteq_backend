@@ -83,7 +83,7 @@ async function handleDealerBilling(data, username, res) {
 }
 
 async function processBilling(data, stockTable, username, res) {
-  console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
+console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
 console.log(convertToWords(5005.09)); // Output: "Five Thousand Five Rupees and Nine Paise"
 console.log(convertToWords(1234567.89)); // Output: "Twelve Lakh Thirty-Four Thousand Five Hundred Sixty-Seven Rupees and Eighty-Nine Paise"
 console.log(convertToWords(0.50)); // Output: "Zero Rupees and Fifty Paise"
@@ -340,10 +340,7 @@ console.log(convertToWords(1000000));
     //   fs.unlinkSync(pdfPath);
     // }
     // }
-
-
-
-
+    
     res.status(200).json({
       message: "Billing receipt created successfully",
       receipt_id: receiptId,
@@ -867,8 +864,9 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     const item = await locateItem(client, serialNo);
     if (!item) throw new Error(`Item with serial number ${serialNo} not found or already returned`);
 
-    const retailPrice = await fetchRetailPrice(client, serialNo);
-
+    const thingdata = await fetchRetailPrice(client, serialNo);
+    const items = await fetchItemsBySerialNumbers(client, serialNo);
+    const { id, serial_no, model, final_price, thing_id, } = items;
     // Remove from original stock and add to AdminStock
     await client.query(`DELETE FROM ${item.source} WHERE id = $1`, [item.id]);
     await client.query(
@@ -876,14 +874,21 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
       [item.thing_id, userName, status]
     );
 
-    totalReturnAmount += retailPrice;
+    totalReturnAmount += thingdata.final_price;
 
     receiptItems.push({
-      serial_no: serialNo,
-      retail_price: -retailPrice,
+      serial_no:serialNo,
+      model,
+      mrp: item.mrp,
+      retail_price: item.retail_price,
+      item_discount: item.item_discount,
+      sgst: item.sgst,
+      cgst: item.cgst,
+      igst: item.igst,
+      final_price: -final_price, // Negating the amount for return
+      type: item.type,
     });
   }
-
   return { totalReturnAmount, receiptItems };
 }
 async function processDealerReturn(client, serialNumbers, dealerId, userName, status) {
@@ -893,8 +898,10 @@ async function processDealerReturn(client, serialNumbers, dealerId, userName, st
   for (const serialNo of serialNumbers) {
     const item = await locateDealerItem(client, serialNo, dealerId);
     if (!item) throw new Error(`Item with serial number ${serialNo} not found or already returned`);
-
-    const retailPrice = await fetchRetailPrice(client, serialNo);
+     
+    const items = await fetchItemsBySerialNumbers(client, serialNo);
+    const { id, serial_no, model, final_price, thing_id, } = items;
+    // const retailPrice = await fetchItemsBySerialNumbers(client, serialNo);
 
     // Remove from customersStock and add to dealersStock
     await client.query(`DELETE FROM customersStock WHERE id = $1`, [item.id]);
@@ -905,19 +912,28 @@ async function processDealerReturn(client, serialNumbers, dealerId, userName, st
 
     totalReturnAmount += retailPrice;
 
-    receiptItems.push({
-      serial_no: serialNo,
-      retail_price: -retailPrice,
+     // Push all item details to receiptItems
+     receiptItems.push({
+      serial_no:serialNo,
+      model: item.model,
+      mrp: item.mrp,
+      retail_price: item.retail_price,
+      item_discount: item.item_discount,
+      sgst: item.sgst,
+      cgst: item.cgst,
+      igst: item.igst,
+      final_price: -final_price, // Negating the amount for return
+      type: item.type,
     });
   }
 
   return { totalReturnAmount, receiptItems };
 }
 
-async function fetchRetailPrice(client, serialNo) {
-  const result = await client.query(`SELECT final_price FROM billing_items WHERE serial_no = $1 LIMIT 1`, [serialNo]);
+async function fetchItemsBySerialNumbers(client, serialNo) {
+  const result = await client.query(`SELECT * FROM billing_items WHERE serial_no = $1 LIMIT 1`, [serialNo]);
   if (result.rows.length === 0) throw new Error(`Retail price not found for serial number ${serialNo}`);
-  return result.rows[0].retail_price;
+  return result.rows[0];
 }
 async function generateReceipt(client, receiptItems, totalReturnAmount, status, returnedBy) {
   // Generate the next receipt number
@@ -934,11 +950,42 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
   // Insert into billing_items
   for (const item of receiptItems) {
     await client.query(
-      `INSERT INTO billing_items (receipt_no, serial_no, retail_price) VALUES ($1, $2, $3)`,
-      [receiptNo, item.serial_no, item.retail_price]
+      `INSERT INTO billing_items (receipt_no, serial_no, mrp,model,retail_price) VALUES ($1, $2, $3)`,
+      [receiptNo, item.serial_no, item.mrp,item.model,item.mrp]
     );
   }
+  const receiptDir = path.join(__dirname, "returned");
+    if (!fs.existsSync(receiptDir)) {
+      fs.mkdirSync(receiptDir);
+    }
+  const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
+  const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
+  await generatePDF(pdfPath, {
+    receiptNo,
+    date: new Date().toLocaleDateString(),
+    name,
+    phone,
+    gstin,
+    address,
+    shipping_address,
+    items: groupedItems, // This will be the grouped items array
+    totalDiscountedPrice, // Total discounted price
+    totalSGST, // Total SGST
+    totalCGST, // Total CGST
+    totalIGST, // Total IGST
+    totalAll, // Total amount // Total in words
+    totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
+    totalInFigures:convertToWords(parseFloat(totalAmount)),
+    discount: parseFloat(discountValue).toFixed(2),
+    discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
+    paidAmount,
+    balance,
+    billtype: status
+    // preparedBy,
+    // salesman
+  });
 
+  printPDF(pdfPath);
   return receiptNo;
 }
 
