@@ -873,19 +873,19 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
       [item.thing_id, userName, status]
     );
 
-    totalReturnAmount += thingdata.final_price;
+    totalReturnAmount += items.final_price;
 
     receiptItems.push({
       serial_no:serialNo,
       model,
-      mrp: item.mrp,
-      retail_price: item.retail_price,
-      item_discount: item.item_discount,
-      sgst: item.sgst,
-      cgst: item.cgst,
-      igst: item.igst,
+      mrp: items.mrp,
+      retail_price: items.retail_price,
+      item_discount: items.item_discount,
+      sgst: items.sgst,
+      cgst: items.cgst,
+      igst: items.igst,
       final_price: -final_price, // Negating the amount for return
-      type: item.type,
+      type: items.type,
     });
   }
   return { totalReturnAmount, receiptItems };
