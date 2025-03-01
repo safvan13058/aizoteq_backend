@@ -786,8 +786,8 @@ const returned = async (req, res) => {
     // Fetch user role and details
     const user = await fetchUserRole(client, userid);
     if (!user) throw new Error("User not found");
-    const { userRole, userName } = user;
-
+    const { userrole:userRole, username:userName } = user;
+  console.log(`role${userRole}`)
     // Initialize variables for processing
     let totalReturnAmount = 0;
     let receiptItems = [];
