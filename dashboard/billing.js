@@ -340,7 +340,7 @@ console.log(convertToWords(1000000));
     //   fs.unlinkSync(pdfPath);
     // }
     // }
-    
+
     res.status(200).json({
       message: "Billing receipt created successfully",
       receipt_id: receiptId,
@@ -984,7 +984,9 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     // preparedBy,
     // salesman
   });
-
+  if (email) {
+    await sendEmailWithAttachment('safvan13473@gmail.com', name, "000", pdfPath);
+  }
   printPDF(pdfPath);
   return receiptNo;
 }
