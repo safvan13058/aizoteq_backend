@@ -984,9 +984,9 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     // preparedBy,
     // salesman
   });
-  if (email) {
+  
     await sendEmailWithAttachment('safvan13473@gmail.com', name, "000", pdfPath);
-  }
+  
   printPDF(pdfPath);
   return receiptNo;
 }
