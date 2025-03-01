@@ -1,4 +1,5 @@
 const express = require("express");
+const numberToWords = require('number-to-words');
 // const  billing= express.Router();
 const db = require('../middlewares/dbconnection');// Replace with your actual database connection
 const path = require("path");
@@ -320,7 +321,7 @@ console.log(convertToWords(1000000));
       totalIGST, // Total IGST
       totalAll, // Total amount // Total in words
       totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
-      totalInFigures:convertToWords(parseFloat(totalAmount)),
+      totalInFigures:numberToWords.toWords(parseFloat(totalAmount)),
       discount: parseFloat(discountValue).toFixed(2),
       discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
       paidAmount,
