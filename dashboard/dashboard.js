@@ -1885,9 +1885,21 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
       try {
           await client.query("BEGIN"); // Start transaction
 
+          // Step 1: Fetch thingid from Things table using serialno
+          const thingQuery = "SELECT id FROM Things WHERE serialno = $1;";
+          const thingResult = await client.query(thingQuery, [serial_no]);
+
+          if (thingResult.rows.length === 0) {
+              await client.query("ROLLBACK");
+              return res.status(404).json({ message: "Thing ID not found for the given serial number" });
+          }
+
+          const thingId = thingResult.rows[0].id;
+
           let stockCheckQuery = "";
           let stockCheckParams = [];
 
+          // Step 2: Check stock availability
           if (userRole === "admin") {
               stockCheckQuery = `
                   SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1
@@ -1896,15 +1908,14 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
                   UNION
                   SELECT 'onlinecustomerStock' AS source FROM onlinecustomerStock WHERE thingid = $1;
               `;
-              stockCheckParams = [serial_no];
+              stockCheckParams = [thingId];
           } else if (userRole === "dealer") {
               stockCheckQuery = `SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1 AND user_id = $2;`;
-              stockCheckParams = [serial_no, userId];
+              stockCheckParams = [thingId, userId];
           } else {
               return res.status(403).json({ message: "Unauthorized access" });
           }
 
-          // Check if item is available in stock
           const stockCheckResult = await client.query(stockCheckQuery, stockCheckParams);
 
           if (stockCheckResult.rows.length === 0) {
@@ -1912,6 +1923,7 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
               return res.status(404).json({ message: "Item not available in stock" });
           }
 
+          // Step 3: Fetch billing item details
           let billingQuery = `
               SELECT 
                   bi.serial_no,
@@ -1956,8 +1968,12 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
           if (rows.length === 0) {
               return res.status(404).json({ message: "Billing item not found" });
           }
-          console.log( rows[0])
-          res.json(rows[0])
+
+          res.json({
+              thingId: thingId,
+              stock_source: stockCheckResult.rows.map(row => row.source),
+              billing_item: rows[0]
+          });
 
       } catch (error) {
           await client.query("ROLLBACK");
