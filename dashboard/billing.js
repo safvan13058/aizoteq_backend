@@ -774,7 +774,7 @@ const returned = async (req, res) => {
   if (!serial_numbers || serial_numbers.length === 0) {
     return res.status(400).json({ error: "At least one serial number is required" });
   }
-  if (!["return", "exchange"].includes(status)) {
+  if (!["returned", "exchange"].includes(status)) {
     return res.status(400).json({ error: "Invalid status parameter. Must be 'return' or 'exchange'" });
   }
 
