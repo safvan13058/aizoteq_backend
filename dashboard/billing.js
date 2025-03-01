@@ -841,15 +841,15 @@ async function fetchUserRole(client, userId) {
 
 async function locateItem(client, serialNo) {
   const query = `
-      SELECT 'dealersStock' AS source, id, user_id, thing_id
+      SELECT 'dealersStock' AS source, id, user_id, thingid
       FROM dealersStock
       WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
       UNION ALL
-      SELECT 'customersStock' AS source, id, user_id, thing_id
+      SELECT 'customersStock' AS source, id, user_id, thingid
       FROM customersStock
       WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
       UNION ALL
-      SELECT 'onlinecustomerStock' AS source, id, user_id, thing_id
+      SELECT 'onlinecustomerStock' AS source, id, user_id, thingid
       FROM onlinecustomerStock
       WHERE thing_id = (SELECT id FROM Things WHERE serialno = $1) AND status != 'returned'
     `;
