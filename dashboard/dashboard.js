@@ -1894,7 +1894,7 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
                   UNION
                   SELECT 'dealersStock' AS source FROM dealersStock WHERE thingid = $1
                   UNION
-                  SELECT 'onlinecustomersStock' AS source FROM onlinecustomersStock WHERE thingid = $1;
+                  SELECT 'onlinecustomerStock' AS source FROM onlinecustomerStock WHERE thingid = $1;
               `;
               stockCheckParams = [serial_no];
           } else if (userRole === "dealer") {

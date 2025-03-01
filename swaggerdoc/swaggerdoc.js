@@ -1,3 +1,5 @@
+const dashboard = require("../dashboard/dashboard")
+
 const Swaggerdoc = {
 "/app/addThing": {
   "post": {
@@ -7666,7 +7668,184 @@ const Swaggerdoc = {
         }
       }
     },
-        };
+
+
+    // -------------------------------------------------------dashboard--------------------------------------------
+        "/dashboard/api/create/model_details": {
+      "post": {
+        "tags": ["dashboard"],
+        "summary": "Create a new model with features",
+        "description": "Creates a new model entry in the price table and optionally adds its features.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string",
+                    "example": "Model X"
+                  },
+                  "mrp": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 50000.99
+                  },
+                  "retail_price": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 45000.50
+                  },
+                  "discount": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 5.0
+                  },
+                  "warranty_period": {
+                    "type": "string",
+                    "example": "2 years"
+                  },
+                  "sgst": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 9.0
+                  },
+                  "cgst": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 9.0
+                  },
+                  "igst": {
+                    "type": "number",
+                    "format": "float",
+                    "example": 18.0
+                  },
+                  "features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string",
+                          "example": "Battery Life"
+                        },
+                        "feature_value": {
+                          "type": "string",
+                          "example": "10 hours"
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": ["model", "mrp"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Model and features added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Model and features added successfully"
+                    },
+                    "model": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 101
+                        },
+                        "model": {
+                          "type": "string",
+                          "example": "Model X"
+                        },
+                        "mrp": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 50000.99
+                        },
+                        "retail_price": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 45000.50
+                        },
+                        "discount": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 5.0
+                        },
+                        "warranty_period": {
+                          "type": "string",
+                          "example": "2 years"
+                        },
+                        "sgst": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 9.0
+                        },
+                        "cgst": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 9.0
+                        },
+                        "igst": {
+                          "type": "number",
+                          "format": "float",
+                          "example": 18.0
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Model already exists in the price table."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Failed to create entry"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+  
+  
+  
+  };
 
 
 module.exports = Swaggerdoc;
