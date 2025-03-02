@@ -4533,7 +4533,8 @@ dashboard.get("/api/things/features/:model", async (req, res) => {
     authorizeRoles('admin','staff'),
     async (req, res) => {
       const { entity_type, entity_id } = req.params;
-  
+    console.log("sokdos",entity_type)
+    console.log("entityid",entity_id)
       // Determine the table column based on entity type
       let tableColumn;
       if (entity_type === "dealer") {
