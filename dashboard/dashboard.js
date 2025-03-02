@@ -4405,130 +4405,262 @@ dashboard.get("/api/things/features/:model", async (req, res) => {
 });
 
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
-dashboard.get("/api/billing/:entity_type/:entity_id",
-  validateJwt,
-  authorizeRoles('admin'),
-  async (req, res) => {
-    const { entity_type, entity_id } = req.params;
+// dashboard.get("/api/billing/:entity_type/:entity_id",
+//   validateJwt,
+//   authorizeRoles('admin'),
+//   async (req, res) => {
+//     const { entity_type, entity_id } = req.params;
 
-    // Determine the table and column based on entity type
-    let tableColumn;
-    if (entity_type === "dealer") {
-      tableColumn = "dealers_id";
-    } else if (entity_type === "customer") {
-      tableColumn = "customers_id";
-    } else if (entity_type === "online_customer") {
-      tableColumn = "onlinecustomer_id";
-    } else {
-      return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
-    }
+//     // Determine the table and column based on entity type
+//     let tableColumn;
+//     if (entity_type === "dealer") {
+//       tableColumn = "dealers_id";
+//     } else if (entity_type === "customer") {
+//       tableColumn = "customers_id";
+//     } else if (entity_type === "online_customer") {
+//       tableColumn = "onlinecustomer_id";
+//     } else {
+//       return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
+//     }
 
-    // Query to fetch billing receipt details
-    const query = `
-    SELECT 
-        br.id AS billing_receipt_id,
-        br.receipt_no,
-        br.name AS entity_name,
-        br.phone,
-        br.email,
-        br.billing_address,
-        br.shipping_address,
-        br.dealer_or_customer,
-        br.total_amount,
-        br.discount,
-        br.payable_amount,
-        br.paid_amount,
-        br.balance,
-        br.billing_createdby,
-        br.type AS transaction_type,
-        br.datetime AS receipt_date,
-        br.lastmodified AS last_modified_date
-    FROM 
-        billing_receipt br
-    WHERE 
-        br.${tableColumn} = $1;
-  `;
+//     // Query to fetch billing receipt details
+//     const query = `
+//     SELECT 
+//         br.id AS billing_receipt_id,
+//         br.receipt_no,
+//         br.name AS entity_name,
+//         br.phone,
+//         br.email,
+//         br.billing_address,
+//         br.shipping_address,
+//         br.dealer_or_customer,
+//         br.total_amount,
+//         br.discount,
+//         br.payable_amount,
+//         br.paid_amount,
+//         br.balance,
+//         br.billing_createdby,
+//         br.type AS transaction_type,
+//         br.datetime AS receipt_date,
+//         br.lastmodified AS last_modified_date
+//     FROM 
+//         billing_receipt br
+//     WHERE 
+//         br.${tableColumn} = $1;
+//   `;
 
-    // Queries to fetch associated items, warranties, and payments
-    const itemsQuery = `
-    SELECT 
-        bi.id AS billing_item_id,
-        bi.receipt_no,
-        bi.item_name,
-        bi.model,
-        bi.serial_no,
-        bi.mrp,
-        bi.retail_price,
-        bi.type AS item_type
-    FROM 
-        billing_items bi
-    WHERE 
-        bi.receipt_no IN (SELECT receipt_no FROM billing_receipt WHERE ${tableColumn} = $1);
-  `;
+//     // Queries to fetch associated items, warranties, and payments
+//     const itemsQuery = `
+//     SELECT 
+//         bi.id AS billing_item_id,
+//         bi.receipt_no,
+//         bi.item_name,
+//         bi.model,
+//         bi.serial_no,
+//         bi.mrp,
+//         bi.retail_price,
+//         bi.type AS item_type
+//     FROM 
+//         billing_items bi
+//     WHERE 
+//         bi.receipt_no IN (SELECT receipt_no FROM billing_receipt WHERE ${tableColumn} = $1);
+//   `;
 
-    const warrantiesQuery = `
-    SELECT 
-        tw.id AS warranty_id,
-        tw.serial_no AS warranty_serial_no,
-        tw.receipt_id,
-        tw.date AS warranty_start_date,
-        tw.due_date AS warranty_due_date
-    FROM 
-        thing_warranty tw
-    WHERE 
-        tw.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
-  `;
+//     const warrantiesQuery = `
+//     SELECT 
+//         tw.id AS warranty_id,
+//         tw.serial_no AS warranty_serial_no,
+//         tw.receipt_id,
+//         tw.date AS warranty_start_date,
+//         tw.due_date AS warranty_due_date
+//     FROM 
+//         thing_warranty tw
+//     WHERE 
+//         tw.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
+//   `;
 
-    const paymentsQuery = `
-    SELECT 
-        pd.id AS payment_id,
-        pd.receipt_id,
-        pd.payment_method,
-        pd.amount AS payment_amount
-    FROM 
-        payment_details pd
-    WHERE 
-        pd.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
-  `;
+//     const paymentsQuery = `
+//     SELECT 
+//         pd.id AS payment_id,
+//         pd.receipt_id,
+//         pd.payment_method,
+//         pd.amount AS payment_amount
+//     FROM 
+//         payment_details pd
+//     WHERE 
+//         pd.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
+//   `;
 
-    try {
-      const client = await db.connect();
+//     try {
+//       const client = await db.connect();
 
-      // Execute queries concurrently
-      const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
-        client.query(query, [entity_id]),
-        client.query(itemsQuery, [entity_id]),
-        client.query(warrantiesQuery, [entity_id]),
-        client.query(paymentsQuery, [entity_id]),
-      ]);
+//       // Execute queries concurrently
+//       const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
+//         client.query(query, [entity_id]),
+//         client.query(itemsQuery, [entity_id]),
+//         client.query(warrantiesQuery, [entity_id]),
+//         client.query(paymentsQuery, [entity_id]),
+//       ]);
 
-      if (billingResult.rows.length === 0) {
-        return res.status(404).json({ error: "No billing details found for the given entity." });
+//       if (billingResult.rows.length === 0) {
+//         return res.status(404).json({ error: "No billing details found for the given entity." });
+//       }
+
+//       // Structure the response
+//       const billingReceipts = billingResult.rows.map((receipt) => {
+//         // Get related items, warranties, and payments for the current receipt
+//         const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
+//         const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
+//         const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
+
+//         return {
+//           ...receipt,
+//           items,
+//           warranties,
+//           payments,
+//         };
+//       });
+
+//       res.status(200).json({ data: billingReceipts });
+//       client.release();
+//     } catch (err) {
+//       console.error("Error fetching billing details:", err);
+//       res.status(500).json({ error: "Internal Server Error" });
+//     }
+//   });
+  dashboard.get("/api/billing/:entity_type/:entity_id",
+    validateJwt,
+    authorizeRoles('admin','staff'),
+    async (req, res) => {
+      const { entity_type, entity_id } = req.params;
+  
+      // Determine the table column based on entity type
+      let tableColumn;
+      if (entity_type === "dealer") {
+        tableColumn = "dealers_id";
+      } else if (entity_type === "customer") {
+        tableColumn = "customers_id";
+      } else if (entity_type === "online_customer") {
+        tableColumn = "onlinecustomer_id";
+      } else {
+        return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
       }
-
-      // Structure the response
-      const billingReceipts = billingResult.rows.map((receipt) => {
-        // Get related items, warranties, and payments for the current receipt
-        const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
-        const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
-        const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
-
-        return {
-          ...receipt,
-          items,
-          warranties,
-          payments,
-        };
-      });
-
-      res.status(200).json({ data: billingReceipts });
-      client.release();
-    } catch (err) {
-      console.error("Error fetching billing details:", err);
-      res.status(500).json({ error: "Internal Server Error" });
+  
+      // Query to fetch billing receipt details
+      const query = `
+      SELECT 
+          br.id AS billing_receipt_id,
+          br.receipt_no,
+          br.name AS entity_name,
+          br.phone,
+          br.email,
+          br.billing_address,
+          br.shipping_address,
+          br.dealer_or_customer,
+          br.total_amount,
+          br.discount,
+          br.payable_amount,
+          br.paid_amount,
+          br.balance,
+          br.billing_createdby,
+          br.type AS transaction_type,
+          br.datetime AS receipt_date,
+          br.lastmodified AS last_modified_date
+      FROM 
+          billing_receipt br
+      WHERE 
+          br.${tableColumn} = $1;
+    `;
+  
+      // Query to fetch all billing items related to the receipts
+      const itemsQuery = `
+      SELECT 
+          bi.*
+      FROM 
+          billing_items bi
+      WHERE 
+          bi.receipt_no IN (SELECT receipt_no FROM billing_receipt WHERE ${tableColumn} = $1);
+    `;
+  
+      // Query to fetch warranty details
+      const warrantiesQuery = `
+      SELECT 
+          tw.id AS warranty_id,
+          tw.serial_no AS warranty_serial_no,
+          tw.receipt_id,
+          tw.date AS warranty_start_date,
+          tw.due_date AS warranty_due_date
+      FROM 
+          thing_warranty tw
+      WHERE 
+          tw.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
+    `;
+  
+      // Query to fetch payment details
+      const paymentsQuery = `
+      SELECT 
+          pd.id AS payment_id,
+          pd.receipt_id,
+          pd.payment_method,
+          pd.amount AS payment_amount
+      FROM 
+          payment_details pd
+      WHERE 
+          pd.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
+    `;
+  
+      try {
+        const client = await db.connect();
+  
+        // Execute all queries concurrently
+        const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
+          client.query(query, [entity_id]),
+          client.query(itemsQuery, [entity_id]),
+          client.query(warrantiesQuery, [entity_id]),
+          client.query(paymentsQuery, [entity_id]),
+        ]);
+  
+        if (billingResult.rows.length === 0) {
+          return res.status(404).json({ error: "No billing details found for the given entity." });
+        }
+  
+        // Structure the response with all related data
+        const billingReceipts = billingResult.rows.map((receipt) => {
+          const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
+          const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
+          const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
+  
+          return {
+            ...receipt,
+            items: items.map((item) => ({
+              id: item.id,
+              receipt_no: item.receipt_no,
+              item_name: item.item_name,
+              model: item.model,
+              serial_no: item.serial_no,
+              mrp: item.mrp,
+              retail_price: item.retail_price,
+              item_discount: item.item_discount,
+              sgst: item.sgst,
+              cgst: item.cgst,
+              igst: item.igst,
+              final_price: item.final_price,
+              type: item.type
+            })),
+            warranties,
+            payments,
+          };
+        });
+  
+        res.status(200).json({ data: billingReceipts });
+        client.release();
+      } catch (err) {
+        console.error("Error fetching billing details:", err);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
     }
-  });
-
+  );
+  
 // 1. Open Billing Session
 dashboard.post('/open-session',
   validateJwt,
