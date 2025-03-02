@@ -4538,7 +4538,7 @@ dashboard.get("/api/things/features/:model", async (req, res) => {
       let tableColumn;
       if (entity_type === "dealer") {
         tableColumn = "dealers_id";
-      } else if (entity_type === "customer") {
+      } else if (entity_type === "customers") {
         tableColumn = "customers_id";
       } else if (entity_type === "online_customer") {
         tableColumn = "onlinecustomer_id";
