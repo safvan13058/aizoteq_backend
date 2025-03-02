@@ -3634,10 +3634,11 @@ dashboard.post('/api/model/features/add/:model_id',
 //   });
 
 dashboard.get("/api/display/prices-table", 
-  // validateJwt, authorizeRoles("admin","dealer"), 
+  validateJwt, authorizeRoles("admin","dealer"), 
   async (req, res) => {
     try {
       const { search } = req.query;  // Get model_name from query params
+      console.log("search",search)
       let query = `
         WITH FirstThing AS (
           SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
