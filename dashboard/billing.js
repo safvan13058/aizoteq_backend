@@ -306,25 +306,25 @@ console.log(convertToWords(1000000));
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(billingItems);
     const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
      // Fetch current customer/dealer details
-const entityQuery = await client.query(
-  `SELECT total_amount, paid_amount, balance FROM ${entityTable} WHERE id = $1`,
-  [entity.id]
-);
+// const entityQuery = await client.query(
+//   `SELECT total_amount, paid_amount, balance FROM ${entityTable} WHERE id = $1`,
+//   [entity.id]
+// );
 
-if (entityQuery.rows.length > 0) {
-  const currentEntity = entityQuery.rows[0];
+// if (entityQuery.rows.length > 0) {
+//   const currentEntity = entityQuery.rows[0];
   
-  // Calculate new values
-  const newTotalAmount = parseFloat(currentEntity.total_amount || 0) + totalAmount;
-  const newPaidAmount = parseFloat(currentEntity.paid_amount || 0) + paidAmount;
-  const newBalance = parseFloat(newTotalAmount - newPaidAmount);
+//   // Calculate new values
+//   const newTotalAmount = parseFloat(currentEntity.total_amount || 0) + totalAmount;
+//   const newPaidAmount = parseFloat(currentEntity.paid_amount || 0) + paidAmount;
+//   const newBalance = parseFloat(newTotalAmount - newPaidAmount);
 
-  // Update customer/dealer details
-  await client.query(
-    `UPDATE ${entityTable} SET total_amount = $1, paid_amount = $2, balance = $3 WHERE id = $4`,
-    [newTotalAmount, newPaidAmount, newBalance, entity.id]
-  );
-}
+//   // Update customer/dealer details
+//   await client.query(
+//     `UPDATE ${entityTable} SET total_amount = $1, paid_amount = $2, balance = $3 WHERE id = $4`,
+//     [newTotalAmount, newPaidAmount, newBalance, entity.id]
+//   );
+// }
 
     await generatePDF(pdfPath, {
       receiptNo,
