@@ -5,7 +5,7 @@ const db = require('../middlewares/dbconnection');// Replace with your actual da
 const path = require("path");
 const fs = require("fs");
 const { exec } = require('child_process');
-const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF,convertToWords } = require("./functions"); // Utility functions
+const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF, convertToWords } = require("./functions"); // Utility functions
 
 const billing = async (req, res) => {
   const {
@@ -84,11 +84,11 @@ async function handleDealerBilling(data, username, res) {
 }
 
 async function processBilling(data, stockTable, username, res) {
-console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
-console.log(convertToWords(5005.09)); // Output: "Five Thousand Five Rupees and Nine Paise"
-console.log(convertToWords(1234567.89)); // Output: "Twelve Lakh Thirty-Four Thousand Five Hundred Sixty-Seven Rupees and Eighty-Nine Paise"
-console.log(convertToWords(0.50)); // Output: "Zero Rupees and Fifty Paise"
-console.log(convertToWords(1000000));
+  console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
+  console.log(convertToWords(5005.09)); // Output: "Five Thousand Five Rupees and Nine Paise"
+  console.log(convertToWords(1234567.89)); // Output: "Twelve Lakh Thirty-Four Thousand Five Hundred Sixty-Seven Rupees and Eighty-Nine Paise"
+  console.log(convertToWords(0.50)); // Output: "Zero Rupees and Fifty Paise"
+  console.log(convertToWords(1000000));
   const {
     sessionid,
     type,
@@ -239,7 +239,7 @@ console.log(convertToWords(1000000));
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "No valid items for billing", details: errors });
     }
-     const discountValue =(totalAmount * discountValues / 100)
+    const discountValue = (totalAmount * discountValues / 100)
     if (discountValue > totalAmount) {
       await client.query("ROLLBACK");
       return res.status(400).json({ error: "Global discount exceeds total amount" });
@@ -305,26 +305,26 @@ console.log(convertToWords(1000000));
     }
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(billingItems);
     const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
-     // Fetch current customer/dealer details
-// const entityQuery = await client.query(
-//   `SELECT total_amount, paid_amount, balance FROM ${entityTable} WHERE id = $1`,
-//   [entity.id]
-// );
+    // Fetch current customer/dealer details
+    const entityQuery = await client.query(
+      `SELECT total_amount, paid_amount, balance FROM ${entityTable} WHERE id = $1`,
+      [entity.id]
+    );
 
-// if (entityQuery.rows.length > 0) {
-//   const currentEntity = entityQuery.rows[0];
-  
-//   // Calculate new values
-//   const newTotalAmount = parseFloat(currentEntity.total_amount || 0) + totalAmount;
-//   const newPaidAmount = parseFloat(currentEntity.paid_amount || 0) + paidAmount;
-//   const newBalance = parseFloat(newTotalAmount - newPaidAmount);
+    if (entityQuery.rows.length > 0) {
+      const currentEntity = entityQuery.rows[0];
 
-//   // Update customer/dealer details
-//   await client.query(
-//     `UPDATE ${entityTable} SET total_amount = $1, paid_amount = $2, balance = $3 WHERE id = $4`,
-//     [newTotalAmount, newPaidAmount, newBalance, entity.id]
-//   );
-// }
+      // Calculate new values
+      const newTotalAmount = parseFloat(currentEntity.total_amount || 0) + totalAmount;
+      const newPaidAmount = parseFloat(currentEntity.paid_amount || 0) + paidAmount;
+      const newBalance = parseFloat(newTotalAmount - newPaidAmount);
+
+      // Update customer/dealer details
+      await client.query(
+        `UPDATE ${entityTable} SET total_amount = $1, paid_amount = $2, balance = $3 WHERE id = $4`,
+        [newTotalAmount, newPaidAmount, newBalance, entity.id]
+      );
+    }
 
     await generatePDF(pdfPath, {
       receiptNo,
@@ -340,10 +340,10 @@ console.log(convertToWords(1000000));
       totalCGST, // Total CGST
       totalIGST, // Total IGST
       totalAll, // Total amount // Total in words
-      totalAmount:parseFloat(totalAmount).toFixed(2), // Total invoice amount
-      totalInFigures:numberToWords.toWords(parseFloat(totalAmount)),
+      totalAmount: parseFloat(totalAmount).toFixed(2), // Total invoice amount
+      totalInFigures: numberToWords.toWords(parseFloat(totalAmount)),
       discount: parseFloat(discountValue).toFixed(2),
-      discountedTotal:parseFloat(discountedTotal).toFixed(2), // Discounted total
+      discountedTotal: parseFloat(discountedTotal).toFixed(2), // Discounted total
       paidAmount,
       balance,
       billtype
@@ -790,7 +790,7 @@ console.log(convertToWords(1000000));
 const returned = async (req, res) => {
   const { serial_numbers, userid } = req.body;
   const { status } = req.params;
-  console.log("serialno",JSON.stringify(serial_numbers,null,2))
+  console.log("serialno", JSON.stringify(serial_numbers, null, 2))
   // Validate input
   if (!serial_numbers || serial_numbers.length === 0) {
     return res.status(400).json({ error: "At least one serial number is required" });
@@ -807,8 +807,8 @@ const returned = async (req, res) => {
     // Fetch user role and details
     const user = await fetchUserRole(client, userid);
     if (!user) throw new Error("User not found");
-    const { userrole:userRole, username:userName } = user;
-  console.log(`role${userRole}`)
+    const { userrole: userRole, username: userName } = user;
+    console.log(`role${userRole}`)
     // Initialize variables for processing
     let totalReturnAmount = 0;
     let receiptItems = [];
@@ -897,7 +897,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     totalReturnAmount += items.final_price;
 
     receiptItems.push({
-      serial_no:serialNo,
+      serial_no: serialNo,
       model,
       mrp: items.mrp,
       retail_price: items.retail_price,
@@ -910,7 +910,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     });
   }
   return { totalReturnAmount, receiptItems };
-} 
+}
 async function processDealerReturn(client, serialNumbers, dealerId, userName, status) {
   let totalReturnAmount = 0;
   let receiptItems = [];
@@ -918,7 +918,7 @@ async function processDealerReturn(client, serialNumbers, dealerId, userName, st
   for (const serialNo of serialNumbers) {
     const item = await locateDealerItem(client, serialNo, dealerId);
     if (!item) throw new Error(`Item with serial number ${serialNo} not found or already returned`);
-     
+
     const items = await fetchItemsBySerialNumbers(client, serialNo);
     const { id, serial_no, model, final_price, thing_id, } = items;
     // const retailPrice = await fetchItemsBySerialNumbers(client, serialNo);
@@ -932,9 +932,9 @@ async function processDealerReturn(client, serialNumbers, dealerId, userName, st
 
     totalReturnAmount += retailPrice;
 
-     // Push all item details to receiptItems
-     receiptItems.push({
-      serial_no:serialNo,
+    // Push all item details to receiptItems
+    receiptItems.push({
+      serial_no: serialNo,
       model: item.model,
       mrp: item.mrp,
       retail_price: item.retail_price,
@@ -1003,9 +1003,9 @@ async function fetchItemsBySerialNumbers(client, serialNo) {
 //     // preparedBy,
 //     // salesman
 //   });
-  
+
 //     await sendEmailWithAttachment('safvan13473@gmail.com', name, "000", pdfPath);
-  
+
 //   printPDF(pdfPath);
 //   return receiptNo;
 // }
@@ -1031,7 +1031,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       throw new Error(`No receipt details found for receipt number ${receiptNo}`);
     }
 
-    const { name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer } =
+    const { name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id, dealer_or_customer } =
       receiptDetailsResult.rows[0];
 
     // Step 3: Generate a new return receipt number
@@ -1042,7 +1042,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     await client.query(
       `INSERT INTO billing_receipt (receipt_no, total_amount, billing_createdby, type, datetime, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer)
        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, $5, $6, $7, $8, $9, $10, $11, $12,$13)`,
-      [newReceiptNo, -totalReturnAmount, returnedBy, status, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id,dealer_or_customer]
+      [newReceiptNo, -totalReturnAmount, returnedBy, status, name, phone, email, billing_address, shipping_address, dealers_id, customers_id, onlinecustomer_id, dealer_or_customer]
     );
 
     // Step 5: Insert returned items into billing_items
@@ -1053,35 +1053,35 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       );
     }
     // Step 5.1: Update dealer, customer, or online customer financial records
-let updateQuery = "";
-let updateValues = [];
+    let updateQuery = "";
+    let updateValues = [];
 
-if (dealer_or_customer === "dealers") {
-    updateQuery = `UPDATE dealers_details 
+    if (dealer_or_customer === "dealers") {
+      updateQuery = `UPDATE dealers_details 
                    SET total_amount = total_amount - $1, 
                        balance = balance - $1 
                    WHERE id = $2`;
-    updateValues = [totalReturnAmount, dealers_id];
+      updateValues = [totalReturnAmount, dealers_id];
 
-} else if (dealer_or_customer === "customers") {
-    updateQuery = `UPDATE customers_details 
+    } else if (dealer_or_customer === "customers") {
+      updateQuery = `UPDATE customers_details 
                    SET total_amount = total_amount - $1, 
                        balance = balance - $1 
                    WHERE id = $2`;
-    updateValues = [totalReturnAmount, customers_id];
+      updateValues = [totalReturnAmount, customers_id];
 
-} else if (dealer_or_customer === "onlinecustomer") {
-    updateQuery = `UPDATE onlinecustomer_details 
+    } else if (dealer_or_customer === "onlinecustomer") {
+      updateQuery = `UPDATE onlinecustomer_details 
                    SET total_amount = total_amount - $1, 
                        balance = balance - $1 
                    WHERE id = $2`;
-    updateValues = [totalReturnAmount, onlinecustomer_id];
-}
+      updateValues = [totalReturnAmount, onlinecustomer_id];
+    }
 
-// Execute update query if applicable
-if (updateQuery) {
-    await client.query(updateQuery, updateValues);
-}
+    // Execute update query if applicable
+    if (updateQuery) {
+      await client.query(updateQuery, updateValues);
+    }
 
 
     // Step 6: Generate PDF receipt
@@ -1092,7 +1092,7 @@ if (updateQuery) {
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
     const pdfPath = path.join(receiptDir, `receipt_${newReceiptNo}.pdf`);
     await generatePDF(pdfPath, {
-      receiptNo:"000",
+      receiptNo: "000",
       date: new Date().toLocaleDateString(),
       name,
       phone,
@@ -1105,9 +1105,9 @@ if (updateQuery) {
       billtype: status,
     });
 
-    if(email){
-    // Step 7: Send the email with the attached receipt
-    await sendEmailWithAttachment(email, name, phone, pdfPath);
+    if (email) {
+      // Step 7: Send the email with the attached receipt
+      await sendEmailWithAttachment(email, name, phone, pdfPath);
     }
     // Step 8: Print PDF
     printPDF(pdfPath);
