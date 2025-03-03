@@ -359,6 +359,7 @@ async function processBilling(data, stockTable, username, res) {
       await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
     }
     printPDF(pdfPath);
+    console.log("pdfpath",pdfPath)
     // if (fs.existsSync(pdfPath)) {
     //   fs.unlinkSync(pdfPath);
     // }
