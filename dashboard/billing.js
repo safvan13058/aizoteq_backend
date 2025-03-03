@@ -296,16 +296,6 @@ async function processBilling(data, stockTable, username, res) {
       }
     }
 
-    await client.query("COMMIT");
-
-    // if (email) {
-    const receiptDir = path.join(__dirname, "receipt");
-    if (!fs.existsSync(receiptDir)) {
-      fs.mkdirSync(receiptDir);
-    }
-    const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(billingItems);
-    const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
-    // Fetch current customer/dealer details
     const entityQuery = await client.query(
       `SELECT total_amount, paid_amount, balance FROM ${entityTable} WHERE id = $1`,
       [entity.id]
@@ -325,6 +315,18 @@ async function processBilling(data, stockTable, username, res) {
         [newTotalAmount, newPaidAmount, newBalance, entity.id]
       );
     }
+
+    await client.query("COMMIT");
+
+    // if (email) {
+    const receiptDir = path.join(__dirname, "receipt");
+    if (!fs.existsSync(receiptDir)) {
+      fs.mkdirSync(receiptDir);
+    }
+    const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(billingItems);
+    const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
+    // Fetch current customer/dealer details
+   
 
     await generatePDF(pdfPath, {
       receiptNo,
