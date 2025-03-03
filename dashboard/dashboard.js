@@ -7109,4 +7109,5 @@ dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
       res.status(500).json({ error: error.message });
   }
 });
+dashboard.use('/receipt', express.static('/root/aizoteq_backend/dashboard/receipt'));
 module.exports = dashboard;

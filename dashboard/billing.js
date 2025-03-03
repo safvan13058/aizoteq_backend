@@ -6,7 +6,8 @@ const path = require("path");
 const fs = require("fs");
 const { exec } = require('child_process');
 const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF, convertToWords } = require("./functions"); // Utility functions
-
+const AWS = require('aws-sdk');
+const s3 = new AWS.S3();
 const billing = async (req, res) => {
   const {
     sessionid,
@@ -82,6 +83,7 @@ async function handleAdminBilling(data, username, res) {
 async function handleDealerBilling(data, username, res) {
   await processBilling(data, "dealersStock", username, res);
 }
+
 
 async function processBilling(data, stockTable, username, res) {
   console.log(convertToWords(2645.09)); // Output: "Two Thousand Six Hundred Forty-Five Rupees and Nine Paise"
@@ -324,9 +326,12 @@ async function processBilling(data, stockTable, username, res) {
       fs.mkdirSync(receiptDir);
     }
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(billingItems);
-    const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
+    // const pdfPath = path.join(receiptDir, `receipt_${receiptNo}.pdf`);
     // Fetch current customer/dealer details
-   
+    const pdfFileName = `receipt_${receiptNo}.pdf`;
+    const pdfPath = path.join(receiptDir, pdfFileName);
+    const pdfUrl = `https://13.200.215.17:3000/receipt/${pdfFileName}`; // Change this URL based on your setup
+    
 
     await generatePDF(pdfPath, {
       receiptNo,
@@ -359,7 +364,7 @@ async function processBilling(data, stockTable, username, res) {
       await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
     }
     printPDF(pdfPath);
-    console.log("pdfpath",pdfPath)
+    console.log("pdfpath",pdfUrl)
     // if (fs.existsSync(pdfPath)) {
     //   fs.unlinkSync(pdfPath);
     // }
@@ -371,7 +376,7 @@ async function processBilling(data, stockTable, username, res) {
       total_amount: totalAmount,
       discount: discountValue,
       balance,
-      pdfpath: pdfPath,
+      pdfpath: pdfUrl,
       errors: errors.length ? errors : null,
     });
   } catch (error) {
@@ -1121,5 +1126,18 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     throw error;
   }
 }
+async function uploadToS3(pdfPath, bucketName) {
+  const fileContent = fs.readFileSync(pdfPath);
 
+  const params = {
+      Bucket: bucketName,
+      Key: `print-jobs/receipt_${Date.now()}.pdf`,
+      Body: fileContent,
+      ContentType: 'application/pdf'
+  };
+
+  const data = await s3.upload(params).promise();
+  console.log("PDF uploaded to S3:", data.Location);
+  return data.Location;
+}
 module.exports = { billing, returned };
