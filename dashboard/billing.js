@@ -330,7 +330,7 @@ async function processBilling(data, stockTable, username, res) {
     // Fetch current customer/dealer details
     const pdfFileName = `receipt_${receiptNo}.pdf`;
     const pdfPath = path.join(receiptDir, pdfFileName);
-    const pdfUrl = `https://13.200.215.17:3000/receipt/${pdfFileName}`; // Change this URL based on your setup
+    const pdfUrl = `https://13.200.215.17:3000/dashboard/receipt/${pdfFileName}`; // Change this URL based on your setup
     
 
     await generatePDF(pdfPath, {
