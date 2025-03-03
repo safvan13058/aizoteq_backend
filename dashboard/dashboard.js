@@ -3634,7 +3634,7 @@ dashboard.post('/api/model/features/add/:model_id',
 //   });
 
 dashboard.get("/api/display/prices-table", 
-  validateJwt, authorizeRoles("admin","dealer"), 
+  validateJwt, authorizeRoles("admin","dealer","staff"), 
   async (req, res) => {
     try {
       const { search } = req.query;  // Get model_name from query params
@@ -3664,7 +3664,7 @@ dashboard.get("/api/display/prices-table",
       const values = search ? [search] : [];  // If model_name exists, use it as a filter value
 
       const { rows } = await db.query(query, values);
-
+      console.log("rowaa", rows)
       if (rows.length === 0) {
         return res.status(404).json({ message: "No models found" });
       }
@@ -3679,7 +3679,7 @@ dashboard.get("/api/display/prices-table",
       res.status(500).json({ error: "Failed to fetch data" });
     }
   }
-);
+); 
 
 // dashboard.get("/api/display/prices-table",
 //     validateJwt, 
