@@ -7843,7 +7843,110 @@ const Swaggerdoc = {
       }
     },
   
-  
+    "/dashboard/api/display/prices-table": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Retrieve model price details",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search for models by name (case-insensitive)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All model details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "price_id": { "type": "integer" },
+                          "model": { "type": "string" },
+                          "lastmodified": { "type": "string", "format": "date-time" },
+                          "mrp": { "type": "number" },
+                          "retail_price": { "type": "number" },
+                          "sgst": { "type": "number" },
+                          "cgst": { "type": "number" },
+                          "igst": { "type": "number" },
+                          "discount": { "type": "number" },
+                          "warranty_period": { "type": "integer" },
+                          "features": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "feature_id": { "type": "integer" },
+                                "feature": { "type": "string" },
+                                "feature_value": { "type": "string" }
+                              }
+                            }
+                          },
+                          "attributes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "attributeName": { "type": "string" },
+                                "attributeValue": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No models found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Failed to fetch data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
   
   };
 
