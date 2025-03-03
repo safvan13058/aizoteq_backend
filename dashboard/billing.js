@@ -910,7 +910,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     });
   }
   return { totalReturnAmount, receiptItems };
-}
+} 
 async function processDealerReturn(client, serialNumbers, dealerId, userName, status) {
   let totalReturnAmount = 0;
   let receiptItems = [];
@@ -1052,6 +1052,37 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
         [newReceiptNo, item.serial_no, item.mrp, item.model, item.retail_price, -item.retail_price]
       );
     }
+    // Step 5.1: Update dealer, customer, or online customer financial records
+let updateQuery = "";
+let updateValues = [];
+
+if (dealer_or_customer === "dealers") {
+    updateQuery = `UPDATE dealers_details 
+                   SET total_amount = total_amount - $1, 
+                       balance = balance - $1 
+                   WHERE id = $2`;
+    updateValues = [totalReturnAmount, dealers_id];
+
+} else if (dealer_or_customer === "customers") {
+    updateQuery = `UPDATE customers_details 
+                   SET total_amount = total_amount - $1, 
+                       balance = balance - $1 
+                   WHERE id = $2`;
+    updateValues = [totalReturnAmount, customers_id];
+
+} else if (dealer_or_customer === "onlinecustomer") {
+    updateQuery = `UPDATE onlinecustomer_details 
+                   SET total_amount = total_amount - $1, 
+                       balance = balance - $1 
+                   WHERE id = $2`;
+    updateValues = [totalReturnAmount, onlinecustomer_id];
+}
+
+// Execute update query if applicable
+if (updateQuery) {
+    await client.query(updateQuery, updateValues);
+}
+
 
     // Step 6: Generate PDF receipt
     const receiptDir = path.join(__dirname, "returned");
