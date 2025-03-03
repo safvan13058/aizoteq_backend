@@ -1411,7 +1411,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
 
   try {
       let stockTable = 'AdminStock';
-      let userTable = 'users';  // ✅ Default for "instock"
+      let userTable = null; // Default to no user table
       let params = [status];
       let query = '';
 
@@ -1448,8 +1448,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
               tf.failureReason,
               tf.fixed_by,
               tf.loggedAt,
-              COALESCE(u.name, 'N/A') AS user_name,  -- ✅ Handle NULL user values
-              COALESCE(u.phone, 'N/A') AS user_phone,
+              ${userTable ? "COALESCE(u.name, 'N/A') AS user_name, COALESCE(u.phone, 'N/A') AS user_phone," : ""}
               -- Features and attributes
               jsonb_agg(DISTINCT jsonb_build_object('feature', f.feature, 'feature_value', f.feature_value)) AS features,
               jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) AS attributes,
@@ -1463,7 +1462,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
               p.warranty_period
           FROM Things t
           LEFT JOIN ${stockTable} s ON t.id = s.thingId
-          LEFT JOIN ${userTable} u ON s.user_id = u.id
+          ${userTable ? `LEFT JOIN ${userTable} u ON s.user_id = u.id` : ""}
           LEFT JOIN price_table p ON t.model = p.model
           LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
           LEFT JOIN model_features f ON p.id = f.model_id
@@ -1471,8 +1470,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
       `;
 
       let conditions = ["s.status = $1"];
-      
-      if (userrole === 'dealer') {
+
+      if (userrole === 'dealer' && userTable) {
           const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
           const dealerResult = await db.query(dealerQuery, [req.user.email]);
           if (dealerResult.rows.length === 0) {
@@ -1490,20 +1489,20 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
       if (searchTerm) {
           conditions.push(`(
               t.serialno ILIKE $${params.length + 1} 
-              OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
-              OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
+              OR (${userTable ? "u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL" : "false"}) 
+              OR (${userTable ? "u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL" : "false"})
           )`);
           params.push(`%${searchTerm}%`);
       }
 
-      // Add WHERE Clause
       query += " WHERE " + conditions.join(" AND ");
 
       // Final GROUP BY
       query += `
           GROUP BY t.id, t.thingName, t.createdby, t.batchId, t.model, t.macaddress, 
                    t.securityKey, t.serialno, s.status, s.added_at, s.added_by, 
-                   tf.failureReason, tf.fixed_by, tf.loggedAt, u.name, u.phone, 
+                   tf.failureReason, tf.fixed_by, tf.loggedAt, 
+                   ${userTable ? "u.name, u.phone," : ""}
                    p.mrp, p.retail_price, p.sgst, p.cgst, p.igst, p.discount, p.warranty_period;
       `;
 
@@ -1525,6 +1524,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res
       });
   }
 });
+
 
 dashboard.get('/api/searchThings/working/:status',
   validateJwt,
