@@ -8,6 +8,7 @@ const { exec } = require('child_process');
 const { getThingBySerialNo, removeFromStock, removeFromStockdealers, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel, removeFromdealersStock, printPDF, convertToWords } = require("./functions"); // Utility functions
 const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
+const cron = require("node-cron");
 const billing = async (req, res) => {
   const {
     sessionid,
@@ -332,7 +333,7 @@ async function processBilling(data, stockTable, username, res) {
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/receipt/${pdfFileName}`; // Change this URL based on your setup
     
-
+    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo,
       date: new Date().toLocaleDateString(),
@@ -844,7 +845,7 @@ const returned = async (req, res) => {
     }
 
     // Generate receipt for the transaction
-    Receiptdata = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
+    const {newReceiptNo,pdfUrl} = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
 
     await client.query("COMMIT");
 
@@ -852,8 +853,8 @@ const returned = async (req, res) => {
     return res.status(200).json({
       message: "Items successfully processed",
       total_return_amount: -totalReturnAmount,
-      receipt_no:Receiptdata.receiptNo,
-      pdfpath:Receiptdata.pdfpath,
+      receipt_no:newReceiptNo,
+      pdfpath:pdfUrl,
     });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -1099,7 +1100,11 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       fs.mkdirSync(receiptDir);
     }
     const { groupedItems, totalSGST, totalCGST, totalIGST, totalDiscountedPrice, totalAll } = groupItemsByModel(receiptItems);
-    const pdfPath = path.join(receiptDir, `receipt_${newReceiptNo}.pdf`);
+    // const pdfPath = path.join(receiptDir, `receipt_${newReceiptNo}.pdf`);
+    const pdfFileName = `receipt_${receiptNo}.pdf`;
+    const pdfPath = path.join(receiptDir, pdfFileName);
+    const pdfUrl = `https://13.200.215.17:3000/dashboard/returned/${pdfFileName}`; // Change this URL based on your setup
+    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo: "000",
       date: new Date().toLocaleDateString(),
@@ -1110,22 +1115,36 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       shipping_address,
       items: groupedItems,
       totalAmount: -parseFloat(totalReturnAmount).toFixed(2),
-      totalInFigures: convertToWords(parseFloat(totalReturnAmount)),
+      totalInFigures: numberToWords.toWords(parseFloat(totalReturnAmount)),
       billtype: status,
     });
 
     if (email) {
       // Step 7: Send the email with the attached receipt
       await sendEmailWithAttachment(email, name, phone, pdfPath);
-    }
+    } 
     // Step 8: Print PDF
     printPDF(pdfPath);
-
-    return newReceiptNo;
+    console.log("returned",pdfUrl)
+    return {newReceiptNo,pdfUrl};
   } catch (error) {
     console.error("Error generating receipt:", error.message);
     throw error;
   }
+}
+
+function schedulePDFDeletion(pdfPath, delay) {
+  setTimeout(() => {
+    if (fs.existsSync(pdfPath)) {
+      fs.unlink(pdfPath, (err) => {
+        if (err) {
+          console.error(`Error deleting PDF: ${pdfPath}`, err);
+        } else {
+          console.log(`Deleted PDF: ${pdfPath}`);
+        }
+      });
+    }
+  }, delay);
 }
 async function uploadToS3(pdfPath, bucketName) {
   const fileContent = fs.readFileSync(pdfPath);
