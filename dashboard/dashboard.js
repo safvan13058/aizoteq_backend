@@ -4,7 +4,7 @@ const db = require('../middlewares/dbconnection');
 // const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
-const { s3, upload } = require('../middlewares/s3');
+  const { s3, upload,estimate} = require('../middlewares/s3');
 const path = require('path');
 const multer = require("multer");
 const fs = require('fs');
@@ -7110,7 +7110,7 @@ dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
   }
 });
 
-dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) => {
+dashboard.post("/estimate/send-email", estimate.single("pdf"), async (req, res) => {
   const { email } = req.body;
   
   if (!req.file) {
