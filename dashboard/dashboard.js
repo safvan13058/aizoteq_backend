@@ -11,7 +11,7 @@ const fs = require('fs');
 const { billing, returned } = require('./billing.js')
 const { getThingBySerialNo, removeFromAdminStock, removeFromdealersStock, addToStock, generatePDF, sendEmailWithAttachment, isSessionOpen, groupItemsByModel } = require("./functions.js");
 const { wifidata } = require('../MQTT/mqtt.js')
-
+const nodemailer = require("nodemailer");
 dashboard.get('/', (req, res) => {
   res.send('dashboard working ')
 })
