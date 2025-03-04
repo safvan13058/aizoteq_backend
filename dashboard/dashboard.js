@@ -7126,7 +7126,7 @@ dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) =>
   });
 
   const mailOptions = {
-      from: process.env.EMAIL,
+      from: process.env.EMAIL_USER,
       to: email, // Change this to the recipient's email
       subject: "PDF Attachment",
       text: "Please find the attached PDF file.",
