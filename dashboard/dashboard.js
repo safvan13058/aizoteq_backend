@@ -7109,5 +7109,46 @@ dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
       res.status(500).json({ error: error.message });
   }
 });
+
+dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) => {
+  const {email}=req.body
+  if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+  }
+
+  // Email settings
+  const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+          user: process.env.EMAIL_USER,       // Your email
+          pass: process.env.EMAIL_PASSWORD // Your App Password
+      }
+  });
+
+  const mailOptions = {
+      from: process.env.EMAIL,
+      to: email, // Change this to the recipient's email
+      subject: "PDF Attachment",
+      text: "Please find the attached PDF file.",
+      attachments: [
+          {
+              filename: req.file.originalname,
+              path: req.file.path
+          }
+      ]
+  };
+
+  try {
+      await transporter.sendMail(mailOptions);
+      res.json({ message: "Email sent successfully!" });
+
+      // Delete the file after sending
+      fs.unlinkSync(req.file.path);
+  } catch (error) {
+      res.status(500).json({ message: "Error sending email", error: error.toString() });
+  }
+});
+
 dashboard.use('/receipt', express.static('/root/aizoteq_backend/dashboard/receipt'));
+dashboard.use('/returned', express.static('/root/aizoteq_backend/dashboard/returned'));
 module.exports = dashboard;
