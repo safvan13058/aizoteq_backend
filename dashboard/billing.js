@@ -844,15 +844,16 @@ const returned = async (req, res) => {
     }
 
     // Generate receipt for the transaction
-    receiptNo = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
+    Receiptdata = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
 
     await client.query("COMMIT");
 
     // Respond with success details
     return res.status(200).json({
       message: "Items successfully processed",
-      total_return_amount: totalReturnAmount,
-      receipt_no: receiptNo,
+      total_return_amount: -totalReturnAmount,
+      receipt_no:Receiptdata.receiptNo,
+      pdfpath:Receiptdata.pdfpath,
     });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -1108,7 +1109,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       address: billing_address,
       shipping_address,
       items: groupedItems,
-      totalAmount: parseFloat(totalReturnAmount).toFixed(2),
+      totalAmount: -parseFloat(totalReturnAmount).toFixed(2),
       totalInFigures: convertToWords(parseFloat(totalReturnAmount)),
       billtype: status,
     });
