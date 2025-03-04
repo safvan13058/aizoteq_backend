@@ -7111,7 +7111,8 @@ dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
 });
 
 dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) => {
-  const {email}=req.body
+  const { email } = req.body;
+  
   if (!req.file) {
       return res.status(400).json({ message: "No file uploaded" });
   }
@@ -7120,14 +7121,14 @@ dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) =>
   const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-          user: process.env.EMAIL_USER,       // Your email
-          pass: process.env.EMAIL_PASSWORD // Your App Password
+          user: process.env.EMAIL_USER,       
+          pass: process.env.EMAIL_PASSWORD 
       }
   });
 
   const mailOptions = {
       from: process.env.EMAIL_USER,
-      to: email, // Change this to the recipient's email
+      to: email,
       subject: "PDF Attachment",
       text: "Please find the attached PDF file.",
       attachments: [
@@ -7142,12 +7143,21 @@ dashboard.post("/estimate/send-email", upload.single("pdf"), async (req, res) =>
       await transporter.sendMail(mailOptions);
       res.json({ message: "Email sent successfully!" });
 
-      // Delete the file after sending
-      fs.unlinkSync(req.file.path);
+      // Delete the file asynchronously after response is sent
+      // fs.unlink(req.file.path, (err) => {
+      //     if (err) {
+      //         console.error("Error deleting file:", err);
+      //     }
+      // });
+
   } catch (error) {
-      res.status(500).json({ message: "Error sending email", error: error.toString() });
+      console.error("Email sending error:", error);
+      if (!res.headersSent) {
+          res.status(500).json({ message: "Error sending email", error: error.toString() });
+      }
   }
 });
+
 
 dashboard.use('/receipt', express.static('/root/aizoteq_backend/dashboard/receipt'));
 dashboard.use('/returned', express.static('/root/aizoteq_backend/dashboard/returned'));
