@@ -3809,7 +3809,7 @@ dashboard.post('/api/create/price_table',
 
 dashboard.post("/api/create/model_details",
     // validateJwt,
-    // authorizeRoles("admin"),
+    // authorizeRoles("admin","staff"),
     async (req, res) => {
       const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst, features } = req.body;
   
@@ -3892,7 +3892,7 @@ dashboard.post("/api/create/model_details",
 
 dashboard.put('/api/model/features/update/:model_id/:id',
     // validateJwt,
-    // authorizeRoles('admin'),
+    // authorizeRoles("admin","staff"),
     async (req, res) => {
       console.log("update features working")
       const { model_id, id } = req.params;
@@ -3946,7 +3946,7 @@ dashboard.put('/api/model/features/update/:model_id/:id',
 
 dashboard.delete('/api/model/features/delete/:model_id/:id',
     validateJwt,
-    authorizeRoles('admin'),
+    authorizeRoles("admin","staff"),
     async (req, res) => {
       const { model_id, id } = req.params;
   
@@ -3972,7 +3972,7 @@ dashboard.delete('/api/model/features/delete/:model_id/:id',
   );  
 dashboard.post('/api/model/features/add/:model_id',
     validateJwt,
-    authorizeRoles('admin'),
+    authorizeRoles("admin","staff"),
     async (req, res) => {
       const { model_id } = req.params;
       const { feature, feature_value } = req.body;
@@ -4261,7 +4261,7 @@ dashboard.get("/api/display/prices-table",
 
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
-  authorizeRoles('admin'),
+  authorizeRoles("admin","staff"),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -4280,7 +4280,7 @@ dashboard.get('/api/display/single/price_table/:id',
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id',
   validateJwt,
-  authorizeRoles('admin'),
+  authorizeRoles("admin","staff"),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -4369,7 +4369,7 @@ dashboard.put('/api/update/price_table/:id',
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id',
   validateJwt,
-  authorizeRoles('admin'),
+  authorizeRoles("admin","staff"),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -4387,7 +4387,10 @@ dashboard.delete('/api/delete/price_table/:id',
   });
 
 // API to add multiple features for a model
-dashboard.post("/api/add-features/:model_id", async (req, res) => {
+dashboard.post("/api/add-features/:model_id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
   const { model_id } = req.params;
   const { features } = req.body; // Expecting an array of features in the body
 
@@ -4417,7 +4420,10 @@ dashboard.post("/api/add-features/:model_id", async (req, res) => {
   }
 });
 // API to Add Multiple Features with model_id in Params
-dashboard.post("api/add-features/model/:model_id", async (req, res) => {
+dashboard.post("api/add-features/model/:model_id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
   const { model_id } = req.params;
   const { features } = req.body;
 
@@ -4448,7 +4454,11 @@ dashboard.post("api/add-features/model/:model_id", async (req, res) => {
 });
 
 // API to delete an image by its ID
-dashboard.delete("/api/delete-image/:id", async (req, res) => {
+dashboard.delete("/api/delete-image/:id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
+
   const { id } = req.params;
 
   try {
@@ -4465,7 +4475,10 @@ dashboard.delete("/api/delete-image/:id", async (req, res) => {
 dashboard.get('/test-image', (req, res) => {
   res.sendFile(path.join(__dirname, 'uploads', '1737969595925-aizo1.jpg'));
 });
-dashboard.get("/api/display/model/features/:model_id", async (req, res) => {
+dashboard.get("/api/display/model/features/:model_id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
   const { model_id } = req.params;
 
   try {
@@ -4593,7 +4606,10 @@ dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
 //   }
 // });
 
-dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async (req, res) => {
+dashboard.post("/api/upload-images/:model_id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   uploads.array("images", 5), async (req, res) => {
   const { model_id } = req.params;
   console.log("Uploaded files:", req.files);
 
@@ -4653,7 +4669,10 @@ dashboard.post("/api/upload-images/:model_id", uploads.array("images", 5), async
   }
 });
 
-dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), async (req, res) => {
+dashboard.post("/api/upload/webimage/:model_id", 
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  uploads.array("images", 10), async (req, res) => {
   const { model_id } = req.params;
   console.log("Uploaded files:", req.files);
 
@@ -4698,7 +4717,11 @@ dashboard.post("/api/upload/webimage/:model_id", uploads.array("images", 10), as
   }
 });
 
-dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) => {
+dashboard.get("/api/display/web/images/:modelid_or_modelno",
+  // validateJwt,
+  // authorizeRoles("admin","staff"), 
+  async (req, res) => {
+
   const { modelid_or_modelno } = req.params;
 
   try {
@@ -4734,7 +4757,10 @@ dashboard.get("/api/display/web/images/:modelid_or_modelno", async (req, res) =>
   }
 });
 
-dashboard.get("/api/display/images/:modelid_or_modelno", async (req, res) => {
+dashboard.get("/api/display/images/:modelid_or_modelno",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
   const { modelid_or_modelno } = req.params;
 
   try {
@@ -4783,9 +4809,11 @@ dashboard.get("/api/display/images/:modelid_or_modelno", async (req, res) => {
   }
 });
 
-
 // DELETE: Delete a specific image by image_id
-dashboard.delete("/api/delete/web/images/:image_id", async (req, res) => {
+dashboard.delete("/api/delete/web/images/:image_id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
   const { image_id } = req.params;
 
   try {
@@ -4813,7 +4841,11 @@ dashboard.delete("/api/delete/web/images/:image_id", async (req, res) => {
 });
 
 // API endpoint to delete a feature by ID
-dashboard.delete("/delete-feature/:id", async (req, res) => {
+dashboard.delete("/delete-feature/:id",
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+   async (req, res) => {
+
   const featureId = parseInt(req.params.id);
 
   try {
@@ -4837,7 +4869,10 @@ dashboard.delete("/delete-feature/:id", async (req, res) => {
 });
 
 
-dashboard.get("/api/things/features/:model", async (req, res) => {
+dashboard.get("/api/things/features/:model", 
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
   const { model } = req.params;
 
   try {
@@ -5501,6 +5536,7 @@ dashboard.get('/api/sales', async (req, res) => {
   //     }
   //   }
   // );
+ 
   dashboard.post('/api/raw_materials/create',
     validateJwt,
     authorizeRoles('admin','staff'),
@@ -5595,6 +5631,8 @@ dashboard.get('/api/sales', async (req, res) => {
   );
 
   dashboard.post('/api/raw_materials/add_features/:material_id',
+    // validateJwt,
+    // authorizeRoles("admin","staff"),
     async (req, res) => {
       const {material_id} = req.params
       const { raw_material_features } = req.body;
@@ -5639,11 +5677,11 @@ dashboard.get('/api/sales', async (req, res) => {
         res.status(500).json({ error: 'Failed to add features', message: err.message });
       }
     }
-);
+ );
 
   dashboard.put('/api/raw_materials/update_feature/:id',
     // validateJwt,
-    // authorizeRoles('admin'),
+    // authorizeRoles("admin","staff"),
     async (req, res) => {
       const{id}=req.params;
       const {raw_material_value } = req.body;
@@ -5681,8 +5719,8 @@ dashboard.get('/api/sales', async (req, res) => {
     }
   );
   dashboard.delete('/api/raw_materials/delete_feature/:id',
-    validateJwt,
-    authorizeRoles('admin'),
+    // validateJwt,
+    // authorizeRoles("admin","staff"),
     async (req, res) => {
       const { id } = req.params;
   
@@ -5823,8 +5861,8 @@ dashboard.get('/api/sales', async (req, res) => {
 //   });
 
 dashboard.put('/api/raw_materials/update/:id', 
-  validateJwt, 
-  authorizeRoles('admin'), 
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
   upload.single('image'), 
   async (req, res) => {
     const { id } = req.params;
@@ -5970,7 +6008,7 @@ dashboard.put('/api/raw_materials/update/:id',
 
 dashboard.put('/api/raw/stock/update/:id',
   validateJwt,
-  authorizeRoles('admin'),
+  authorizeRoles("admin","staff"),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -6081,8 +6119,8 @@ dashboard.put('/api/raw/stock/update/:id',
 // API to delete a raw material by ID
 dashboard.delete('/api/raw_materials/delete/:id',
 
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
   async (req, res) => {
     const { id } = req.params;
     const query = 'DELETE FROM raw_materials_stock WHERE id = $1';
@@ -6134,8 +6172,8 @@ dashboard.delete('/api/raw_materials/delete/:id',
 //   });
 
 dashboard.get('/api/raw_materials',
-    // validateJwt,
-    // authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
     async (req, res) => {
       const { search, category } = req.query;
       console.log(req.query);
@@ -6229,8 +6267,8 @@ dashboard.get('/api/raw_materials',
   );
 
 dashboard.get('/api/raw/stock/history/:raw_material_id',
-    // validateJwt,
-    // authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
     async (req, res) => {
       const { raw_material_id } = req.params;
   
@@ -6358,8 +6396,8 @@ dashboard.get('/api/model/:modelId',
 
 //update of models rawmaterial_req_qty
 dashboard.put('/api/update/raw/:modelId/:rawMaterialId',
-  validateJwt,
-  authorizeRoles('admin'),
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
   async (req, res) => {
     const { modelId, rawMaterialId } = req.params;
     const { requiredQty } = req.body;
@@ -7144,11 +7182,11 @@ dashboard.post("/estimate/send-email", estimate.single("pdf"), async (req, res) 
       res.json({ message: "Email sent successfully!" });
 
       // Delete the file asynchronously after response is sent
-      // fs.unlink(req.file.path, (err) => {
-      //     if (err) {
-      //         console.error("Error deleting file:", err);
-      //     }
-      // });
+      fs.unlink(req.file.path, (err) => {
+          if (err) {
+              console.error("Error deleting file:", err);
+          }
+      });
 
   } catch (error) {
       console.error("Email sending error:", error);
