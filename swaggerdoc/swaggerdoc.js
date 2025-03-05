@@ -7671,9 +7671,10 @@ const Swaggerdoc = {
 
 
     // -------------------------------------------------------dashboard--------------------------------------------
-        "/dashboard/api/create/model_details": {
+       
+    "/dashboard/api/create/model_details": {
       "post": {
-        "tags": ["dashboard"],
+        "tags": ["Dashboard"],
         "summary": "Create a new model with features",
         "description": "Creates a new model entry in the price table and optionally adds its features.",
         "requestBody": {
@@ -7947,7 +7948,1910 @@ const Swaggerdoc = {
         }
       }
     },
-  
+     "/dashborad/api/update/price_table/{id}": {
+      "put": {
+        "tags": ["Dashboard"],
+        "summary": "Update a price table entry",
+        "description": "Updates an existing entry in the price table. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the price table entry to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": { "type": "string", "description": "Model name" },
+                  "mrp": { "type": "number", "description": "Maximum Retail Price" },
+                  "retail_price": { "type": "number", "description": "Retail price" },
+                  "sgst": { "type": "number", "description": "SGST percentage" },
+                  "cgst": { "type": "number", "description": "CGST percentage" },
+                  "igst": { "type": "number", "description": "IGST percentage" },
+                  "discount": { "type": "number", "description": "Discount percentage" },
+                  "warranty_period": {
+                    "type": "string",
+                    "description": "Warranty period (e.g., '2 years', '6 months', '1 year 6 months')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Price entry updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "model": { "type": "string" },
+                    "mrp": { "type": "number" },
+                    "retail_price": { "type": "number" },
+                    "sgst": { "type": "number" },
+                    "cgst": { "type": "number" },
+                    "igst": { "type": "number" },
+                    "discount": { "type": "number" },
+                    "warranty_period": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid input or no valid fields provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Price entry not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashborad/api/delete/price_table/{id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a price table entry",
+        "description": "Deletes a price table entry. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the price table entry to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Price entry deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Price entry not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/add-features/model/{model_id}": {
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Add features to a model",
+        "description": "Adds multiple features to a specific model.",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the model to which features are being added",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "features": {
+                    "type": "array",
+                    "description": "List of features to be added",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": {
+                          "type": "string",
+                          "description": "Feature name"
+                        },
+                        "feature_value": {
+                          "type": "string",
+                          "description": "Feature value (optional)"
+                        }
+                      },
+                      "required": ["feature"]
+                    }
+                  }
+                },
+                "required": ["features"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Features added successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "model_id": { "type": "integer" },
+                          "feature": { "type": "string" },
+                          "feature_value": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid model_id or missing features array",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/upload-images/{model_id}": {
+
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Upload model feature images",
+        "description": "Uploads up to 5 images for a model. Ensures no more than 5 images exist per model.",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the model to upload images for",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Images to upload (max 5)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Images uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "imagePaths": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., no files uploaded, too many images)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model ID not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/upload/webimage/{model_id}": {
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Upload web images for a model",
+        "description": "Uploads up to 10 images for a model's web representation.",
+        "parameters": [
+          {
+            "name": "model_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the model to upload images for",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "images": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "description": "Images to upload (max 10)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Images uploaded successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "imagePaths": {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request (e.g., no files uploaded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model ID not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/display/images/{modelid_or_modelno}": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Retrieve images for a model",
+        "description": "Fetches feature images and web images for a given model using either the model ID or model number.",
+        "parameters": [
+          {
+            "name": "modelid_or_modelno",
+            "in": "path",
+            "required": true,
+            "description": "Model ID or Model Number to fetch images",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Images retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "model_id": {
+                      "type": "integer",
+                      "nullable": true,
+                      "description": "Model ID if searched by ID, otherwise null"
+                    },
+                    "model_no": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Model Number if searched by model number, otherwise null"
+                    },
+                    "feature_images": {
+                      "type": "array",
+                      "description": "Feature images of the model",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "model_id": { "type": "integer" },
+                          "model_no": { "type": "string" },
+                          "images": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "image_id": { "type": "integer" },
+                                "image_url": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "web_images": {
+                      "type": "array",
+                      "description": "Web images of the model",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "model_id": { "type": "integer" },
+                          "model_no": { "type": "string" },
+                          "images": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "image_id": { "type": "integer" },
+                                "image_url": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input for model ID or model number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No images found for the given model ID or model number",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/delete-image/{id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a model feature image",
+        "description": "Deletes an image from the model features image table.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the image to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/delete/web/images/{image_id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a web image",
+        "description": "Deletes an image from the web images table.",
+        "parameters": [
+          {
+            "name": "image_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the web image to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Web image deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Image not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/delete-feature/{id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a model feature",
+        "description": "Deletes a feature associated with a model.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the feature to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feature deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/raw_materials": {
+      "get": {
+        "tags": ["Dashboard"],
+        "summary": "Get raw materials",
+        "description": "Fetch raw materials from the database, optionally filtering by search term or category.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "description": "Search term to filter raw materials by component, category, package, value, or reference number",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "description": "Filter raw materials by category",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with raw materials data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "raw_materials": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "Component": { "type": "string" },
+                          "category": { "type": "string" },
+                          "package": { "type": "string" },
+                          "value": { "type": "string" },
+                          "reference_no": { "type": "string" },
+                          "unit_price_in_rupees": { "type": "number" },
+                          "unit_price_in_dollars": { "type": "number" },
+                          "stock_quantity": { "type": "integer" },
+                          "reorder_level": { "type": "integer" },
+                          "image": { "type": "string" },
+                          "tax": { "type": "number" },
+                          "shipping_cost": { "type": "number" },
+                          "total_price": { "type": "number" },
+                          "raw_material_features": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "feature_id": { "type": "integer" },
+                                "raw_material_feature": { "type": "string" },
+                                "raw_material_value": { "type": "string" }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+   
+
+    "/dashboard/api/raw_materials/create": {
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Create a new raw material",
+        "description": "Creates a new raw material entry in the database. Only accessible to users with 'admin' or 'staff' roles.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "consumes": ["multipart/form-data"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Component": { "type": "string", "description": "Name of the raw material" },
+                  "category": { "type": "string", "description": "Category of the raw material" },
+                  "package": { "type": "string", "description": "Packaging type" },
+                  "value": { "type": "string", "description": "Value of the material" },
+                  "reference_no": { "type": "string", "description": "Reference number" },
+                  "unit_price_in_rupees": { "type": "number", "description": "Unit price in Rupees" },
+                  "unit_price_in_dollars": { "type": "number", "description": "Unit price in Dollars" },
+                  "stock_quantity": { "type": "integer", "description": "Stock quantity" },
+                  "reorder_level": { "type": "integer", "description": "Reorder level" },
+                  "tax": { "type": "number", "description": "Tax percentage" },
+                  "shipping_charge": { "type": "number", "description": "Shipping charge percentage" },
+                  "raw_material_features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": { "type": "string", "description": "Feature name" },
+                        "value": { "type": "string", "description": "Feature value" }
+                      }
+                    }
+                  },
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file of the raw material"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Raw material created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "id": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+  "/dashboard/api/raw_materials/update/{id}": {
+      "put": {
+        "tags": ["Dashboard"],
+        "summary": "Update a raw material",
+        "description": "Updates an existing raw material entry. Only accessible to users with 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "consumes": ["multipart/form-data"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "Component": { "type": "string", "description": "Name of the raw material" },
+                  "category": { "type": "string", "description": "Category of the raw material" },
+                  "package": { "type": "string", "description": "Packaging type" },
+                  "value": { "type": "string", "description": "Value of the material" },
+                  "reference_no": { "type": "string", "description": "Reference number" },
+                  "unit_price_in_rupees": { "type": "number", "description": "Unit price in Rupees" },
+                  "unit_price_in_dollars": { "type": "number", "description": "Unit price in Dollars" },
+                  "stock_quantity": { "type": "integer", "description": "Stock quantity" },
+                  "reorder_level": { "type": "integer", "description": "Reorder level" },
+                  "tax": { "type": "number", "description": "Tax percentage" },
+                  "shipping_charge": { "type": "number", "description": "Shipping charge percentage" },
+                  "total_price": { "type": "number", "description": "Total price including tax and shipping" },
+                  "image": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Updated image file of the raw material"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Raw material updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "Component": { "type": "string" },
+                        "category": { "type": "string" },
+                        "package": { "type": "string" },
+                        "value": { "type": "string" },
+                        "reference_no": { "type": "string" },
+                        "unit_price_in_rupees": { "type": "number" },
+                        "unit_price_in_dollars": { "type": "number" },
+                        "stock_quantity": { "type": "integer" },
+                        "reorder_level": { "type": "integer" },
+                        "tax": { "type": "number" },
+                        "shipping_charge": { "type": "number" },
+                        "total_price": { "type": "number" },
+                        "image": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, no valid fields provided for update",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Raw material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/raw_materials/delete/{id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a raw material",
+        "description": "Deletes an existing raw material entry. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw material deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Raw material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/model/{modelId}/add-raw-material": {
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Add raw material to a model",
+        "description": "Adds a raw material to a specific model. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the model to which the raw material is added",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "raw_material_id": {
+                    "type": "integer",
+                    "description": "ID of the raw material to be added"
+                  },
+                  "required_qty": {
+                    "type": "number",
+                    "description": "Required quantity of the raw material"
+                  }
+                },
+                "required": ["raw_material_id", "required_qty"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Raw material added to the model successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "thing_raw_material_id": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, missing required parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Model or raw material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/delete/thingrawmaterials/{id}": {
+      "delete": {
+        "tags": ["Dashboard"],
+        "summary": "Delete a thing raw material record",
+        "description": "Deletes a raw material record from a thing. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material record to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Record deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "description": "Deleted record details",
+                      "properties": {
+                        "id": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid ID parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/update/raw/{modelId}/{rawMaterialId}": {
+      "put": {
+        "tags": ["Dashboard"],
+        "summary": "Update required quantity for a raw material in a model",
+        "description": "Updates the required quantity of a raw material in a specific model. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "modelId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the model",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "rawMaterialId",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material record to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "requiredQty": {
+                    "type": "number",
+                    "description": "Updated required quantity of the raw material"
+                  }
+                },
+                "required": ["requiredQty"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Required quantity updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "data": {
+                      "type": "object",
+                      "description": "Updated raw material details",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "model_id": { "type": "integer" },
+                        "required_qty": { "type": "number" },
+                        "updated_at": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, missing or invalid requiredQty",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashboard/api/raw/stock/update/{id}": {
+      "put": {
+        "tags": ["Dashboard"],
+        "summary": "Update raw material stock and pricing",
+        "description": "Updates stock quantity, unit prices, tax, and shipping charges for a raw material. Tracks history of changes. Only accessible to users with the 'admin' role.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "unit_price_in_rupees": {
+                    "type": "number",
+                    "description": "Updated unit price in Rupees (optional, will keep old value if not provided)"
+                  },
+                  "unit_price_in_dollars": {
+                    "type": "number",
+                    "description": "Updated unit price in Dollars (optional, will keep old value if not provided)"
+                  },
+                  "stock_quantity": {
+                    "type": "integer",
+                    "description": "New stock quantity to be added to the existing stock"
+                  },
+                  "tax": {
+                    "type": "number",
+                    "description": "Updated tax percentage (optional, will keep old value if not provided)"
+                  },
+                  "shipping_charge": {
+                    "type": "number",
+                    "description": "Updated shipping charge percentage (optional, will keep old value if not provided)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Raw material updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string" },
+                    "updated_stock": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request, invalid or missing input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized, missing or invalid token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden, insufficient permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Raw material not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": { "type": "string" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dashborad/api/raw_materials/add_features/{material_id}": {
+      "post": {
+        "tags": ["Dashboard"],
+        "summary": "Add features to a raw material",
+        "description": "Adds features to an existing raw material.",
+        "parameters": [
+          {
+            "name": "material_id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the raw material to add features to",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "raw_material_features": {
+                    "type": "array",
+                    "description": "List of features to add",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature": { "type": "string" },
+                        "value": { "type": "string" }
+                      }
+                    }
+                  }
+                },
+                "required": ["raw_material_features"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Features added successfully" },
+          "400": { "description": "Invalid input" },
+          "404": { "description": "Material not found" },
+          "500": { "description": "Internal Server Error" }
+        }
+      }
+    },
+    "/dashboard/api/raw_materials/update_feature/{id}": {
+      "put": {
+        "tags": ["Dashboard"],
+        "summary": "Update a raw material feature",
+        "description": "Updates the value of an existing feature.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the feature to update",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "raw_material_value": {
+                    "type": "string",
+                    "description": "Updated value of the feature"
+                  }
+                },
+                "required": ["raw_material_value"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Feature updated successfully" },
+          "400": { "description": "Invalid input" },
+          "404": { "description": "Feature not found" },
+          "500": { "description": "Internal Server Error" }
+        }
+      }
+    },
+    "/api/raw_materials/delete_feature/{id}": {
+      "delete": {
+        "summary": "Delete a raw material feature",
+        "description": "Deletes an existing feature from a raw material. Only accessible to admin users.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID of the feature to delete",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Feature deleted successfully" },
+          "400": { "description": "Invalid input" },
+          "404": { "description": "Feature not found" },
+          "500": { "description": "Internal Server Error" }
+        }
+      }
+    },
   };
 
 
