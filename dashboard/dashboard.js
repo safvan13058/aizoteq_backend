@@ -1143,15 +1143,14 @@ dashboard.post('/api/pay-balance',
     try {
       const {
         id,                   // ID of the customer, dealer, or online customer
-        type,                 // 'customer', 'dealer', or 'online_customer'
-        payments             // Array of payment objects: [{ method: 'cash', amount: 500 }, { method: 'online', amount: 200 }]
-        // User creating the billing
+        type,                 // 'customers', 'dealers', or 'online_customer'
+        payments              // Array of payment objects
       } = req.body;
       const created_by = req.user.username;
 
-      console.log("pay balance", id,                   // ID of the customer, dealer, or online customer
-        type,                 // 'customer', 'dealer', or 'online_customer'
-        payments, created_by)
+      console.log("pay balance body::",req.body);
+      console.log("pay balance::", id, type, payments, created_by);
+
       // Validate input
       if (!id || !type || !payments || !Array.isArray(payments) || !created_by) {
         return res.status(400).json({ error: 'All fields (id, type, payments, created_by) are required' });
@@ -1174,7 +1173,7 @@ dashboard.post('/api/pay-balance',
         totalPaid += payment.amount;
       }
 
-      // Define table and corresponding ID column based on type
+      // Define table and ID column based on type
       let table, idColumn;
       if (type === 'customers') {
         table = 'customers_details';
@@ -1186,11 +1185,11 @@ dashboard.post('/api/pay-balance',
         table = 'onlinecustomer_details';
         idColumn = 'onlinecustomer_id';
       } else {
-        return res.status(400).json({ error: 'Invalid type. Must be "customer", "dealer", or "online_customer".' });
+        return res.status(400).json({ error: 'Invalid type. Must be "customers", "dealers", or "online_customer".' });
       }
 
       // Fetch current balance and details
-      const balanceQuery = `SELECT name, phone, email,address, balance FROM ${table} WHERE id = $1`;
+      const balanceQuery = `SELECT name, phone, email, address, balance FROM ${table} WHERE id = $1`;
       const result = await db.query(balanceQuery, [id]);
 
       if (result.rows.length === 0) {
@@ -1204,6 +1203,9 @@ dashboard.post('/api/pay-balance',
         return res.status(400).json({ error: 'Total payment amount exceeds balance' });
       }
 
+      // Generate a unique receipt number
+      const receipt_no = `B-${Date.now()}`;
+
       // Update balance in the table
       const newBalance = balance - totalPaid;
       const updateQuery = `
@@ -1213,17 +1215,18 @@ dashboard.post('/api/pay-balance',
         `;
       await db.query(updateQuery, [totalPaid, newBalance, id]);
 
-      // Create billing receipt
+      // Create billing receipt with receipt_no
       const receiptInsertQuery = `
-            INSERT INTO billing_receipt (name, phone, email, billing_address, dealer_or_customer, total_amount, paid_amount, balance, billing_createdby, ${idColumn}, type)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id
+            INSERT INTO billing_receipt (receipt_no, name, phone, email, billing_address, dealer_or_customer, total_amount, paid_amount, balance, billing_createdby, ${idColumn}, type)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            RETURNING id, receipt_no
         `;
       const receiptValues = [
+        receipt_no, // New receipt number
         name,
         phone,
         email,
-        address, // Replace with actual billing address if required
+        address, // Billing address
         type,
         totalPaid, // Total billed amount (this payment only)
         totalPaid, // Paid amount
@@ -1233,7 +1236,7 @@ dashboard.post('/api/pay-balance',
         "Balance",
       ];
       const receiptResult = await db.query(receiptInsertQuery, receiptValues);
-      const receiptId = receiptResult.rows[0].id;
+      const { id: receiptId } = receiptResult.rows[0];
 
       // Add payment details for each payment method
       const paymentInsertQuery = `
@@ -1248,12 +1251,14 @@ dashboard.post('/api/pay-balance',
       res.status(201).json({
         message: 'Payment successful and receipt generated',
         receiptId,
+        receipt_no
       });
     } catch (error) {
       console.error(error);
       res.status(500).json({ error: 'An internal server error occurred' });
     }
   });
+
 
 // API to update userRole
 dashboard.put('/api/users/:id/role',
