@@ -2947,7 +2947,7 @@ dashboard.get("/api/billing/:entity_type/:entity_id",
     console.log("entityid", entity_id)
     // Determine the table column based on entity type
     let tableColumn;
-    if (entity_type === "dealer") {
+    if (entity_type === "dealers") {
       tableColumn = "dealers_id";
     } else if (entity_type === "customers") {
       tableColumn = "customers_id";
