@@ -4,7 +4,7 @@ const db = require('../middlewares/dbconnection');
 // const {getThingBySerialNo,removeFromAdminStock,addToStock} =require('./functions.js')
 const { validateJwt, authorizeRoles } = require('../middlewares/auth');
 const { thingSchema } = require('../middlewares/validation');
-  const { s3, upload,estimate} = require('../middlewares/s3');
+const { s3, upload, estimate } = require('../middlewares/s3');
 const path = require('path');
 const multer = require("multer");
 const fs = require('fs');
@@ -34,28 +34,28 @@ dashboard.get('/api/users/count',
   });
 
 dashboard.get("/api/production/graph", async (req, res) => {
-    const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
-  
-    if (!["day", "week", "month", "year"].includes(groupBy)) {
-      return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
-    }
-  
-    // Map groupBy to SQL expressions
-    const groupByExpression = {
-      day: "TO_CHAR( added_at, 'Mon DD')", // Example: "Feb 11"
-      week: "TO_CHAR( added_at, 'IYYY-IW')", // Example: "2025-06" (ISO year-week)
-      month: "TO_CHAR( added_at, 'Mon YYYY')", // Example: "Feb 2025"
-      year: "EXTRACT(YEAR FROM  added_at)::INT", // Example: 2025
-    };
-  
-    const sortExpression = {
-      day: "DATE( added_at)", // Sort by actual date
-      week: "DATE_TRUNC('week',  added_at)", // Start of the week
-      month: "DATE_TRUNC('month',  added_at)", // Start of the month
-      year: "DATE_TRUNC('year',  added_at)", // Start of the year
-    };
-  
-    const query = `
+  const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
+
+  if (!["day", "week", "month", "year"].includes(groupBy)) {
+    return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
+  }
+
+  // Map groupBy to SQL expressions
+  const groupByExpression = {
+    day: "TO_CHAR( added_at, 'Mon DD')", // Example: "Feb 11"
+    week: "TO_CHAR( added_at, 'IYYY-IW')", // Example: "2025-06" (ISO year-week)
+    month: "TO_CHAR( added_at, 'Mon YYYY')", // Example: "Feb 2025"
+    year: "EXTRACT(YEAR FROM  added_at)::INT", // Example: 2025
+  };
+
+  const sortExpression = {
+    day: "DATE( added_at)", // Sort by actual date
+    week: "DATE_TRUNC('week',  added_at)", // Start of the week
+    month: "DATE_TRUNC('month',  added_at)", // Start of the month
+    year: "DATE_TRUNC('year',  added_at)", // Start of the year
+  };
+
+  const query = `
       SELECT 
         ${groupByExpression[groupBy]} AS period,
         COUNT(*) AS thing_count,
@@ -67,104 +67,104 @@ dashboard.get("/api/production/graph", async (req, res) => {
       ORDER BY 
         sort_date ASC;
     `;
-  
-    try {
-      const client = await db.connect();
-      const result = await client.query(query);
-  
-      res.status(200).json({
-        groupBy,
-        data: result.rows.map(row => ({
-          period: row.period,
-          thing_count: row.thing_count,
-        })),
-      });
-  
-      client.release();
-    } catch (err) {
-      console.error("Error fetching Things graph data:", err);
-      res.status(500).json({ error: "Internal Server Error" });
-    }
-  });  
+
+  try {
+    const client = await db.connect();
+    const result = await client.query(query);
+
+    res.status(200).json({
+      groupBy,
+      data: result.rows.map(row => ({
+        period: row.period,
+        thing_count: row.thing_count,
+      })),
+    });
+
+    client.release();
+  } catch (err) {
+    console.error("Error fetching Things graph data:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
 dashboard.get('/api/sales/count', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
-    const { role:userRole, id: userId } = req.user; // Extracted from JWT
-  
-    try {
-      let query = "";
-      let params = [];
-  
-      if (userRole === 'admin') {
-        // ✅ Count all sales made by admins
-        query = `
+  const { role: userRole, id: userId } = req.user; // Extracted from JWT
+
+  try {
+    let query = "";
+    let params = [];
+
+    if (userRole === 'admin') {
+      // ✅ Count all sales made by admins
+      query = `
           SELECT COUNT(*) AS total_sales
           FROM sales_graph sg
           JOIN Users u ON sg.sale_by = u.id
           WHERE u.userRole = 'admin';
         `;
-      } else if (userRole === 'dealer') {
-        // ✅ Count sales made by this dealer
-        query = `
+    } else if (userRole === 'dealer') {
+      // ✅ Count sales made by this dealer
+      query = `
           SELECT COUNT(*) AS total_sales
           FROM sales_graph
           WHERE sale_by = $1;
         `;
-        params = [userId];
-      } else {
-        return res.status(403).json({ error: 'Unauthorized role' });
-      }
-  
-      const result = await db.query(query, params);
-      res.json({ total_sales: parseInt(result.rows[0].total_sales, 10) });
-  
-    } catch (error) {
-      console.error('Error counting sales:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      params = [userId];
+    } else {
+      return res.status(403).json({ error: 'Unauthorized role' });
     }
-  });
-  
+
+    const result = await db.query(query, params);
+    res.json({ total_sales: parseInt(result.rows[0].total_sales, 10) });
+
+  } catch (error) {
+    console.error('Error counting sales:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // 📊 API to get total sales count (Filtered by `sale_by`)
 dashboard.get('/api/sales/total', async (req, res) => {
   try {
-      const  sale_by  = req.user?.username||req.query.sale_by;
-      
-      if (!sale_by) {
-          return res.status(400).json({ error: "sale_by parameter is required" });
-      }
+    const sale_by = req.user?.username || req.query.sale_by;
 
-      // Step 1: Get user role
-      const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
+    if (!sale_by) {
+      return res.status(400).json({ error: "sale_by parameter is required" });
+    }
 
-      if (userResult.rows.length === 0) {
-          return res.status(404).json({ error: "User not found" });
-      }
+    // Step 1: Get user role
+    const userResult = await db.query('SELECT userRole FROM Users WHERE userName = $1', [sale_by]);
 
-      const userRole = userResult.rows[0].userrole; // Case-sensitive issue, use lowercase
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-      let query;
-      let values = [];
+    const userRole = userResult.rows[0].userrole; // Case-sensitive issue, use lowercase
 
-      // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
-      if (userRole === 'admin') {
-          query = `
+    let query;
+    let values = [];
+
+    // Step 2: If user is admin, show all admin sales; otherwise, show only their own sales
+    if (userRole === 'admin') {
+      query = `
               SELECT COUNT(*) AS total_sales 
               FROM sales_graph 
               WHERE sale_by IN (SELECT userName FROM Users WHERE userRole = 'admin')
           `;
-      } else {
-          query = 'SELECT COUNT(*) AS total_sales FROM sales_graph WHERE sale_by = $1';
-          values.push(sale_by);
-      }
+    } else {
+      query = 'SELECT COUNT(*) AS total_sales FROM sales_graph WHERE sale_by = $1';
+      values.push(sale_by);
+    }
 
-      // Step 3: Execute query
-      const result = await db.query(query, values);
-      res.json(result.rows[0]);
+    // Step 3: Execute query
+    const result = await db.query(query, values);
+    res.json(result.rows[0]);
 
   } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Server error' });
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
   }
 });
- 
+
 dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { role: userRole, id: userId } = req.user; // Extracted from JWT
   const { groupBy } = req.query; // Accept 'day', 'month', 'year' as a query parameter
@@ -1239,7 +1239,7 @@ dashboard.get('/api/sales/graph/:user_id', async (req, res) => {
 // console.log("Executing query:", query);
 // console.log("Query parameters:", [status]);
 
-      
+
 //           if (userrole === 'dealer') {
 //               const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
 //               const dealerResult = await db.query(dealerQuery, [req.user.email]);
@@ -1407,7 +1407,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
   validateJwt,
   authorizeRoles('admin', 'dealer'),
   async (req, res) => {
-    const { searchTerm, party="customer",serialno } = req.query; // Extract `party`
+    const { searchTerm, party = "customer", serialno } = req.query; // Extract `party`
     const { stock, status } = req.params;
     const userrole = req.user.role;
     // const userrole = "admin";
@@ -1422,7 +1422,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
         if (stock === 'sold') {
           if (!party) {
             return res.status(400).json({ message: "Party parameter is required" });
-        }
+          }
 
           console.log(`soldworking===${stock}`)
           if (party === 'dealer') {
@@ -1461,38 +1461,38 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId
           WHERE a.status = $1
       `;
-      const params = [status];
+          const params = [status];
 
-      // If user is a dealer, fetch their ID and add to query
-      if (userrole === 'dealer') {
-        const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
-        const dealerResult = await db.query(dealerQuery, [req.user.email]);
-        if (dealerResult.rows.length === 0) {
-          return res.status(404).json({ message: 'Dealer not found' });
-        }
-        query += ` AND a.user_id = $2`;
-        params.push(dealerResult.rows[0].id);
-      }
+          // If user is a dealer, fetch their ID and add to query
+          if (userrole === 'dealer') {
+            const dealerQuery = `SELECT id FROM dealers_details WHERE email = $1`;
+            const dealerResult = await db.query(dealerQuery, [req.user.email]);
+            if (dealerResult.rows.length === 0) {
+              return res.status(404).json({ message: 'Dealer not found' });
+            }
+            query += ` AND a.user_id = $2`;
+            params.push(dealerResult.rows[0].id);
+          }
 
-      // Add serialno filter if provided
-      if (serialno) {
-        query += ` AND t.serialno ILIKE $${params.length + 1}`;
-        params.push(`%${serialno}%`);
-      }
+          // Add serialno filter if provided
+          if (serialno) {
+            query += ` AND t.serialno ILIKE $${params.length + 1}`;
+            params.push(`%${serialno}%`);
+          }
 
-      // Log for debugging
-      console.log('Executing query:', query);
-      console.log('Query parameters:', params);
+          // Log for debugging
+          console.log('Executing query:', query);
+          console.log('Query parameters:', params);
 
-      // Execute the query
-      const result = await db.query(query, params);
-       // Handle no results
-      if (result.rows.length === 0) {
-        return res.status(404).json({ message: 'No matching records found' });
-      }
+          // Execute the query
+          const result = await db.query(query, params);
+          // Handle no results
+          if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'No matching records found' });
+          }
 
-      // Return results
-      res.json(result.rows);
+          // Return results
+          res.json(result.rows);
         }
 
       } else if (userrole === 'dealer') {
@@ -2003,35 +2003,35 @@ dashboard.post("/api/billing/return/:status", returned)
 
 dashboard.get('/api/search/model/price', async (req, res) => {
   try {
-      const { query } = req.query;
+    const { query } = req.query;
 
-      if (!query) {
-          return res.status(400).json({ error: "Missing query parameter" });
+    if (!query) {
+      return res.status(400).json({ error: "Missing query parameter" });
+    }
+
+    // Split query parameters and clean them up
+    const parts = query.split(',').map(item => item.trim()).filter(Boolean);
+
+    let model = null;
+    const conditions = [];
+
+    // Check if the first part is a model name (assume it's not an attribute)
+    if (parts.length > 0 && !parts[0].includes(' ')) {
+      model = parts.shift();  // Extract model name from the query
+    }
+
+    // Process remaining parts as attributes
+    parts.forEach(item => {
+      const match = item.match(/^(.+?)\s+(.+)$/);
+      if (match) {
+        const attributeName = match[1].trim();
+        const attributeValue = match[2].trim();
+        conditions.push({ attributeName, attributeValue });
       }
+    });
 
-      // Split query parameters and clean them up
-      const parts = query.split(',').map(item => item.trim()).filter(Boolean);
-
-      let model = null;
-      const conditions = [];
-
-      // Check if the first part is a model name (assume it's not an attribute)
-      if (parts.length > 0 && !parts[0].includes(' ')) {
-          model = parts.shift();  // Extract model name from the query
-      }
-
-      // Process remaining parts as attributes
-      parts.forEach(item => {
-          const match = item.match(/^(.+?)\s+(.+)$/);
-          if (match) {
-              const attributeName = match[1].trim();
-              const attributeValue = match[2].trim();
-              conditions.push({ attributeName, attributeValue });
-          }
-      });
-
-      // Start building SQL query
-      let sqlQuery = `
+    // Start building SQL query
+    let sqlQuery = `
           SELECT 
               pt.model, 
               pt.mrp, 
@@ -2053,23 +2053,23 @@ dashboard.get('/api/search/model/price', async (req, res) => {
           JOIN ThingAttributes ta ON t.id = ta.thingId
       `;
 
-      const queryParams = [];
-      const whereClauses = [];
+    const queryParams = [];
+    const whereClauses = [];
 
-      // If model is provided, add a WHERE clause for model filtering
-      if (model) {
-        whereClauses.push(`LOWER(pt.model) LIKE LOWER($${queryParams.length + 1})`);
-        queryParams.push(`%${model}%`);
-      }
+    // If model is provided, add a WHERE clause for model filtering
+    if (model) {
+      whereClauses.push(`LOWER(pt.model) LIKE LOWER($${queryParams.length + 1})`);
+      queryParams.push(`%${model}%`);
+    }
 
-      // Process attribute conditions
-      conditions.forEach((condition, index) => {
-          const { attributeName, attributeValue } = condition;
-          const paramIndex = queryParams.length + 1;
+    // Process attribute conditions
+    conditions.forEach((condition, index) => {
+      const { attributeName, attributeValue } = condition;
+      const paramIndex = queryParams.length + 1;
 
-          if (!isNaN(attributeValue)) {
-              const upperBound = parseInt(attributeValue) + 2;
-              whereClauses.push(`
+      if (!isNaN(attributeValue)) {
+        const upperBound = parseInt(attributeValue) + 2;
+        whereClauses.push(`
                   EXISTS (
                       SELECT 1 FROM ThingAttributes ta_sub
                       WHERE ta_sub.thingId = t.id
@@ -2077,9 +2077,9 @@ dashboard.get('/api/search/model/price', async (req, res) => {
                       AND CAST(ta_sub.attributeValue AS INTEGER) BETWEEN $${paramIndex + 1} AND $${paramIndex + 2}
                   )
               `);
-              queryParams.push(attributeName, parseInt(attributeValue), upperBound);
-          } else {
-              whereClauses.push(`
+        queryParams.push(attributeName, parseInt(attributeValue), upperBound);
+      } else {
+        whereClauses.push(`
                   EXISTS (
                       SELECT 1 FROM ThingAttributes ta_sub
                       WHERE ta_sub.thingId = t.id
@@ -2087,31 +2087,31 @@ dashboard.get('/api/search/model/price', async (req, res) => {
                       AND LOWER(ta_sub.attributeValue) = LOWER($${paramIndex + 1})
                   )
               `);
-              queryParams.push(attributeName, attributeValue);
-          }
-      });
-
-      // If there are filters, append them
-      if (whereClauses.length > 0) {
-          sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
+        queryParams.push(attributeName, attributeValue);
       }
+    });
 
-      sqlQuery += `
+    // If there are filters, append them
+    if (whereClauses.length > 0) {
+      sqlQuery += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    sqlQuery += `
           GROUP BY pt.model, pt.mrp, pt.retail_price, pt.sgst, pt.cgst, pt.igst, pt.discount, pt.warranty_period, pt.lastmodified
       `;
 
-      // Execute SQL query
-      const { rows } = await db.query(sqlQuery, queryParams);
+    // Execute SQL query
+    const { rows } = await db.query(sqlQuery, queryParams);
 
-      if (rows.length === 0) {
-          return res.status(404).json({ message: "No models found with the given criteria." });
-      }
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No models found with the given criteria." });
+    }
 
-      res.json(rows);
+    res.json(rows);
 
   } catch (error) {
-      console.error("Error fetching data:", error.message);
-      res.status(500).json({ error: "Internal Server Error" });
+    console.error("Error fetching data:", error.message);
+    res.status(500).json({ error: "Internal Server Error" });
   }
 });
 
@@ -2153,16 +2153,16 @@ dashboard.get("/price/:serialno",
   validateJwt,
   authorizeRoles('admin', 'dealer'),
   async (req, res) => {
-  const { serialno } = req.params;
-  const email =req.user.username; // role: 'admin' or 'dealer'
-  const role=req.user.role;
-  try {
-    let query = "";
-    let params = [];
+    const { serialno } = req.params;
+    const email = req.user.username; // role: 'admin' or 'dealer'
+    const role = req.user.role;
+    try {
+      let query = "";
+      let params = [];
 
-    if (role === "admin") {
-      // ✅ Admin: Check AdminStock with status = 'new'
-      query = `
+      if (role === "admin") {
+        // ✅ Admin: Check AdminStock with status = 'new'
+        query = `
         SELECT 
             t.serialno,
             t.model,
@@ -2179,22 +2179,22 @@ dashboard.get("/price/:serialno",
         JOIN price_table p ON t.model = p.model
         WHERE t.serialno = $1 AND a.status = 'new';
       `;
-      params = [serialno];
+        params = [serialno];
 
-    } else if (role === "dealer" && email) {
-      // ✅ Dealer: Verify dealer and check dealersStock with status = 'new'
-      const dealerQuery = `
+      } else if (role === "dealer" && email) {
+        // ✅ Dealer: Verify dealer and check dealersStock with status = 'new'
+        const dealerQuery = `
         SELECT id FROM dealers_details WHERE email = $1;
       `;
-      const dealerResult = await db.query(dealerQuery, [email]);
+        const dealerResult = await db.query(dealerQuery, [email]);
 
-      if (dealerResult.rows.length === 0) {
-        return res.status(404).json({ message: "Dealer not found with the provided email." });
-      }
+        if (dealerResult.rows.length === 0) {
+          return res.status(404).json({ message: "Dealer not found with the provided email." });
+        }
 
-      const dealerId = dealerResult.rows[0].id;
+        const dealerId = dealerResult.rows[0].id;
 
-      query = `
+        query = `
         SELECT 
             t.serialno,
             t.model,
@@ -2211,49 +2211,49 @@ dashboard.get("/price/:serialno",
         JOIN price_table p ON t.model = p.model
         WHERE t.serialno = $1 AND ds.user_id = $2 AND ds.status = 'new';
       `;
-      params = [serialno, dealerId];
+        params = [serialno, dealerId];
 
-    } else {
-      return res.status(400).json({ message: "Invalid request. Provide 'role' ('admin' or 'dealer') and 'email' if dealer." });
+      } else {
+        return res.status(400).json({ message: "Invalid request. Provide 'role' ('admin' or 'dealer') and 'email' if dealer." });
+      }
+
+      // Execute the query
+      const result = await db.query(query, params);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "No 'new' stock found for this serial number." });
+      }
+
+      const data = result.rows[0];
+
+      // 📝 Construct the response in the desired format
+      const response = {
+        serialno: data.serialno,
+        model: data.model,
+        mrp: parseFloat(data.mrp).toFixed(2),
+        retail_price: parseFloat(data.retail_price).toFixed(2),
+        sgst: parseFloat(data.sgst).toFixed(2),
+        cgst: parseFloat(data.cgst).toFixed(2),
+        igst: parseFloat(data.igst).toFixed(2),
+        discount: parseFloat(data.discount).toFixed(2),
+        warranty_period: data.warranty_period,
+        lastmodified: data.lastmodified
+      };
+
+      res.json(response);
+
+    } catch (error) {
+      console.error("Error fetching price details:", error);
+      res.status(500).json({ message: "Internal Server Error" });
     }
-
-    // Execute the query
-    const result = await db.query(query, params);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "No 'new' stock found for this serial number." });
-    }
-
-    const data = result.rows[0];
-
-    // 📝 Construct the response in the desired format
-    const response = {
-      serialno: data.serialno,
-      model: data.model,
-      mrp: parseFloat(data.mrp).toFixed(2),
-      retail_price: parseFloat(data.retail_price).toFixed(2),
-      sgst: parseFloat(data.sgst).toFixed(2),
-      cgst: parseFloat(data.cgst).toFixed(2),
-      igst: parseFloat(data.igst).toFixed(2),
-      discount: parseFloat(data.discount).toFixed(2),
-      warranty_period: data.warranty_period,
-      lastmodified: data.lastmodified
-    };
-
-    res.json(response);
-
-  } catch (error) {
-    console.error("Error fetching price details:", error);
-    res.status(500).json({ message: "Internal Server Error" });
-  }
-});
+  });
 
 // dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", "dealer"), async function (req, res) {
 //   try {
 //       const serial_no = req.params.serial_no;
 //       const userId = req.user.id;
 //       const userRole = req.user.role;
- 
+
 //       let query = `
 //           SELECT 
 //               bi.serial_no,
@@ -2310,54 +2310,54 @@ dashboard.get("/price/:serialno",
 
 dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", "dealer"), async function (req, res) {
   try {
-      const serial_no = req.params.serial_no;
-      const userId = req.user.id;
-      const userRole = req.user.role;
-      
-      const client = await db.connect(); // Connect to DB
-      try {
-          await client.query("BEGIN"); // Start transaction
+    const serial_no = req.params.serial_no;
+    const userId = req.user.id;
+    const userRole = req.user.role;
 
-          // Step 1: Fetch thingid from Things table using serialno
-          const thingQuery = "SELECT id FROM Things WHERE serialno = $1;";
-          const thingResult = await client.query(thingQuery, [serial_no]);
+    const client = await db.connect(); // Connect to DB
+    try {
+      await client.query("BEGIN"); // Start transaction
 
-          if (thingResult.rows.length === 0) {
-              await client.query("ROLLBACK");
-              return res.status(404).json({ message: "Thing ID not found for the given serial number" });
-          }
+      // Step 1: Fetch thingid from Things table using serialno
+      const thingQuery = "SELECT id FROM Things WHERE serialno = $1;";
+      const thingResult = await client.query(thingQuery, [serial_no]);
 
-          const thingId = thingResult.rows[0].id;
+      if (thingResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Thing ID not found for the given serial number" });
+      }
 
-          let stockCheckQuery = "";
-          let stockCheckParams = [];
+      const thingId = thingResult.rows[0].id;
 
-          // Step 2: Check stock availability
-          if (userRole === "admin") {
-              stockCheckQuery = `
+      let stockCheckQuery = "";
+      let stockCheckParams = [];
+
+      // Step 2: Check stock availability
+      if (userRole === "admin") {
+        stockCheckQuery = `
                   SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1
                   UNION
                   SELECT 'dealersStock' AS source FROM dealersStock WHERE thingid = $1
                   UNION
                   SELECT 'onlinecustomerStock' AS source FROM onlinecustomerStock WHERE thingid = $1;
               `;
-              stockCheckParams = [thingId];
-          } else if (userRole === "dealer") {
-              stockCheckQuery = `SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1 AND user_id = $2;`;
-              stockCheckParams = [thingId, userId];
-          } else {
-              return res.status(403).json({ message: "Unauthorized access" });
-          }
+        stockCheckParams = [thingId];
+      } else if (userRole === "dealer") {
+        stockCheckQuery = `SELECT 'customersStock' AS source FROM customersStock WHERE thingid = $1 AND user_id = $2;`;
+        stockCheckParams = [thingId, userId];
+      } else {
+        return res.status(403).json({ message: "Unauthorized access" });
+      }
 
-          const stockCheckResult = await client.query(stockCheckQuery, stockCheckParams);
+      const stockCheckResult = await client.query(stockCheckQuery, stockCheckParams);
 
-          if (stockCheckResult.rows.length === 0) {
-              await client.query("ROLLBACK");
-              return res.status(404).json({ message: "Item not available in stock" });
-          }
+      if (stockCheckResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ message: "Item not available in stock" });
+      }
 
-          // Step 3: Fetch billing item details
-          let billingQuery = `
+      // Step 3: Fetch billing item details
+      let billingQuery = `
               SELECT 
                   bi.serial_no,
                   bi.model,
@@ -2385,150 +2385,156 @@ dashboard.get("/billing_items/:serial_no", validateJwt, authorizeRoles("admin", 
               WHERE bi.serial_no = $1
           `;
 
-          if (userRole === "admin" || userRole === "staff") {
-              billingQuery += ` AND u.userRole IN ('admin', 'staff') `;
-          } else if (userRole === "dealer") {
-              billingQuery += ` AND br.created_by = $2 `;
-          }
-
-          billingQuery += ` ORDER BY bi.id DESC LIMIT 1;`;
-
-          const billingParams = userRole === "dealer" ? [serial_no, userId] : [serial_no];
-          const { rows } = await client.query(billingQuery, billingParams);
-
-          await client.query("COMMIT"); // Commit transaction
-
-          if (rows.length === 0) {
-              return res.status(404).json({ message: "Billing item not found" });
-          }
-
-          res.json(rows[0]);
-
-      } catch (error) {
-          await client.query("ROLLBACK");
-          console.error("Error fetching billing items:", error);
-          res.status(500).json({ message: "Internal Server Error" });
-      } finally {
-          client.release();
+      if (userRole === "admin" || userRole === "staff") {
+        billingQuery += ` AND u.userRole IN ('admin', 'staff') `;
+      } else if (userRole === "dealer") {
+        billingQuery += ` AND br.created_by = $2 `;
       }
+
+      billingQuery += ` ORDER BY bi.id DESC LIMIT 1;`;
+
+      const billingParams = userRole === "dealer" ? [serial_no, userId] : [serial_no];
+      const { rows } = await client.query(billingQuery, billingParams);
+
+      await client.query("COMMIT"); // Commit transaction
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Billing item not found" });
+      }
+
+      res.json(rows[0]);
+
+    } catch (error) {
+      await client.query("ROLLBACK");
+      console.error("Error fetching billing items:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+    } finally {
+      client.release();
+    }
   } catch (error) {
-      console.error("Database connection error:", error);
-      res.status(500).json({ message: "Database connection error" });
+    console.error("Database connection error:", error);
+    res.status(500).json({ message: "Database connection error" });
   }
 });
 
 
-dashboard.post('/api/pay-balance', async (req, res) => {
-  try {
-    const {
-      id,                   // ID of the customer, dealer, or online customer
-      type,                 // 'customer', 'dealer', or 'online_customer'
-      payments,             // Array of payment objects: [{ method: 'cash', amount: 500 }, { method: 'online', amount: 200 }]
-      created_by            // User creating the billing
-    } = req.body;
+dashboard.post('/api/pay-balance',
+  validateJwt, authorizeRoles("admin", "dealer"),
+  async (req, res) => {
+    try {
+      const {
+        id,                   // ID of the customer, dealer, or online customer
+        type,                 // 'customer', 'dealer', or 'online_customer'
+        payments             // Array of payment objects: [{ method: 'cash', amount: 500 }, { method: 'online', amount: 200 }]
+        // User creating the billing
+      } = req.body;
+      const created_by = req.user.username;
 
-    // Validate input
-    if (!id || !type || !payments || !Array.isArray(payments) || !created_by) {
-      return res.status(400).json({ error: 'All fields (id, type, payments, created_by) are required' });
-    }
-
-    // Validate payment methods and amounts
-    const validPaymentMethods = ['cash', 'online', 'bank'];
-    let totalPaid = 0;
-
-    for (const payment of payments) {
-      if (!payment.method || !payment.amount) {
-        return res.status(400).json({ error: 'Each payment must have a method and an amount' });
+      console.log("pay balance", id,                   // ID of the customer, dealer, or online customer
+        type,                 // 'customer', 'dealer', or 'online_customer'
+        payments, created_by)
+      // Validate input
+      if (!id || !type || !payments || !Array.isArray(payments) || !created_by) {
+        return res.status(400).json({ error: 'All fields (id, type, payments, created_by) are required' });
       }
-      if (!validPaymentMethods.includes(payment.method)) {
-        return res.status(400).json({ error: `Invalid payment method: ${payment.method}` });
+
+      // Validate payment methods and amounts
+      const validPaymentMethods = ['cash', 'online', 'bank'];
+      let totalPaid = 0;
+
+      for (const payment of payments) {
+        if (!payment.method || !payment.amount) {
+          return res.status(400).json({ error: 'Each payment must have a method and an amount' });
+        }
+        if (!validPaymentMethods.includes(payment.method)) {
+          return res.status(400).json({ error: `Invalid payment method: ${payment.method}` });
+        }
+        if (payment.amount <= 0) {
+          return res.status(400).json({ error: 'Payment amount must be greater than zero' });
+        }
+        totalPaid += payment.amount;
       }
-      if (payment.amount <= 0) {
-        return res.status(400).json({ error: 'Payment amount must be greater than zero' });
+
+      // Define table and corresponding ID column based on type
+      let table, idColumn;
+      if (type === 'customer') {
+        table = 'customers_details';
+        idColumn = 'customers_id';
+      } else if (type === 'dealer') {
+        table = 'dealers_details';
+        idColumn = 'dealers_id';
+      } else if (type === 'online_customer') {
+        table = 'onlinecustomer_details';
+        idColumn = 'onlinecustomer_id';
+      } else {
+        return res.status(400).json({ error: 'Invalid type. Must be "customer", "dealer", or "online_customer".' });
       }
-      totalPaid += payment.amount;
-    }
 
-    // Define table and corresponding ID column based on type
-    let table, idColumn;
-    if (type === 'customer') {
-      table = 'customers_details';
-      idColumn = 'customers_id';
-    } else if (type === 'dealer') {
-      table = 'dealers_details';
-      idColumn = 'dealers_id';
-    } else if (type === 'online_customer') {
-      table = 'onlinecustomer_details';
-      idColumn = 'onlinecustomer_id';
-    } else {
-      return res.status(400).json({ error: 'Invalid type. Must be "customer", "dealer", or "online_customer".' });
-    }
+      // Fetch current balance and details
+      const balanceQuery = `SELECT name, phone, email,address, balance FROM ${table} WHERE id = $1`;
+      const result = await db.query(balanceQuery, [id]);
 
-    // Fetch current balance and details
-    const balanceQuery = `SELECT name, phone, email,address, balance FROM ${table} WHERE id = $1`;
-    const result = await db.query(balanceQuery, [id]);
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Record not found' });
+      }
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Record not found' });
-    }
+      const { name, phone, email, address, balance } = result.rows[0];
 
-    const { name, phone, email, address, balance } = result.rows[0];
+      // Check if the total payment exceeds the balance
+      if (totalPaid > balance) {
+        return res.status(400).json({ error: 'Total payment amount exceeds balance' });
+      }
 
-    // Check if the total payment exceeds the balance
-    if (totalPaid > balance) {
-      return res.status(400).json({ error: 'Total payment amount exceeds balance' });
-    }
-
-    // Update balance in the table
-    const newBalance = balance - totalPaid;
-    const updateQuery = `
+      // Update balance in the table
+      const newBalance = balance - totalPaid;
+      const updateQuery = `
             UPDATE ${table}
             SET paid_amount = paid_amount + $1, balance = $2, lastmodified = CURRENT_TIMESTAMP
             WHERE id = $3
         `;
-    await db.query(updateQuery, [totalPaid, newBalance, id]);
+      await db.query(updateQuery, [totalPaid, newBalance, id]);
 
-    // Create billing receipt
-    const receiptInsertQuery = `
+      // Create billing receipt
+      const receiptInsertQuery = `
             INSERT INTO billing_receipt (name, phone, email, billing_address, dealer_or_customer, total_amount, paid_amount, balance, billing_createdby, ${idColumn}, type)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id
         `;
-    const receiptValues = [
-      name,
-      phone,
-      email,
-      address, // Replace with actual billing address if required
-      type,
-      totalPaid, // Total billed amount (this payment only)
-      totalPaid, // Paid amount
-      newBalance, // Remaining balance
-      created_by,
-      id, // ID of the customer, dealer, or online customer
-      "Balance",
-    ];
-    const receiptResult = await db.query(receiptInsertQuery, receiptValues);
-    const receiptId = receiptResult.rows[0].id;
+      const receiptValues = [
+        name,
+        phone,
+        email,
+        address, // Replace with actual billing address if required
+        type,
+        totalPaid, // Total billed amount (this payment only)
+        totalPaid, // Paid amount
+        newBalance, // Remaining balance
+        created_by,
+        id, // ID of the customer, dealer, or online customer
+        "Balance",
+      ];
+      const receiptResult = await db.query(receiptInsertQuery, receiptValues);
+      const receiptId = receiptResult.rows[0].id;
 
-    // Add payment details for each payment method
-    const paymentInsertQuery = `
+      // Add payment details for each payment method
+      const paymentInsertQuery = `
             INSERT INTO payment_details (receipt_id, payment_method, amount)
             VALUES ($1, $2, $3)
         `;
-    for (const payment of payments) {
-      await db.query(paymentInsertQuery, [receiptId, payment.method, payment.amount]);
-    }
+      for (const payment of payments) {
+        await db.query(paymentInsertQuery, [receiptId, payment.method, payment.amount]);
+      }
 
-    // Respond with success
-    res.status(201).json({
-      message: 'Payment successful and receipt generated',
-      receiptId,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'An internal server error occurred' });
-  }
-});
+      // Respond with success
+      res.status(201).json({
+        message: 'Payment successful and receipt generated',
+        receiptId,
+      });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'An internal server error occurred' });
+    }
+  });
 
 // API to update userRole
 dashboard.put('/api/users/:id/role',
@@ -2778,7 +2784,7 @@ dashboard.get("/api/billing/:receipt_no", async (req, res) => {
 
 dashboard.get('/api/recent-bills', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { search_term } = req.query;
-  const { role:userRole, id: userId } = req.user; // Extracted from JWT
+  const { role: userRole, id: userId } = req.user; // Extracted from JWT
 
   let query = `
     SELECT 
@@ -3525,13 +3531,13 @@ dashboard.post('/api/create/account/for/:Party',
 //     }
 //   });
 
-  dashboard.get('/api/display/party/:Party', 
-    validateJwt, authorizeRoles('admin', 'dealer'),
-    async (req, res) => {
+dashboard.get('/api/display/party/:Party',
+  validateJwt, authorizeRoles('admin', 'dealer'),
+  async (req, res) => {
     const { Party } = req.params; // Party parameter: 'onlinecustomer', 'customers', 'dealers'
     const { query: searchQuery } = req.query; // Optional search query
-    const { role:userRole, id: userId } = req.user; // Extracted from JWT
-  
+    const { role: userRole, id: userId } = req.user; // Extracted from JWT
+
     // ✅ Allowed parties
     const validParties = ['onlinecustomer', 'customers', 'dealers'];
     if (!validParties.includes(Party)) {
@@ -3539,12 +3545,12 @@ dashboard.post('/api/create/account/for/:Party',
         error: "Invalid Party parameter. Must be one of: onlinecustomer, customers, dealers."
       });
     }
-  
+
     try {
       const tableName = `${Party}_details`;
       const conditions = [];
       const values = [];
-  
+
       if (userRole === 'admin') {
         // ✅ Admin: Show records added by any admin
         conditions.push(`u.userRole = 'admin'`);
@@ -3553,7 +3559,7 @@ dashboard.post('/api/create/account/for/:Party',
         conditions.push(`d.addedby = $${values.length + 1}`);
         values.push(userId);
       }
-  
+
       // 🔍 Search functionality
       if (searchQuery) {
         conditions.push(`
@@ -3563,7 +3569,7 @@ dashboard.post('/api/create/account/for/:Party',
         `);
         values.push(`%${searchQuery}%`);
       }
-  
+
       // SQL query with Users join to verify roles for admin filtering
       const sql = `
         SELECT d.* 
@@ -3572,22 +3578,22 @@ dashboard.post('/api/create/account/for/:Party',
         ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
         ORDER BY d.lastmodified DESC;
       `;
-  
+
       const client = await db.connect();
       const result = await client.query(sql, values);
       client.release();
-  
+
       res.status(200).json({
         message: `Data retrieved successfully from ${tableName}.`,
         data: result.rows
       });
-  
+
     } catch (error) {
       console.error('Error fetching data:', error);
       res.status(500).json({ error: 'An error occurred while fetching data.' });
     }
   });
-  
+
 // dashboard.get('/api/display/party/:Party',
 //   // validateJwt,
 //   // authorizeRoles('admin', 'dealer'),
@@ -3808,198 +3814,198 @@ dashboard.post('/api/create/price_table',
   });
 
 dashboard.post("/api/create/model_details",
-    // validateJwt,
-    // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst, features } = req.body;
-  
-      // Function to validate warranty_period
-      function isValidWarrantyPeriod(warrantyPeriod) {
-        const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
-        return regex.test(warrantyPeriod);
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
+    const { model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst, features } = req.body;
+
+    // Function to validate warranty_period
+    function isValidWarrantyPeriod(warrantyPeriod) {
+      const regex = /^\d+\s?(years?|months?|days?)((\s\d+\s?(years?|months?|days?))?)*$/i;
+      return regex.test(warrantyPeriod);
+    }
+
+    // Validate input data
+    if (!model || !mrp || !retail_price) {
+      return res.status(400).json({ error: "Missing required fields: model, mrp, retail_price." });
+    }
+
+    if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
+      return res.status(400).json({
+        error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
+      });
+    }
+
+    const client = await db.connect(); // Start a transaction
+
+    try {
+      await client.query("BEGIN"); // Begin transaction
+
+      // Check if model already exists
+      const checkModelQuery = "SELECT * FROM price_table WHERE model ILIKE $1";
+      const existingModel = await client.query(checkModelQuery, [model]);
+
+      if (existingModel.rows.length > 0) {
+        return res.status(400).json({ error: "Model already exists in the price table." });
       }
-  
-      // Validate input data
-      if (!model || !mrp || !retail_price) {
-        return res.status(400).json({ error: "Missing required fields: model, mrp, retail_price." });
-      }
-  
-      if (warranty_period && !isValidWarrantyPeriod(warranty_period)) {
-        return res.status(400).json({
-          error: 'Invalid warranty period format. Use formats like "2 years", "6 months", or "1 year 6 months".',
-        });
-      }
-  
-      const client = await db.connect(); // Start a transaction
-  
-      try {
-        await client.query("BEGIN"); // Begin transaction
-  
-        // Check if model already exists
-        const checkModelQuery = "SELECT * FROM price_table WHERE model ILIKE $1";
-        const existingModel = await client.query(checkModelQuery, [model]);
-  
-        if (existingModel.rows.length > 0) {
-          return res.status(400).json({ error: "Model already exists in the price table." });
-        }
-  
-        // Insert model into price_table
-        const insertModelQuery = `
+
+      // Insert model into price_table
+      const insertModelQuery = `
           INSERT INTO price_table (model, mrp, retail_price, discount, warranty_period, sgst, cgst, igst)
           VALUES ($1, $2, $3, $4, $5::INTERVAL, $6, $7, $8) RETURNING *;
         `;
-        const modelResult = await client.query(insertModelQuery, [
-          model,
-          mrp,
-          retail_price,
-          discount,
-          warranty_period,
-          sgst,
-          cgst,
-          igst,
-        ]);
-  
-        const modelId = modelResult.rows[0].id; // Get the newly inserted model ID
-  
-        // Insert features if provided
-        if (Array.isArray(features) && features.length > 0) {
-          const insertFeaturesQuery = `
+      const modelResult = await client.query(insertModelQuery, [
+        model,
+        mrp,
+        retail_price,
+        discount,
+        warranty_period,
+        sgst,
+        cgst,
+        igst,
+      ]);
+
+      const modelId = modelResult.rows[0].id; // Get the newly inserted model ID
+
+      // Insert features if provided
+      if (Array.isArray(features) && features.length > 0) {
+        const insertFeaturesQuery = `
             INSERT INTO model_features (model_id, feature, feature_value)
             VALUES ${features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(", ")}
             RETURNING *;
           `;
-  
-          const featureValues = [modelId, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
-  
-          await client.query(insertFeaturesQuery, featureValues);
-        }
-  
-        await client.query("COMMIT"); // Commit transaction
-  
-        res.status(201).json({
-          message: "Model and features added successfully",
-          model: modelResult.rows[0],
-        });
-      } catch (err) {
-        await client.query("ROLLBACK"); // Rollback transaction on error
-        console.error(err);
-        res.status(500).json({ error: "Failed to create entry" });
-      } finally {
-        client.release(); // Release client
+
+        const featureValues = [modelId, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
+
+        await client.query(insertFeaturesQuery, featureValues);
       }
+
+      await client.query("COMMIT"); // Commit transaction
+
+      res.status(201).json({
+        message: "Model and features added successfully",
+        model: modelResult.rows[0],
+      });
+    } catch (err) {
+      await client.query("ROLLBACK"); // Rollback transaction on error
+      console.error(err);
+      res.status(500).json({ error: "Failed to create entry" });
+    } finally {
+      client.release(); // Release client
     }
-  );
+  }
+);
 
 dashboard.put('/api/model/features/update/:model_id/:id',
-    // validateJwt,
-    // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      console.log("update features working")
-      const { model_id, id } = req.params;
-      const { feature, feature_value } = req.body;
-      console.log(feature, feature_value)
-      try {
-        // Dynamically build the update query
-        const updates = [];
-        const values = [];
-        let queryIndex = 1;
-  
-        if (feature !== undefined) {
-          updates.push(`feature = $${queryIndex++}`);
-          values.push(feature);
-        }
-        if (feature_value !== undefined) {
-          updates.push(`feature_value = $${queryIndex++}`);
-          values.push(feature_value);
-        }
-        
-        console.log(`update ====${req.body}`)
-        // If no fields to update, return an error
-        if (updates.length === 0) {
-          console.log(updates.length)
-          return res.status(400).json({ error: 'No valid fields provided for update' });
-        }
-  
-        // Add model_id and id as the last parameters
-        values.push(model_id, id);
-  
-        const updateQuery = `
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
+    console.log("update features working")
+    const { model_id, id } = req.params;
+    const { feature, feature_value } = req.body;
+    console.log(feature, feature_value)
+    try {
+      // Dynamically build the update query
+      const updates = [];
+      const values = [];
+      let queryIndex = 1;
+
+      if (feature !== undefined) {
+        updates.push(`feature = $${queryIndex++}`);
+        values.push(feature);
+      }
+      if (feature_value !== undefined) {
+        updates.push(`feature_value = $${queryIndex++}`);
+        values.push(feature_value);
+      }
+
+      console.log(`update ====${req.body}`)
+      // If no fields to update, return an error
+      if (updates.length === 0) {
+        console.log(updates.length)
+        return res.status(400).json({ error: 'No valid fields provided for update' });
+      }
+
+      // Add model_id and id as the last parameters
+      values.push(model_id, id);
+
+      const updateQuery = `
           UPDATE model_features
           SET ${updates.join(', ')}, created_at = CURRENT_TIMESTAMP
           WHERE model_id = $${queryIndex++} AND id = $${queryIndex};
         `;
-  
-        const result = await db.query(updateQuery, values);
-        console.log(`final==${result.rowCount}`)
-        if (result.rowCount === 0) {
-          return res.status(404).json({ error: 'Feature not found or no changes made' });
-        }
-  
-        res.status(200).json({ message: 'Feature updated successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update model feature', message: err.message });
+
+      const result = await db.query(updateQuery, values);
+      console.log(`final==${result.rowCount}`)
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Feature not found or no changes made' });
       }
+
+      res.status(200).json({ message: 'Feature updated successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update model feature', message: err.message });
     }
-  );
+  }
+);
 
 
 dashboard.delete('/api/model/features/delete/:model_id/:id',
-    validateJwt,
-    authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { model_id, id } = req.params;
-  
-      try {
-        const deleteQuery = `
+  validateJwt,
+  authorizeRoles("admin", "staff"),
+  async (req, res) => {
+    const { model_id, id } = req.params;
+
+    try {
+      const deleteQuery = `
           DELETE FROM model_features
           WHERE model_id = $1 AND id = $2
           RETURNING *;
         `;
-  
-        const result = await db.query(deleteQuery, [model_id, id]);
-  
-        if (result.rowCount === 0) {
-          return res.status(404).json({ error: 'Feature not found or already deleted' });
-        }
-  
-        res.status(200).json({ message: 'Feature deleted successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to delete model feature', message: err.message });
+
+      const result = await db.query(deleteQuery, [model_id, id]);
+
+      if (result.rowCount === 0) {
+        return res.status(404).json({ error: 'Feature not found or already deleted' });
       }
+
+      res.status(200).json({ message: 'Feature deleted successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete model feature', message: err.message });
     }
-  );  
+  }
+);
 dashboard.post('/api/model/features/add/:model_id',
-    validateJwt,
-    authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { model_id } = req.params;
-      const { feature, feature_value } = req.body;
-  
-      if (!feature) {
-        return res.status(400).json({ error: 'Feature is required' });
-      }
-  
-      try {
-        const insertQuery = `
+  validateJwt,
+  authorizeRoles("admin", "staff"),
+  async (req, res) => {
+    const { model_id } = req.params;
+    const { feature, feature_value } = req.body;
+
+    if (!feature) {
+      return res.status(400).json({ error: 'Feature is required' });
+    }
+
+    try {
+      const insertQuery = `
           INSERT INTO model_features (model_id, feature, feature_value, created_at)
           VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
           RETURNING *;
         `;
-  
-        const values = [model_id, feature, feature_value || null];
-  
-        const result = await db.query(insertQuery, values);
-  
-        res.status(201).json({ message: 'Feature added successfully', data: result.rows[0] });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to add model feature', message: err.message });
-      }
+
+      const values = [model_id, feature, feature_value || null];
+
+      const result = await db.query(insertQuery, values);
+
+      res.status(201).json({ message: 'Feature added successfully', data: result.rows[0] });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to add model feature', message: err.message });
     }
-  ); 
-  
+  }
+);
+
 // Read all entries from the price_table
 // dashboard.get('/api/display/prices-table',
 //   validateJwt,
@@ -4048,18 +4054,18 @@ dashboard.post('/api/model/features/add/:model_id',
 //         LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
 //         GROUP BY p.id;
 //       `;
-  
+
 //       const { rows } = await db.query(query);
-  
+
 //       if (rows.length === 0) {
 //         return res.status(404).json({ message: "No models found" });
 //       }
-  
+
 //       res.status(200).json({
 //         message: "All model details retrieved successfully",
 //         data: rows
 //       });
-  
+
 //     } catch (err) {
 //       console.error(err);
 //       res.status(500).json({ error: "Failed to fetch data" });
@@ -4087,11 +4093,11 @@ dashboard.post('/api/model/features/add/:model_id',
 //         LEFT JOIN FirstThing ft ON p.model = ft.model
 //         LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
 //         `;
-      
+
 //       if (search) {
 //         query += ` WHERE p.model ILIKE $1`;  // Add case-insensitive search for model_name
 //       }
-      
+
 //       query += ` GROUP BY p.id;`;
 
 //       const values = search ? [search] : [];  // If model_name exists, use it as a filter value
@@ -4113,11 +4119,11 @@ dashboard.post('/api/model/features/add/:model_id',
 //     }
 //   }
 // ); 
-dashboard.get("/api/display/prices-table", 
-  validateJwt, authorizeRoles("admin","dealer","staff"), 
+dashboard.get("/api/display/prices-table",
+  validateJwt, authorizeRoles("admin", "dealer", "staff"),
   async (req, res) => {
     try {
-      const { search } = req.query;  
+      const { search } = req.query;
       console.log("Search query:", search);
 
       let query = `
@@ -4140,7 +4146,7 @@ dashboard.get("/api/display/prices-table",
       let values = [];
       if (search) {
         query += ` WHERE p.model ILIKE $1`;
-        values.push(`%${search}%`);  
+        values.push(`%${search}%`);
       }
       query += ` GROUP BY p.id;`;
 
@@ -4195,24 +4201,24 @@ dashboard.get("/api/display/prices-table",
 //           LEFT JOIN ThingAttributes ta ON ft.thing_id = ta.thingId
 //           GROUP BY p.id;
 //         `;
-    
+
 //         const { rows } = await db.query(query);
-    
+
 //         if (rows.length === 0) {
 //           return res.status(404).json({ message: "No models found" });
 //         }
-  
+
 //         // Step 2: Get the role and email of the user (dealer or admin)
 //         const user = await db.query('SELECT * FROM Users WHERE email = $1', [req.user.email]);
 //         if (user.rows.length === 0) {
 //           return res.status(404).json({ message: "User not found" });
 //         }
-  
+
 //         const { role } = user.rows[0];
-  
+
 //         // Step 3: Initialize an array to store stock data
 //         let stockData = [];
-  
+
 //         // Step 4: Fetch stock data based on user role
 //         if (role === 'admin') {
 //           // Admin: Get stock data from AdminStock
@@ -4236,7 +4242,7 @@ dashboard.get("/api/display/prices-table",
 //           `;
 //           stockData = await db.query(dealerStockQuery, [req.user.email]);
 //         }
-  
+
 //         // Step 5: Merge price and stock data by model
 //         const mergedData = rows.map((price) => {
 //           const stock = stockData.rows.find((stockItem) => stockItem.model === price.model);
@@ -4245,7 +4251,7 @@ dashboard.get("/api/display/prices-table",
 //             stock_count: stock ? stock.stock_count : 0,  // Default to 0 if no stock data found
 //           };
 //         });
-  
+
 //         // Step 6: Return the merged data with price and stock count
 //         res.status(200).json({
 //           message: "All model details with stock retrieved successfully",
@@ -4256,12 +4262,12 @@ dashboard.get("/api/display/prices-table",
 //         res.status(500).json({ error: "Failed to fetch data" });
 //       }
 //     });
-  
+
 // Read a single entry by ID
 
 dashboard.get('/api/display/single/price_table/:id',
   validateJwt,
-  authorizeRoles("admin","staff"),
+  authorizeRoles("admin", "staff"),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -4280,7 +4286,7 @@ dashboard.get('/api/display/single/price_table/:id',
 // Update an existing entry
 dashboard.put('/api/update/price_table/:id',
   validateJwt,
-  authorizeRoles("admin","staff"),
+  authorizeRoles("admin", "staff"),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -4369,7 +4375,7 @@ dashboard.put('/api/update/price_table/:id',
 // Delete an entry
 dashboard.delete('/api/delete/price_table/:id',
   validateJwt,
-  authorizeRoles("admin","staff"),
+  authorizeRoles("admin", "staff"),
   async (req, res) => {
     const { id } = req.params;
     try {
@@ -4390,87 +4396,87 @@ dashboard.delete('/api/delete/price_table/:id',
 dashboard.post("/api/add-features/:model_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
-  const { model_id } = req.params;
-  const { features } = req.body; // Expecting an array of features in the body
+  async (req, res) => {
+    const { model_id } = req.params;
+    const { features } = req.body; // Expecting an array of features in the body
 
-  if (!features || !Array.isArray(features) || features.length === 0) {
-    return res.status(400).json({ message: "Invalid input. Provide an array of features." });
-  }
+    if (!features || !Array.isArray(features) || features.length === 0) {
+      return res.status(400).json({ message: "Invalid input. Provide an array of features." });
+    }
 
-  try {
-    // Insert features into the database
-    const queries = features.map((feature) =>
-      db.query(
-        "INSERT INTO model_features (model_id, feature) VALUES ($1, $2)",
-        [model_id, feature]
-      )
-    );
+    try {
+      // Insert features into the database
+      const queries = features.map((feature) =>
+        db.query(
+          "INSERT INTO model_features (model_id, feature) VALUES ($1, $2)",
+          [model_id, feature]
+        )
+      );
 
-    await Promise.all(queries);
+      await Promise.all(queries);
 
-    res.status(201).json({
-      message: "Features added successfully",
-      model_id,
-      added_features: features,
-    });
-  } catch (error) {
-    console.error("Error adding features:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+      res.status(201).json({
+        message: "Features added successfully",
+        model_id,
+        added_features: features,
+      });
+    } catch (error) {
+      console.error("Error adding features:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 // API to Add Multiple Features with model_id in Params
 dashboard.post("api/add-features/model/:model_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
-  const { model_id } = req.params;
-  const { features } = req.body;
+  async (req, res) => {
+    const { model_id } = req.params;
+    const { features } = req.body;
 
-  if (!model_id || isNaN(model_id)) {
-    return res.status(400).json({ error: "Invalid model_id in URL" });
-  }
+    if (!model_id || isNaN(model_id)) {
+      return res.status(400).json({ error: "Invalid model_id in URL" });
+    }
 
-  if (!Array.isArray(features) || features.length === 0) {
-    return res.status(400).json({ error: "A non-empty features array is required" });
-  }
+    if (!Array.isArray(features) || features.length === 0) {
+      return res.status(400).json({ error: "A non-empty features array is required" });
+    }
 
-  try {
-    const query = `
+    try {
+      const query = `
       INSERT INTO model_features (model_id, feature, feature_value)
       VALUES ${features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(", ")}
       RETURNING *;
     `;
 
-    const values = [model_id, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
+      const values = [model_id, ...features.flatMap(({ feature, feature_value }) => [feature, feature_value || null])];
 
-    const result = await db.query(query, values);
+      const result = await db.query(query, values);
 
-    res.status(201).json({ message: "Features added successfully", data: result.rows });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Database error" });
-  }
-});
+      res.status(201).json({ message: "Features added successfully", data: result.rows });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Database error" });
+    }
+  });
 
 // API to delete an image by its ID
 dashboard.delete("/api/delete-image/:id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
+  async (req, res) => {
 
-  const { id } = req.params;
+    const { id } = req.params;
 
-  try {
-    // Delete the database entry
-    await db.query("DELETE FROM model_features_image WHERE id = $1", [id]);
+    try {
+      // Delete the database entry
+      await db.query("DELETE FROM model_features_image WHERE id = $1", [id]);
 
-    res.status(200).json({ message: "Image deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting image:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+      res.status(200).json({ message: "Image deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
 dashboard.get('/test-image', (req, res) => {
   res.sendFile(path.join(__dirname, 'uploads', '1737969595925-aizo1.jpg'));
@@ -4478,50 +4484,50 @@ dashboard.get('/test-image', (req, res) => {
 dashboard.get("/api/display/model/features/:model_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
-  const { model_id } = req.params;
+  async (req, res) => {
+    const { model_id } = req.params;
 
-  try {
-    // Query to fetch features and their IDs
-    const featuresQuery = `
+    try {
+      // Query to fetch features and their IDs
+      const featuresQuery = `
       SELECT id, feature 
       FROM model_features 
       WHERE model_id = $1;
     `;
-    const featuresResult = await db.query(featuresQuery, [model_id]);
+      const featuresResult = await db.query(featuresQuery, [model_id]);
 
-    // Query to fetch image URLs and their IDs
-    const imagesQuery = `
+      // Query to fetch image URLs and their IDs
+      const imagesQuery = `
       SELECT id, image_url 
       FROM model_features_image 
       WHERE model_id = $1;
     `;
-    const imagesResult = await db.query(imagesQuery, [model_id]);
+      const imagesResult = await db.query(imagesQuery, [model_id]);
 
-    // Combine results with IDs
-    const features = featuresResult.rows.map(row => ({
-      feature_id: row.id,
-      feature: row.feature
-    }));
-    const images = imagesResult.rows.map(row => ({
-      image_id: row.id,
-      image_url: row.image_url
-    }));
+      // Combine results with IDs
+      const features = featuresResult.rows.map(row => ({
+        feature_id: row.id,
+        feature: row.feature
+      }));
+      const images = imagesResult.rows.map(row => ({
+        image_id: row.id,
+        image_url: row.image_url
+      }));
 
-    if (features.length === 0 && images.length === 0) {
-      return res.status(404).json({ message: "No data found for the given model_id" });
+      if (features.length === 0 && images.length === 0) {
+        return res.status(404).json({ message: "No data found for the given model_id" });
+      }
+
+      res.json({
+        model_id,
+        features,
+        images,
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    res.json({
-      model_id,
-      features,
-      images,
-    });
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 // Multer Disk Storage Configuration
 const diskStorage = multer.diskStorage({
@@ -4609,275 +4615,275 @@ dashboard.use("/uploads", express.static(path.join(__dirname, "uploads")));
 dashboard.post("/api/upload-images/:model_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   uploads.array("images", 5), async (req, res) => {
-  const { model_id } = req.params;
-  console.log("Uploaded files:", req.files);
+  uploads.array("images", 5), async (req, res) => {
+    const { model_id } = req.params;
+    console.log("Uploaded files:", req.files);
 
-  try {
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Fetch model_no from price_table
+      const modelNoResult = await db.query(
+        "SELECT model FROM price_table WHERE id = $1",
+        [model_id]
+      );
+
+      if (modelNoResult.rows.length === 0) {
+        return res.status(404).json({ message: "Model ID not found" });
+      }
+
+      const model_no = modelNoResult.rows[0].model;
+
+      // Check how many images already exist for this model_id
+      const { rows } = await db.query(
+        "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
+        [model_id]
+      );
+
+      const currentImageCount = parseInt(rows[0].image_count, 10);
+      if (currentImageCount >= 5) {
+        return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
+      }
+
+      // Determine how many new images can be uploaded
+      const availableSlots = 5 - currentImageCount;
+      if (req.files.length > availableSlots) {
+        return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
+      }
+
+      // Save local image file paths to the database
+      const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
+      const queries = imagePaths.map((filePath) =>
+        db.query(
+          "INSERT INTO model_features_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
+          [model_id, model_no, filePath]
+        )
+      );
+
+      console.log("Image paths to save:", imagePaths);
+      await Promise.all(queries);
+
+      res.status(200).json({
+        message: "Images uploaded successfully",
+        imagePaths,
+      });
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
+  });
 
-    // Fetch model_no from price_table
-    const modelNoResult = await db.query(
-      "SELECT model FROM price_table WHERE id = $1",
-      [model_id]
-    );
-
-    if (modelNoResult.rows.length === 0) {
-      return res.status(404).json({ message: "Model ID not found" });
-    }
-
-    const model_no = modelNoResult.rows[0].model;
-
-    // Check how many images already exist for this model_id
-    const { rows } = await db.query(
-      "SELECT COUNT(*) AS image_count FROM model_features_image WHERE model_id = $1",
-      [model_id]
-    );
-
-    const currentImageCount = parseInt(rows[0].image_count, 10);
-    if (currentImageCount >= 5) {
-      return res.status(400).json({ message: "Maximum of 4 images allowed per model." });
-    }
-
-    // Determine how many new images can be uploaded
-    const availableSlots = 5 - currentImageCount;
-    if (req.files.length > availableSlots) {
-      return res.status(400).json({ message: `You can only upload ${availableSlots} more images.` });
-    }
-
-    // Save local image file paths to the database
-    const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
-    const queries = imagePaths.map((filePath) =>
-      db.query(
-        "INSERT INTO model_features_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
-        [model_id, model_no, filePath]
-      )
-    );
-
-    console.log("Image paths to save:", imagePaths);
-    await Promise.all(queries);
-
-    res.status(200).json({
-      message: "Images uploaded successfully",
-      imagePaths,
-    });
-  } catch (error) {
-    console.error("Error uploading images:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-dashboard.post("/api/upload/webimage/:model_id", 
+dashboard.post("/api/upload/webimage/:model_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
   uploads.array("images", 10), async (req, res) => {
-  const { model_id } = req.params;
-  console.log("Uploaded files:", req.files);
+    const { model_id } = req.params;
+    console.log("Uploaded files:", req.files);
 
-  try {
-    // No files uploaded check
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ message: "No files uploaded" });
+    try {
+      // No files uploaded check
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ message: "No files uploaded" });
+      }
+
+      // Fetch model_no from price_table using model_id
+      const { rows } = await db.query(
+        "SELECT model FROM price_table WHERE id = $1",
+        [model_id]
+      );
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Model not found" });
+      }
+
+      const model_no = rows[0].model;  // Assuming "model" column contains the model identifier
+
+      // Save the image file paths to the database
+      const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
+      const queries = imagePaths.map((filePath) =>
+        db.query(
+          "INSERT INTO web_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
+          [model_id, model_no, filePath]
+        )
+      );
+
+      console.log("Image paths to save:", imagePaths);
+      await Promise.all(queries);
+
+      // Return the success message with image paths
+      res.status(200).json({
+        message: "Images uploaded successfully",
+        imagePaths,
+      });
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    // Fetch model_no from price_table using model_id
-    const { rows } = await db.query(
-      "SELECT model FROM price_table WHERE id = $1",
-      [model_id]
-    );
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Model not found" });
-    }
-
-    const model_no = rows[0].model;  // Assuming "model" column contains the model identifier
-
-    // Save the image file paths to the database
-    const imagePaths = req.files.map((file) => `/dashboard/uploads/${file.filename}`);
-    const queries = imagePaths.map((filePath) =>
-      db.query(
-        "INSERT INTO web_image (model_id, model_no, image_url) VALUES ($1, $2, $3)",
-        [model_id, model_no, filePath]
-      )
-    );
-
-    console.log("Image paths to save:", imagePaths);
-    await Promise.all(queries);
-
-    // Return the success message with image paths
-    res.status(200).json({
-      message: "Images uploaded successfully",
-      imagePaths,
-    });
-  } catch (error) {
-    console.error("Error uploading images:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 dashboard.get("/api/display/web/images/:modelid_or_modelno",
   // validateJwt,
   // authorizeRoles("admin","staff"), 
   async (req, res) => {
 
-  const { modelid_or_modelno } = req.params;
+    const { modelid_or_modelno } = req.params;
 
-  try {
-    // Check if the value is a number (model_id) or string (model_no)
-    const isModelId = !isNaN(parseInt(modelid_or_modelno));
+    try {
+      // Check if the value is a number (model_id) or string (model_no)
+      const isModelId = !isNaN(parseInt(modelid_or_modelno));
 
-    let query = "";
-    let values = [];
+      let query = "";
+      let values = [];
 
-    if (isModelId) {
-      // If the parameter is a model_id (number), use it in the query
-      query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
-      values = [modelid_or_modelno];
-    } else {
-      // If the parameter is a model_no (string), use it in the query
-      query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
-      values = [modelid_or_modelno];
+      if (isModelId) {
+        // If the parameter is a model_id (number), use it in the query
+        query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
+        values = [modelid_or_modelno];
+      } else {
+        // If the parameter is a model_no (string), use it in the query
+        query = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
+        values = [modelid_or_modelno];
+      }
+
+      const { rows } = await db.query(query, values);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "No images found for this model" });
+      }
+
+      res.status(200).json({
+        message: "Images retrieved successfully",
+        images: rows,
+      });
+    } catch (error) {
+      console.error("Error retrieving images:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    const { rows } = await db.query(query, values);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "No images found for this model" });
-    }
-
-    res.status(200).json({
-      message: "Images retrieved successfully",
-      images: rows,
-    });
-  } catch (error) {
-    console.error("Error retrieving images:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 dashboard.get("/api/display/images/:modelid_or_modelno",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
-  const { modelid_or_modelno } = req.params;
+  async (req, res) => {
+    const { modelid_or_modelno } = req.params;
 
-  try {
-    const isModelId = !isNaN(parseInt(modelid_or_modelno));
-    let values = [modelid_or_modelno];
+    try {
+      const isModelId = !isNaN(parseInt(modelid_or_modelno));
+      let values = [modelid_or_modelno];
 
-    // Query for model_features_image (check both model_id and model_no)
-    let featuresQuery = "";
-    if (isModelId) {
-      featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_id = $1`;
-    } else {
-      featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_no = $1`;
+      // Query for model_features_image (check both model_id and model_no)
+      let featuresQuery = "";
+      if (isModelId) {
+        featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_id = $1`;
+      } else {
+        featuresQuery = `SELECT id, model_id, model_no, image_url FROM model_features_image WHERE model_no = $1`;
+      }
+      const featuresResult = await db.query(featuresQuery, values);
+      const featureImages = featuresResult.rows.map(row => ({
+        id: row.id,
+        model_id: row.model_id,
+        model_no: row.model_no,
+        images: [{ image_id: row.id, image_url: row.image_url }]
+      }));
+
+      // Query for web_image (same logic as before)
+      let webQuery = "";
+      if (isModelId) {
+        webQuery = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
+      } else {
+        webQuery = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
+      }
+      const webResult = await db.query(webQuery, values);
+      const webImages = webResult.rows.map(row => ({
+        id: row.id,
+        model_id: row.model_id,
+        model_no: row.model_no,
+        images: [{ image_id: row.id, image_url: row.image_url }]
+      }));
+
+      res.status(200).json({
+        model_id: isModelId ? modelid_or_modelno : null,
+        model_no: isModelId ? null : modelid_or_modelno,
+        feature_images: featureImages,
+        web_images: webImages,
+      });
+    } catch (error) {
+      console.error("Error retrieving images:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-    const featuresResult = await db.query(featuresQuery, values);
-    const featureImages = featuresResult.rows.map(row => ({
-      id: row.id,
-      model_id: row.model_id,
-      model_no: row.model_no,
-      images: [{ image_id: row.id, image_url: row.image_url }]
-    }));
-
-    // Query for web_image (same logic as before)
-    let webQuery = "";
-    if (isModelId) {
-      webQuery = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_id = $1";
-    } else {
-      webQuery = "SELECT id, model_id, model_no, image_url FROM web_image WHERE model_no = $1";
-    }
-    const webResult = await db.query(webQuery, values);
-    const webImages = webResult.rows.map(row => ({
-      id: row.id,
-      model_id: row.model_id,
-      model_no: row.model_no,
-      images: [{ image_id: row.id, image_url: row.image_url }]
-    }));
-
-    res.status(200).json({
-      model_id: isModelId ? modelid_or_modelno : null,
-      model_no: isModelId ? null : modelid_or_modelno,
-      feature_images: featureImages,
-      web_images: webImages,
-    });
-  } catch (error) {
-    console.error("Error retrieving images:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 // DELETE: Delete a specific image by image_id
 dashboard.delete("/api/delete/web/images/:image_id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
-  const { image_id } = req.params;
+  async (req, res) => {
+    const { image_id } = req.params;
 
-  try {
-    const { rows } = await db.query(
-      "SELECT * FROM web_image WHERE id = $1",
-      [image_id]
-    );
+    try {
+      const { rows } = await db.query(
+        "SELECT * FROM web_image WHERE id = $1",
+        [image_id]
+      );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Image not found" });
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Image not found" });
+      }
+
+      await db.query(
+        "DELETE FROM web_image WHERE id = $1",
+        [image_id]
+      );
+
+      res.status(200).json({
+        message: "Image deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting image:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    await db.query(
-      "DELETE FROM web_image WHERE id = $1",
-      [image_id]
-    );
-
-    res.status(200).json({
-      message: "Image deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting image:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 // API endpoint to delete a feature by ID
 dashboard.delete("/delete-feature/:id",
   // validateJwt,
   // authorizeRoles("admin","staff"),
-   async (req, res) => {
+  async (req, res) => {
 
-  const featureId = parseInt(req.params.id);
+    const featureId = parseInt(req.params.id);
 
-  try {
-    // Check if the feature exists
-    const featureResult = await db.query(
-      "SELECT * FROM model_features WHERE id = $1",
-      [featureId]
-    );
+    try {
+      // Check if the feature exists
+      const featureResult = await db.query(
+        "SELECT * FROM model_features WHERE id = $1",
+        [featureId]
+      );
 
-    if (featureResult.rowCount === 0) {
-      return res.status(404).json({ error: "Feature not found" });
+      if (featureResult.rowCount === 0) {
+        return res.status(404).json({ error: "Feature not found" });
+      }
+
+      // Delete the feature
+      await db.query("DELETE FROM model_features WHERE id = $1", [featureId]);
+      res.status(200).json({ message: `Feature with ID ${featureId} deleted successfully.` });
+    } catch (error) {
+      console.error("Error deleting feature:", error);
+      res.status(500).json({ error: "An error occurred while deleting the feature" });
     }
-
-    // Delete the feature
-    await db.query("DELETE FROM model_features WHERE id = $1", [featureId]);
-    res.status(200).json({ message: `Feature with ID ${featureId} deleted successfully.` });
-  } catch (error) {
-    console.error("Error deleting feature:", error);
-    res.status(500).json({ error: "An error occurred while deleting the feature" });
-  }
-});
+  });
 
 
-dashboard.get("/api/things/features/:model", 
+dashboard.get("/api/things/features/:model",
   // validateJwt,
   // authorizeRoles("admin","staff"),
   async (req, res) => {
-  const { model } = req.params;
+    const { model } = req.params;
 
-  try {
-    // Query to fetch features and their associated images for the model
-    const query = `
+    try {
+      // Query to fetch features and their associated images for the model
+      const query = `
       SELECT 
         t.model AS thing_model,
         mf.feature AS feature_description,
@@ -4894,36 +4900,36 @@ dashboard.get("/api/things/features/:model",
         t.model = $1;
     `;
 
-    // Execute the query
-    const result = await db.query(query, [model]);
+      // Execute the query
+      const result = await db.query(query, [model]);
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ message: "No data found for the given model" });
+      if (result.rows.length === 0) {
+        return res.status(404).json({ message: "No data found for the given model" });
+      }
+
+      // Transform data into arrays for features and images
+      const features = [];
+      const images = [];
+      result.rows.forEach(row => {
+        if (row.feature_description && !features.includes(row.feature_description)) {
+          features.push(row.feature_description);
+        }
+        if (row.feature_image_url && !images.includes(row.feature_image_url)) {
+          images.push(row.feature_image_url);
+        }
+      });
+
+      // Send the response
+      res.json({
+        model,
+        features,
+        images,
+      });
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    // Transform data into arrays for features and images
-    const features = [];
-    const images = [];
-    result.rows.forEach(row => {
-      if (row.feature_description && !features.includes(row.feature_description)) {
-        features.push(row.feature_description);
-      }
-      if (row.feature_image_url && !images.includes(row.feature_image_url)) {
-        images.push(row.feature_image_url);
-      }
-    });
-
-    // Send the response
-    res.json({
-      model,
-      features,
-      images,
-    });
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+  });
 
 // API Endpoint to fetch billing details for any entity (dealer, customer, or online customer)
 // dashboard.get("/api/billing/:entity_type/:entity_id",
@@ -5049,27 +5055,27 @@ dashboard.get("/api/things/features/:model",
 //       res.status(500).json({ error: "Internal Server Error" });
 //     }
 //   });
-  dashboard.get("/api/billing/:entity_type/:entity_id",
-    validateJwt,
-    authorizeRoles('admin','staff'),
-    async (req, res) => {
-      const { entity_type, entity_id } = req.params;
-    console.log("sokdos",entity_type)
-    console.log("entityid",entity_id)
-      // Determine the table column based on entity type
-      let tableColumn;
-      if (entity_type === "dealer") {
-        tableColumn = "dealers_id";
-      } else if (entity_type === "customers") {
-        tableColumn = "customers_id";
-      } else if (entity_type === "online_customer") {
-        tableColumn = "onlinecustomer_id";
-      } else {
-        return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
-      }
-  
-      // Query to fetch billing receipt details
-      const query = `
+dashboard.get("/api/billing/:entity_type/:entity_id",
+  validateJwt,
+  authorizeRoles('admin', 'staff'),
+  async (req, res) => {
+    const { entity_type, entity_id } = req.params;
+    console.log("sokdos", entity_type)
+    console.log("entityid", entity_id)
+    // Determine the table column based on entity type
+    let tableColumn;
+    if (entity_type === "dealer") {
+      tableColumn = "dealers_id";
+    } else if (entity_type === "customers") {
+      tableColumn = "customers_id";
+    } else if (entity_type === "online_customer") {
+      tableColumn = "onlinecustomer_id";
+    } else {
+      return res.status(400).json({ error: "Invalid entity type. Use 'dealer', 'customer', or 'online_customer'." });
+    }
+
+    // Query to fetch billing receipt details
+    const query = `
       SELECT 
           br.id AS billing_receipt_id,
           br.receipt_no,
@@ -5093,9 +5099,9 @@ dashboard.get("/api/things/features/:model",
       WHERE 
           br.${tableColumn} = $1;
     `;
-  
-      // Query to fetch all billing items related to the receipts
-      const itemsQuery = `
+
+    // Query to fetch all billing items related to the receipts
+    const itemsQuery = `
       SELECT 
           bi.*
       FROM 
@@ -5103,9 +5109,9 @@ dashboard.get("/api/things/features/:model",
       WHERE 
           bi.receipt_no IN (SELECT receipt_no FROM billing_receipt WHERE ${tableColumn} = $1);
     `;
-  
-      // Query to fetch warranty details
-      const warrantiesQuery = `
+
+    // Query to fetch warranty details
+    const warrantiesQuery = `
       SELECT 
           tw.id AS warranty_id,
           tw.serial_no AS warranty_serial_no,
@@ -5117,9 +5123,9 @@ dashboard.get("/api/things/features/:model",
       WHERE 
           tw.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
     `;
-  
-      // Query to fetch payment details
-      const paymentsQuery = `
+
+    // Query to fetch payment details
+    const paymentsQuery = `
       SELECT 
           pd.id AS payment_id,
           pd.receipt_id,
@@ -5130,66 +5136,66 @@ dashboard.get("/api/things/features/:model",
       WHERE 
           pd.receipt_id IN (SELECT id FROM billing_receipt WHERE ${tableColumn} = $1);
     `;
-  
-      try {
-        const client = await db.connect();
-  
-        // Execute all queries concurrently
-        const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
-          client.query(query, [entity_id]),
-          client.query(itemsQuery, [entity_id]),
-          client.query(warrantiesQuery, [entity_id]),
-          client.query(paymentsQuery, [entity_id]),
-        ]);
-  
-        if (billingResult.rows.length === 0) {
-          return res.status(404).json({ error: "No billing details found for the given entity." });
-        }
-  
-        // Structure the response with all related data
-        const billingReceipts = billingResult.rows.map((receipt) => {
-          const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
-          const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
-          const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
-  
-          return {
-            ...receipt,
-            items: items.map((item) => ({
-              id: item.id,
-              receipt_no: item.receipt_no,
-              item_name: item.item_name,
-              model: item.model,
-              serial_no: item.serial_no,
-              mrp: item.mrp,
-              retail_price: item.retail_price,
-              item_discount: item.item_discount,
-              sgst: item.sgst,
-              cgst: item.cgst,
-              igst: item.igst,
-              final_price: item.final_price,
-              type: item.type
-            })),
-            warranties,
-            payments,
-          };
-        });
-  
-        res.status(200).json({ data: billingReceipts });
-        client.release();
-      } catch (err) {
-        console.error("Error fetching billing details:", err);
-        res.status(500).json({ error: "Internal Server Error" });
+
+    try {
+      const client = await db.connect();
+
+      // Execute all queries concurrently
+      const [billingResult, itemsResult, warrantiesResult, paymentsResult] = await Promise.all([
+        client.query(query, [entity_id]),
+        client.query(itemsQuery, [entity_id]),
+        client.query(warrantiesQuery, [entity_id]),
+        client.query(paymentsQuery, [entity_id]),
+      ]);
+
+      if (billingResult.rows.length === 0) {
+        return res.status(404).json({ error: "No billing details found for the given entity." });
       }
+
+      // Structure the response with all related data
+      const billingReceipts = billingResult.rows.map((receipt) => {
+        const items = itemsResult.rows.filter((item) => item.receipt_no === receipt.receipt_no);
+        const warranties = warrantiesResult.rows.filter((warranty) => warranty.receipt_id === receipt.billing_receipt_id);
+        const payments = paymentsResult.rows.filter((payment) => payment.receipt_id === receipt.billing_receipt_id);
+
+        return {
+          ...receipt,
+          items: items.map((item) => ({
+            id: item.id,
+            receipt_no: item.receipt_no,
+            item_name: item.item_name,
+            model: item.model,
+            serial_no: item.serial_no,
+            mrp: item.mrp,
+            retail_price: item.retail_price,
+            item_discount: item.item_discount,
+            sgst: item.sgst,
+            cgst: item.cgst,
+            igst: item.igst,
+            final_price: item.final_price,
+            type: item.type
+          })),
+          warranties,
+          payments,
+        };
+      });
+
+      res.status(200).json({ data: billingReceipts });
+      client.release();
+    } catch (err) {
+      console.error("Error fetching billing details:", err);
+      res.status(500).json({ error: "Internal Server Error" });
     }
-  );
-  
+  }
+);
+
 // 1. Open Billing Session
 dashboard.post('/open-session',
   validateJwt,
-  authorizeRoles('admin','dealer'),
+  authorizeRoles('admin', 'dealer'),
   async (req, res) => {
     const { opened_by } = req.body;
-    const userid = req.user?.id || req.body.userid||76;
+    const userid = req.user?.id || req.body.userid || 76;
     try {
       const result = await db.query(
         `INSERT INTO billing_session (session_date, opened_by,user_id) 
@@ -5425,7 +5431,7 @@ dashboard.get('/api/sales', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch sales data' });
   }
 });
-    
+
 //API to raw_materials
 // -----------------------------------
 // API to create a new raw material
@@ -5463,126 +5469,126 @@ dashboard.get('/api/sales', async (req, res) => {
 //       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
 //     }
 //   });
-  // dashboard.post('/api/raw_materials/create',
-  //   validateJwt,
-  //   authorizeRoles('admin'),
-  //   upload.single('image'),
-  //   async (req, res) => {
-  //     const {
-  //       Component,
-  //       package,
-  //       category,
-  //       value,
-  //       unit_price_in_rupees,
-  //       unit_price_in_dollars,
-  //       reference_no,
-  //       stock_quantity,
-  //       reorder_level,
-  //       raw_material_features // Can be undefined, empty, or an array of features
-  //     } = req.body;
-  
-  //     let fileUrl = null;
-  
-  //     if (req.file) {
-  //       const file = req.file;
-  //       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
-  //       const params = {
-  //         Bucket: process.env.S3_BUCKET_NAME,
-  //         Key: fileKey,
-  //         Body: file.buffer,
-  //         ContentType: file.mimetype,
-  //       };
-  
-  //       const uploadResult = await s3.upload(params).promise();
-  //       fileUrl = uploadResult.Location; // S3 file URL
-  //     }
-  
-  //     const query = `
-  //       INSERT INTO raw_materials_stock (Component, category, package, value, reference_no, image, unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level)
-  //       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
-  
-  //     try {
-  //       const result = await db.query(query, [
-  //         Component,
-  //         category,
-  //         package,
-  //         value,
-  //         reference_no,
-  //         fileUrl,
-  //         unit_price_in_rupees,
-  //         unit_price_in_dollars,
-  //         stock_quantity,
-  //         reorder_level,
-  //       ]);
-  
-  //       const materialId = result.rows[0].id; // Get the inserted material ID
-  
-  //       // Insert features ONLY if they exist and are an array
-  //       if (Array.isArray(raw_material_features) && raw_material_features.length > 0) {
-  //         const featureQuery = `
-  //           INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
-  //           VALUES ${raw_material_features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
-  //         `;
-  
-  //         const featureValues = raw_material_features.flatMap(({ feature, value }) => [materialId, feature, value]);
-  
-  //         await db.query(featureQuery, [materialId, ...featureValues]);
-  //       }
-  
-  //       res.status(201).json({ message: 'Raw material created successfully', id: materialId });
-  //     } catch (err) {
-  //       console.error(err);
-  //       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
-  //     }
-  //   }
-  // );
- 
-  dashboard.post('/api/raw_materials/create',
-    validateJwt,
-    authorizeRoles('admin','staff'),
-    upload.single('image'),
-    async (req, res) => {
-      // console.log(`rawww==${req.body}`)
-      const {
-        Component,
-        package,
-        category,
-        value,
-        unit_price_in_rupees,
-        unit_price_in_dollars,
-        reference_no,
-        stock_quantity,
-        reorder_level,
-        tax,                // Percentage
-        shipping_charge,    // Percentage
-        raw_material_features // Can be undefined, empty, or an array of features
-      } = req.body;
-      console.log(`rawwwtax==${tax,shipping_charge}`)
-      let fileUrl = null;
-  
-      if (req.file) {
-        const file = req.file;
-        const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
-        const params = {
-          Bucket: process.env.S3_BUCKET_NAME,
-          Key: fileKey,
-          Body: file.buffer,
-          ContentType: file.mimetype,
-        };
-  
-        const uploadResult = await s3.upload(params).promise();
-        fileUrl = uploadResult.Location; // S3 file URL
-      }
-  
-      // Ensure tax and shipping_charge have valid values (default to 0 if not provided)
-      const taxPercent = tax !== undefined ? parseFloat(tax) : 0;
-      const shippingPercent = shipping_charge !== undefined ? parseFloat(shipping_charge) : 0;
-      const priceInRupees = parseFloat(unit_price_in_rupees) || 0;
+// dashboard.post('/api/raw_materials/create',
+//   validateJwt,
+//   authorizeRoles('admin'),
+//   upload.single('image'),
+//   async (req, res) => {
+//     const {
+//       Component,
+//       package,
+//       category,
+//       value,
+//       unit_price_in_rupees,
+//       unit_price_in_dollars,
+//       reference_no,
+//       stock_quantity,
+//       reorder_level,
+//       raw_material_features // Can be undefined, empty, or an array of features
+//     } = req.body;
 
-      // Calculate total price with tax and shipping percentage
-      const totalPrice = priceInRupees * (1 + taxPercent / 100 + shippingPercent / 100);
-  
-      const query = `
+//     let fileUrl = null;
+
+//     if (req.file) {
+//       const file = req.file;
+//       const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+//       const params = {
+//         Bucket: process.env.S3_BUCKET_NAME,
+//         Key: fileKey,
+//         Body: file.buffer,
+//         ContentType: file.mimetype,
+//       };
+
+//       const uploadResult = await s3.upload(params).promise();
+//       fileUrl = uploadResult.Location; // S3 file URL
+//     }
+
+//     const query = `
+//       INSERT INTO raw_materials_stock (Component, category, package, value, reference_no, image, unit_price_in_rupees, unit_price_in_dollars, stock_quantity, reorder_level)
+//       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id`;
+
+//     try {
+//       const result = await db.query(query, [
+//         Component,
+//         category,
+//         package,
+//         value,
+//         reference_no,
+//         fileUrl,
+//         unit_price_in_rupees,
+//         unit_price_in_dollars,
+//         stock_quantity,
+//         reorder_level,
+//       ]);
+
+//       const materialId = result.rows[0].id; // Get the inserted material ID
+
+//       // Insert features ONLY if they exist and are an array
+//       if (Array.isArray(raw_material_features) && raw_material_features.length > 0) {
+//         const featureQuery = `
+//           INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
+//           VALUES ${raw_material_features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
+//         `;
+
+//         const featureValues = raw_material_features.flatMap(({ feature, value }) => [materialId, feature, value]);
+
+//         await db.query(featureQuery, [materialId, ...featureValues]);
+//       }
+
+//       res.status(201).json({ message: 'Raw material created successfully', id: materialId });
+//     } catch (err) {
+//       console.error(err);
+//       res.status(500).json({ error: 'Failed to create raw material', message: err.message });
+//     }
+//   }
+// );
+
+dashboard.post('/api/raw_materials/create',
+  validateJwt,
+  authorizeRoles('admin', 'staff'),
+  upload.single('image'),
+  async (req, res) => {
+    // console.log(`rawww==${req.body}`)
+    const {
+      Component,
+      package,
+      category,
+      value,
+      unit_price_in_rupees,
+      unit_price_in_dollars,
+      reference_no,
+      stock_quantity,
+      reorder_level,
+      tax,                // Percentage
+      shipping_charge,    // Percentage
+      raw_material_features // Can be undefined, empty, or an array of features
+    } = req.body;
+    console.log(`rawwwtax==${tax, shipping_charge}`)
+    let fileUrl = null;
+
+    if (req.file) {
+      const file = req.file;
+      const fileKey = `raw_materials/${Date.now()}-${file.originalname}`; // Unique file name
+      const params = {
+        Bucket: process.env.S3_BUCKET_NAME,
+        Key: fileKey,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      };
+
+      const uploadResult = await s3.upload(params).promise();
+      fileUrl = uploadResult.Location; // S3 file URL
+    }
+
+    // Ensure tax and shipping_charge have valid values (default to 0 if not provided)
+    const taxPercent = tax !== undefined ? parseFloat(tax) : 0;
+    const shippingPercent = shipping_charge !== undefined ? parseFloat(shipping_charge) : 0;
+    const priceInRupees = parseFloat(unit_price_in_rupees) || 0;
+
+    // Calculate total price with tax and shipping percentage
+    const totalPrice = priceInRupees * (1 + taxPercent / 100 + shippingPercent / 100);
+
+    const query = `
         INSERT INTO raw_materials_stock (
           Component, category, package, value, reference_no, image, 
           unit_price_in_rupees, unit_price_in_dollars, tax, shipping_charge, 
@@ -5590,167 +5596,167 @@ dashboard.get('/api/sales', async (req, res) => {
         ) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) 
         RETURNING id`;
-  
-      try {
-        const result = await db.query(query, [
-          Component,
-          category,
-          package,
-          value,
-          reference_no,
-          fileUrl,
-          unit_price_in_rupees,
-          unit_price_in_dollars,
-          taxPercent,        // Store tax as percentage
-          shippingPercent,   // Store shipping as percentage
-          totalPrice,        // Store calculated total price
-          stock_quantity,
-          reorder_level,
-        ]);
-  
-        const materialId = result.rows[0].id; // Get the inserted material ID
-  
-        // Insert features ONLY if they exist and are an array
-        if (Array.isArray(raw_material_features) && raw_material_features.length > 0) {
-          const featureQuery = `
+
+    try {
+      const result = await db.query(query, [
+        Component,
+        category,
+        package,
+        value,
+        reference_no,
+        fileUrl,
+        unit_price_in_rupees,
+        unit_price_in_dollars,
+        taxPercent,        // Store tax as percentage
+        shippingPercent,   // Store shipping as percentage
+        totalPrice,        // Store calculated total price
+        stock_quantity,
+        reorder_level,
+      ]);
+
+      const materialId = result.rows[0].id; // Get the inserted material ID
+
+      // Insert features ONLY if they exist and are an array
+      if (Array.isArray(raw_material_features) && raw_material_features.length > 0) {
+        const featureQuery = `
             INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
             VALUES ${raw_material_features.map((_, i) => `($1, $${i * 2 + 2}, $${i * 2 + 3})`).join(', ')}
           `;
-  
-          const featureValues = raw_material_features.flatMap(({ feature, value }) => [materialId, feature, value]);
-  
-          await db.query(featureQuery, [materialId, ...featureValues]);
-        }
-  
-        res.status(201).json({ message: 'Raw material created successfully', id: materialId });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to create raw material', message: err.message });
+
+        const featureValues = raw_material_features.flatMap(({ feature, value }) => [materialId, feature, value]);
+
+        await db.query(featureQuery, [materialId, ...featureValues]);
       }
+
+      res.status(201).json({ message: 'Raw material created successfully', id: materialId });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to create raw material', message: err.message });
     }
-  );
+  }
+);
 
-  dashboard.post('/api/raw_materials/add_features/:material_id',
-    // validateJwt,
-    // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const {material_id} = req.params
-      const { raw_material_features } = req.body;
-  
-      // Validate input
-      if (!material_id || isNaN(material_id)) {
-        return res.status(400).json({ error: 'Valid material_id is required' });
-      }
-  
-      if (!Array.isArray(raw_material_features) || raw_material_features.length === 0) {
-        return res.status(400).json({ error: 'At least one raw_material_feature is required' });
-      }
-  
-      try {
-        // Check if material_id exists in raw_materials_stock
-        const materialCheck = await db.query(
-          'SELECT id FROM raw_materials_stock WHERE id = $1',
-          [material_id]
-        );
-  
-        if (materialCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Material not found' });
-        }
+dashboard.post('/api/raw_materials/add_features/:material_id',
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
+    const { material_id } = req.params
+    const { raw_material_features } = req.body;
 
-        // Insert features into raw_material_features
-        const featureQuery = `
+    // Validate input
+    if (!material_id || isNaN(material_id)) {
+      return res.status(400).json({ error: 'Valid material_id is required' });
+    }
+
+    if (!Array.isArray(raw_material_features) || raw_material_features.length === 0) {
+      return res.status(400).json({ error: 'At least one raw_material_feature is required' });
+    }
+
+    try {
+      // Check if material_id exists in raw_materials_stock
+      const materialCheck = await db.query(
+        'SELECT id FROM raw_materials_stock WHERE id = $1',
+        [material_id]
+      );
+
+      if (materialCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'Material not found' });
+      }
+
+      // Insert features into raw_material_features
+      const featureQuery = `
           INSERT INTO raw_material_features (material_id, raw_material_feature, raw_material_value)
           VALUES ${raw_material_features.map((_, i) => `($${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`).join(', ')}
         `;
 
-        const featureValues = raw_material_features.flatMap(({ feature, value }) => [
-          material_id, // Ensure material_id is passed for each row
-          feature,
-          value
-        ]);
+      const featureValues = raw_material_features.flatMap(({ feature, value }) => [
+        material_id, // Ensure material_id is passed for each row
+        feature,
+        value
+      ]);
 
-        await db.query(featureQuery, featureValues);
+      await db.query(featureQuery, featureValues);
 
-        res.status(201).json({ message: 'Features added successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to add features', message: err.message });
-      }
+      res.status(201).json({ message: 'Features added successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to add features', message: err.message });
     }
- );
+  }
+);
 
-  dashboard.put('/api/raw_materials/update_feature/:id',
-    // validateJwt,
-    // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const{id}=req.params;
-      const {raw_material_value } = req.body;
-  
-      // Validate input
-      if (!id) {
-        return res.status(400).json({ error: 'Feature ID is required' });
+dashboard.put('/api/raw_materials/update_feature/:id',
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
+    const { id } = req.params;
+    const { raw_material_value } = req.body;
+
+    // Validate input
+    if (!id) {
+      return res.status(400).json({ error: 'Feature ID is required' });
+    }
+    console.log(raw_material_value)
+    try {
+      // Check if feature exists
+      const featureCheck = await db.query(
+        'SELECT id FROM raw_material_features WHERE id = $1',
+        [id]
+      );
+
+      if (featureCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'Feature not found' });
       }
-     console.log(raw_material_value)
-      try {
-        // Check if feature exists
-        const featureCheck = await db.query(
-          'SELECT id FROM raw_material_features WHERE id = $1',
-          [id]
-        );
-  
-        if (featureCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Feature not found' });
-        }
-  
-        // Update feature
-        const updateQuery = `
+
+      // Update feature
+      const updateQuery = `
           UPDATE raw_material_features
           SET raw_material_value = $1
           WHERE id = $2
         `;
-  
-        await db.query(updateQuery, [raw_material_value, id]);
-  
-        res.status(200).json({ message: 'Feature updated successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to update feature', message: err.message });
-      }
+
+      await db.query(updateQuery, [raw_material_value, id]);
+
+      res.status(200).json({ message: 'Feature updated successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update feature', message: err.message });
     }
-  );
-  dashboard.delete('/api/raw_materials/delete_feature/:id',
-    // validateJwt,
-    // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { id } = req.params;
-  
-      // Validate input
-      if (!id) {
-        return res.status(400).json({ error: 'Feature ID is required' });
-      }
-  
-      try {
-        // Check if feature exists
-        const featureCheck = await db.query(
-          'SELECT id FROM raw_material_features WHERE id = $1',
-          [id]
-        );
-  
-        if (featureCheck.rows.length === 0) {
-          return res.status(404).json({ error: 'Feature not found' });
-        }
-  
-        // Delete feature
-        await db.query('DELETE FROM raw_material_features WHERE id = $1', [id]);
-  
-        res.status(200).json({ message: 'Feature deleted successfully' });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to delete feature', message: err.message });
-      }
+  }
+);
+dashboard.delete('/api/raw_materials/delete_feature/:id',
+  // validateJwt,
+  // authorizeRoles("admin","staff"),
+  async (req, res) => {
+    const { id } = req.params;
+
+    // Validate input
+    if (!id) {
+      return res.status(400).json({ error: 'Feature ID is required' });
     }
-  );
-  
+
+    try {
+      // Check if feature exists
+      const featureCheck = await db.query(
+        'SELECT id FROM raw_material_features WHERE id = $1',
+        [id]
+      );
+
+      if (featureCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'Feature not found' });
+      }
+
+      // Delete feature
+      await db.query('DELETE FROM raw_material_features WHERE id = $1', [id]);
+
+      res.status(200).json({ message: 'Feature deleted successfully' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to delete feature', message: err.message });
+    }
+  }
+);
+
 // API to update a raw material by ID
 // dashboard.put('/api/raw_materials/update/:id',
 //   validateJwt,
@@ -5860,10 +5866,10 @@ dashboard.get('/api/sales', async (req, res) => {
 //     }
 //   });
 
-dashboard.put('/api/raw_materials/update/:id', 
+dashboard.put('/api/raw_materials/update/:id',
   // validateJwt,
   // authorizeRoles("admin","staff"),
-  upload.single('image'), 
+  upload.single('image'),
   async (req, res) => {
     const { id } = req.params;
     console.log("Request Body:", req.body);
@@ -6008,7 +6014,7 @@ dashboard.put('/api/raw_materials/update/:id',
 
 dashboard.put('/api/raw/stock/update/:id',
   validateJwt,
-  authorizeRoles("admin","staff"),
+  authorizeRoles("admin", "staff"),
   async (req, res) => {
     const { id } = req.params;
     const {
@@ -6174,11 +6180,11 @@ dashboard.delete('/api/raw_materials/delete/:id',
 dashboard.get('/api/raw_materials',
   // validateJwt,
   // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { search, category } = req.query;
-      console.log(req.query);
-  
-      let query = `
+  async (req, res) => {
+    const { search, category } = req.query;
+    console.log(req.query);
+
+    let query = `
         SELECT 
           rms.id AS material_id, 
           rms.Component, 
@@ -6201,98 +6207,98 @@ dashboard.get('/api/raw_materials',
         LEFT JOIN raw_material_features rmf ON rms.id = rmf.material_id
         WHERE 1=1
       `;
-  
-      const params = [];
-      let paramIndex = 1;
-  
-      if (search) {
-        query += ` AND (
+
+    const params = [];
+    let paramIndex = 1;
+
+    if (search) {
+      query += ` AND (
           rms.Component ILIKE $${paramIndex} OR
           rms.category ILIKE $${paramIndex} OR
           rms.package ILIKE $${paramIndex} OR
           rms.value ILIKE $${paramIndex} OR
           rms.reference_no ILIKE $${paramIndex}
         )`;
-        params.push(`%${search}%`);
-        paramIndex++;
-      }
-  
-      if (category) {
-        query += ` AND rms.category = $${paramIndex}`;
-        params.push(category);
-      }
-  
-      try {
-        const result = await db.query(query, params);
-  
-        // Group materials with their features
-        const materialsMap = new Map();
-  
-        result.rows.forEach((row) => {
-          if (!materialsMap.has(row.material_id)) {
-            materialsMap.set(row.material_id, {
-              id: row.material_id,
-              Component: row.Component,
-              category: row.category,
-              package: row.package,
-              value: row.value,
-              reference_no: row.reference_no,
-              unit_price_in_rupees: row.unit_price_in_rupees,
-              unit_price_in_dollars: row.unit_price_in_dollars,
-              stock_quantity: row.stock_quantity,
-              reorder_level: row.reorder_level,
-              image: row.image,
-              tax: row.tax,
-              shipping_cost: row.shipping_charge,
-              total_price: row.total_price,
-              raw_material_features: [],
-            });
-          }
-  
-          if (row.feature_id) {
-            materialsMap.get(row.material_id).raw_material_features.push({
-              feature_id: row.feature_id,
-              raw_material_feature: row.raw_material_feature,
-              raw_material_value: row.raw_material_value,
-            });
-          }
-        });
-  
-        res.status(200).json({ raw_materials: Array.from(materialsMap.values()) });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
-      }
+      params.push(`%${search}%`);
+      paramIndex++;
     }
-  );
+
+    if (category) {
+      query += ` AND rms.category = $${paramIndex}`;
+      params.push(category);
+    }
+
+    try {
+      const result = await db.query(query, params);
+
+      // Group materials with their features
+      const materialsMap = new Map();
+
+      result.rows.forEach((row) => {
+        if (!materialsMap.has(row.material_id)) {
+          materialsMap.set(row.material_id, {
+            id: row.material_id,
+            Component: row.Component,
+            category: row.category,
+            package: row.package,
+            value: row.value,
+            reference_no: row.reference_no,
+            unit_price_in_rupees: row.unit_price_in_rupees,
+            unit_price_in_dollars: row.unit_price_in_dollars,
+            stock_quantity: row.stock_quantity,
+            reorder_level: row.reorder_level,
+            image: row.image,
+            tax: row.tax,
+            shipping_cost: row.shipping_charge,
+            total_price: row.total_price,
+            raw_material_features: [],
+          });
+        }
+
+        if (row.feature_id) {
+          materialsMap.get(row.material_id).raw_material_features.push({
+            feature_id: row.feature_id,
+            raw_material_feature: row.raw_material_feature,
+            raw_material_value: row.raw_material_value,
+          });
+        }
+      });
+
+      res.status(200).json({ raw_materials: Array.from(materialsMap.values()) });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch raw materials', message: err.message });
+    }
+  }
+);
 
 dashboard.get('/api/raw/stock/history/:raw_material_id',
   // validateJwt,
   // authorizeRoles("admin","staff"),
-    async (req, res) => {
-      const { raw_material_id } = req.params;
-  
-      try {
-        const historyQuery = `
+  async (req, res) => {
+    const { raw_material_id } = req.params;
+
+    try {
+      const historyQuery = `
           SELECT * FROM raw_materials_stock_history 
           WHERE raw_material_id = $1
           ORDER BY updated_at DESC;
         `;
-  
-        const result = await db.query(historyQuery, [raw_material_id]);
-  
-        if (result.rows.length === 0) {
-          return res.status(404).json({ error: 'No history found for the given raw material ID' });
-        }
-  
-        res.status(200).json({ history: result.rows });
-      } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch raw material history', message: err.message });
+
+      const result = await db.query(historyQuery, [raw_material_id]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'No history found for the given raw material ID' });
       }
+
+      res.status(200).json({ history: result.rows });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to fetch raw material history', message: err.message });
     }
-  );
-  
+  }
+);
+
 
 // API to add raw material to a model
 dashboard.post('/api/model/:modelId/add-raw-material',
@@ -6828,14 +6834,14 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 //     // const offset = (page - 1) * pageSize;
 //     // const limit = pageSize;
 //       // LIMIT $2 OFFSET $3;
-    
+
 //     const query = `
 //       SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
 //       FROM audit_logs
 //       WHERE thing_mac = $1
 //       ORDER BY timestamp DESC
 //     `;
-   
+
 //     const dbResult = await db.query(query, [thingmac]);
 //     // , limit, offset
 //     let events = [];
@@ -6990,7 +6996,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
 });
 
 dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
-                                                             
+
 dashboard.get("/api/display/alert/notifications/", async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM alert_notifications ORDER BY sent_at DESC");
@@ -7016,7 +7022,7 @@ dashboard.delete("/api/delete/notifications/:id", async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
- 
+
 dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) => {
   try {
     const { id } = req.params; // Extract id from the route params
@@ -7028,7 +7034,7 @@ dashboard.get("/api/display/single/alert/notifications/:id", async (req, res) =>
   }
 });
 
- 
+
 // dashboard.put("/api/alert_notifications/:id/toggle-read", async (req, res) => {
 //   const { id } = req.params;
 
@@ -7125,74 +7131,74 @@ dashboard.get("/api/thing-attributes/:thingId", async (req, res) => {
   `;
 
   try {
-      const { rows } = await db.query(sql, [thingId]);
+    const { rows } = await db.query(sql, [thingId]);
 
-      if (rows.length === 0) {
-          return res.status(404).json({ message: "No attributes found for the given thingId" });
-      }
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "No attributes found for the given thingId" });
+    }
 
-      // Transform the results into a structured format
-      const groupedData = {
-          thingId: parseInt(thingId),
-          attributes: {},
-          lastModified: rows[0].lastmodified
-      };
+    // Transform the results into a structured format
+    const groupedData = {
+      thingId: parseInt(thingId),
+      attributes: {},
+      lastModified: rows[0].lastmodified
+    };
 
-      rows.forEach(row => {
-          groupedData.attributes[row.attributename] = row.attributevalue;
-      });
+    rows.forEach(row => {
+      groupedData.attributes[row.attributename] = row.attributevalue;
+    });
 
-      res.json(groupedData);
+    res.json(groupedData);
   } catch (error) {
-      res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
 dashboard.post("/estimate/send-email", estimate.single("pdf"), async (req, res) => {
   const { email } = req.body;
-  
+
   if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    return res.status(400).json({ message: "No file uploaded" });
   }
 
   // Email settings
   const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-          user: process.env.EMAIL_USER,       
-          pass: process.env.EMAIL_PASSWORD 
-      }
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASSWORD
+    }
   });
 
   const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "PDF Attachment",
-      text: "Please find the attached PDF file.",
-      attachments: [
-          {
-              filename: req.file.originalname,
-              path: req.file.path
-          }
-      ]
+    from: process.env.EMAIL_USER,
+    to: email,
+    subject: "PDF Attachment",
+    text: "Please find the attached PDF file.",
+    attachments: [
+      {
+        filename: req.file.originalname,
+        path: req.file.path
+      }
+    ]
   };
 
   try {
-      await transporter.sendMail(mailOptions);
-      res.json({ message: "Email sent successfully!" });
+    await transporter.sendMail(mailOptions);
+    res.json({ message: "Email sent successfully!" });
 
-      // Delete the file asynchronously after response is sent
-      fs.unlink(req.file.path, (err) => {
-          if (err) {
-              console.error("Error deleting file:", err);
-          }
-      });
+    // Delete the file asynchronously after response is sent
+    fs.unlink(req.file.path, (err) => {
+      if (err) {
+        console.error("Error deleting file:", err);
+      }
+    });
 
   } catch (error) {
-      console.error("Email sending error:", error);
-      if (!res.headersSent) {
-          res.status(500).json({ message: "Error sending email", error: error.toString() });
-      }
+    console.error("Email sending error:", error);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Error sending email", error: error.toString() });
+    }
   }
 });
 
