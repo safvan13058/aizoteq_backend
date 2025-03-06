@@ -162,8 +162,8 @@ login.post('/login', async (req, res) => {
 login.post('/refresh-token', async (req, res) => {
     console.log('Cookies refresh token:',req.cookies);  
     console.log('Body refresh token::',req.body);    
-    const refreshToken = req.cookies?.refreshToken||req.body?.refreshToken ;
-    const username = req.cookies?.username||req.body?.username; // Required for SECRET_HASH
+    const refreshToken = req.cookies?.refreshToken||req.body.refreshToken ;
+    const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
     if (!refreshToken) {
         return res.status(400).json({ message: 'Refresh token  are required' });
     }
