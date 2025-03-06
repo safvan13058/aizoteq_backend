@@ -23,7 +23,6 @@ dashboard.get('/api/users/count',
   validateJwt,
   authorizeRoles('admin', 'dealer'),
   async (req, res) => {
-    console.log(`working count${req.user.id}`)
     try {
       const result = await db.query('SELECT COUNT(*) AS user_count FROM Users');
       res.json({ user_count: result.rows[0].user_count });
@@ -1177,10 +1176,10 @@ dashboard.post('/api/pay-balance',
 
       // Define table and corresponding ID column based on type
       let table, idColumn;
-      if (type === 'customer') {
+      if (type === 'customers') {
         table = 'customers_details';
         idColumn = 'customers_id';
-      } else if (type === 'dealer') {
+      } else if (type === 'dealers') {
         table = 'dealers_details';
         idColumn = 'dealers_id';
       } else if (type === 'online_customer') {
