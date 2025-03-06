@@ -160,21 +160,17 @@ login.post('/login', async (req, res) => {
 // });
 
 login.post('/refresh-token', async (req, res) => {
-    console.log('clientSecret:', process.env.clientSecret ? 'Loaded' : 'Missing');
-    console.log('Cookies:',req.cookies); 
-    console.log('SecretHash:',req.cookies.SecretHash); 
-    console.log('Body:',req.body);    
+    console.log('Cookies refresh token:',req.cookies);  
+    console.log('Body refresh token::',req.body);    
     const refreshToken = req.cookies?.refreshToken||req.body?.refreshToken ;
     const username = req.cookies?.username||req.body?.username; // Required for SECRET_HASH
-    console.log(`Body:${username}`); 
-    const secretHash = calculateSecretHash(username); 
     if (!refreshToken) {
-        return res.status(400).json({ message: 'Refresh token and username are required' });
+        return res.status(400).json({ message: 'Refresh token  are required' });
     }
 
     // const clientId = process.env.clientId;
     // const clientSecret = process.env.clientSecret;
-    console.log(`refresh::${secretHash}`)
+    console.log(`refresh::${refreshToken}`)
     const params = {
         AuthFlow:'REFRESH_TOKEN_AUTH',
         ClientId:process.env.clientId,
