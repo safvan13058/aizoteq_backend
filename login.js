@@ -164,10 +164,11 @@ login.post('/refresh-token', async (req, res) => {
     console.log('Body refresh token::',req.body);    
     const refreshToken = req.cookies?.refreshToken||req.body.refreshToken ;
     const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
+    
     if (!refreshToken) {
         return res.status(400).json({ message: 'Refresh token  are required' });
     }
-
+    console.log('Body refresh token:bvbbvbvbvbvbbbbbbbbbb:',req.body.refreshToken);    
     // const clientId = process.env.clientId;
     // const clientSecret = process.env.clientSecret;
     console.log(`refresh::${refreshToken}`)
