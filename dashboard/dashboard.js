@@ -1319,7 +1319,7 @@ dashboard.get('/api/display/users/:role',
 
       // Add search condition if search query is provided
       if (search) {
-        query += ` AND userName ILIKE %$2% 
+        query += ` AND userName ILIKE $2 
                        
                      `;
         values.push(`%${search.toLowerCase()}%`);
