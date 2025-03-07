@@ -217,7 +217,7 @@ login.post('/refresh-token', async (req, res) => {
 
 // Logout API  
 login.post('/logout', async (req, res) => {
-    const accessToken = req.cookies.accessToken || req.body.accessToken;
+    const accessToken = req.body.accessToken;
 
     if (!accessToken) {
         return res.status(400).json({ message: 'Missing required field: accessToken' });
