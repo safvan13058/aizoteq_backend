@@ -59,10 +59,10 @@ login.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME:username,
             PASSWORD:password,
-            SECRET_HASH: calculateSecretHash(username),
+            // SECRET_HASH: calculateSecretHash(username),
         },
     };
-    console.log(`login${calculateSecretHash(username)}`)
+    console.log(`login:::${ username, password}`)
 
     try {
         const response = await cognito.initiateAuth(params).promise();
@@ -77,14 +77,14 @@ login.post('/login', async (req, res) => {
         }
 
         const jwtsub = decoded.sub;
-        // console.log(jwtsub)
+        console.log("jwtsub",jwtsub)
         // console.log("working")
         // Query the database to check if `jwtsub` exists
         const query = 'SELECT * FROM Users WHERE jwtsub = $1';
         const { rows } = await db.query(query, [jwtsub]);
 
         if (rows.length === 0) {
-
+            console.log("User not found for the provided sub")
             return res.status(404).json({ message: 'User not found for the provided sub' });
         }
         // Optionally log or process the user details

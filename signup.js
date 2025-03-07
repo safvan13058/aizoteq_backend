@@ -73,10 +73,10 @@ async function handleSignup(req, res, role) {
             { Name: 'name', Value: fullName },
         
         ],
-        SecretHash: secretHash,
+        // SecretHash: secretHash,
     };
 
-    
+
     try {
         // console.log(userName, password, email, phoneNumber, fullName)
         // console.log("signup working")
