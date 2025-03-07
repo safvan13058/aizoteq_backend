@@ -71,8 +71,9 @@ async function handleSignup(req, res, role) {
             { Name: 'given_name', Value: userName },
             { Name: 'phone_number', Value: phoneNumber },
             { Name: 'name', Value: fullName },
+        
         ],
-        // SecretHash: secretHash,
+        SecretHash: secretHash,
     };
 
     try {
