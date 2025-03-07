@@ -93,6 +93,7 @@ async function handleSignup(req, res, role) {
         res.cookie('username', userName, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
         res.cookie('jwtsub', jwtsub, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
         res.cookie('role', role, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
+        res.cookie('phone', phoneNumber, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
    
         
         console.log(req.session)
@@ -181,8 +182,8 @@ signup.post('/verify-otp', async (req, res) => {
     try {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name) VALUES ($1, $2,$3,$4)';
-        const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName];
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4)';
+        const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName,req.cookies?.phone];
 
         await db.query(query, values);
         console.log("workings")
@@ -266,15 +267,15 @@ signup.post('/verify-otp', async (req, res) => {
 const rateLimit = require('express-rate-limit');
 // Rate limiter for Resend OTP
 const resendOtpLimiter = rateLimit({
-    windowMs: 60 * 1000, // 1 minute
-    max: 3, // Limit each IP to 3 requests per window
+    windowMs: 3*60 * 1000, // 1 minute
+    max: 5, // Limit each IP to 3 requests per window
     message: 'Too many requests, please try again later.',
 });
 
 // Resend OTP API
 signup.post('/resend-otp', resendOtpLimiter, async (req, res) => {
     // const username = req.session.username;
-    const {username }= req.body||req.session.username;
+    const {username }= req.body||req.session;
     if (!username) {
         return res.status(400).json({ message: 'Missing required field: username' });
     }
