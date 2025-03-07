@@ -444,9 +444,10 @@ async function generatePDF(filePath, data) {
   // Launch Puppeteer
   // const browser = await puppeteer.launch();
   const browser = await puppeteer.launch({
-    executablePath: '/root/.cache/puppeteer/chrome/linux-132.0.6834.83/chrome-linux64/chrome',
+    executablePath: '/root/.cache/puppeteer/chrome/linux-134.0.6998.35/chrome-linux64/chrome',
     args: ['--no-sandbox', '--disable-web-security']
   });
+  
   
   const page = await browser.newPage();
 
