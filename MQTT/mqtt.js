@@ -17,6 +17,7 @@ const client = mqtt.connect("mqtts://an1ua1ij15hp7-ats.iot.ap-south-1.amazonaws.
   ca: fs.readFileSync("certificate/AmazonRootCA1 (1).pem"),
   debug: true, // Enable MQTT debugging
 });
+
 client.on("connect", () => {
   console.log("Connected to AWS IoT Core via MQTTS");
 });

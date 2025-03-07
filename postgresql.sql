@@ -6,6 +6,7 @@ CREATE TABLE Users (
     userRole VARCHAR(255),
     name VARCHAR(255),
     profilePic TEXT,
+    phone VARCHAR(15),
     -- Address TEXT,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -28,15 +29,22 @@ CREATE TABLE Things (
 );
 
 -- Table to store attributes of things
+-- CREATE TABLE ThingAttributes (
+--     id SERIAL PRIMARY KEY,
+--     thingId INT,
+--     attributeName VARCHAR(255), -- e.g., 'light', 'fan', 'plug', 'trm'
+--     attributeValue VARCHAR(255), -- e.g., '1', '2', '3', '4'
+--     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (thingId) REFERENCES Things(id)
+-- );
 CREATE TABLE ThingAttributes (
     id SERIAL PRIMARY KEY,
     thingId INT,
     attributeName VARCHAR(255), -- e.g., 'light', 'fan', 'plug', 'trm'
     attributeValue VARCHAR(255), -- e.g., '1', '2', '3', '4'
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (thingId) REFERENCES Things(id)
+    FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE CASCADE
 );
-
 -- Table to store device information
 CREATE TABLE Devices (
     id SERIAL PRIMARY KEY,
@@ -55,24 +63,39 @@ CREATE TABLE Devices (
 );
 
 -- Table to store admin stock information
+-- CREATE TABLE AdminStock (
+--     id SERIAL PRIMARY KEY,
+--     thingId INT,
+--     addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     addedBy VARCHAR(255), -- User who added the device to AdminStock
+--     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
+--     FOREIGN KEY (thingId) REFERENCES Things(id),
+--     FOREIGN KEY (addedBy) REFERENCES Users(userName),
+-- ); 
 CREATE TABLE AdminStock (
     id SERIAL PRIMARY KEY,
     thingId INT,
     addedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     addedBy VARCHAR(255), -- User who added the device to AdminStock
     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
-    FOREIGN KEY (thingId) REFERENCES Things(id),
-    FOREIGN KEY (addedBy) REFERENCES Users(userName),
-); 
-
+    FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE SET NULL
+);
 -- Table to store home information
+-- CREATE TABLE HOME (
+--     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+--     userid INT NOT NULL,
+--     name VARCHAR(255) NOT NULL, -- Name of the home
+--     created_by VARCHAR(255), -- Creator of the entry
+--     last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last modification timestamp
+--     FOREIGN KEY (userid) REFERENCES Users(id)
+-- );
 CREATE TABLE HOME (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
     userid INT NOT NULL,
     name VARCHAR(255) NOT NULL, -- Name of the home
     created_by VARCHAR(255), -- Creator of the entry
     last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last modification timestamp
-    FOREIGN KEY (userid) REFERENCES Users(id)
+    FOREIGN KEY (userid) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 -- Table to store floor information
@@ -88,7 +111,7 @@ CREATE TABLE floor (
 -- Table to store room information
 CREATE TABLE room (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
-    home_id INT NOT NULL, -- Foreign key referencing home table
+    home_id INT  NULL, -- Foreign key referencing home table
     floor_id INT NOT NULL, -- Foreign key referencing floor table
     name VARCHAR(255) NOT NULL, -- Name of the room
     alias_name VARCHAR(255), -- Alias name for the room
@@ -104,23 +127,23 @@ CREATE TABLE customer_access (
     user_id INT NOT NULL, -- Foreign key referencing users(id)
     email VARCHAR(255), -- Email column (optional)
     thing_id INT NOT NULL, -- Foreign key referencing things(id)
-    securityKey VARCHAR(255) NOT NULL, -- Foreign key referencing things(securityKey)
+    securityKey VARCHAR(255) NOT NULL, -- Must match things(securityKey)
     FOREIGN KEY (user_id) REFERENCES Users(id),
-    FOREIGN KEY (thing_id) REFERENCES Things(id),
-    FOREIGN KEY (securityKey) REFERENCES Things(securityKey)
+    FOREIGN KEY (thing_id) REFERENCES things(id) ON DELETE CASCADE,
+    FOREIGN KEY (securityKey) REFERENCES things(securityKey) ON DELETE CASCADE
 );
+
 
 -- Table to store room-device mappings
 CREATE TABLE room_device (
     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
     room_id INT NOT NULL, -- Foreign key referencing room table
     device_id VARCHAR(255) NOT NULL, -- Foreign key referencing device table
-    FOREIGN KEY (room_id) REFERENCES room(id),
-    FOREIGN KEY (device_id) REFERENCES Devices(deviceId),
-    CONSTRAINT room_device_room_id_fkey
-     FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE;
+    FOREIGN KEY (room_id) REFERENCES room(id) ON DELETE CASCADE,
+    FOREIGN KEY (device_id) REFERENCES devices(deviceid) ON DELETE CASCADE
 );
- 
+
+
 -- Table to store Scenes
 CREATE TABLE Scenes (
     id SERIAL PRIMARY KEY,
@@ -131,7 +154,7 @@ CREATE TABLE Scenes (
     type VARCHAR(255),
     favorite BOOLEAN DEFAULT FALSE,
     enable BOOLEAN DEFAULT TRUE,
-    user_id INTEGER REFERENCES Users(id),
+    user_id INTEGER REFERENCES Users(id) ON DELETE CASCADE,
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -155,12 +178,13 @@ CREATE TABLE SceneEvent (
 );
 
 
+
 CREATE TABLE UserDevicesorder (
     userId INT NULL REFERENCES Users(id) ON DELETE CASCADE,
     roomid INT NOT NULL REFERENCES room(id) ON DELETE CASCADE,
     device_id INT NOT NULL REFERENCES Devices(id) ON DELETE CASCADE,
-    orderIndex INT NOT NULL
-    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    orderIndex INT NOT NULL,
+    last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE UserRoomOrder (
@@ -190,12 +214,11 @@ CREATE TABLE TestFailedDevices (
     id SERIAL PRIMARY KEY, -- Unique identifier for each failed device log
     thingId INT NOT NULL, -- Foreign key linking to Things table
     failureReason TEXT NOT NULL, -- Description of the failure
-    fixed_by VARCHAR(255) DEFAULT NULL; -- Stores the identifier of the person who fixed the device, default is NULL
+    fixed_by VARCHAR(255) DEFAULT NULL, -- Stores the identifier of the person who fixed the device, default is NULL
                     
     loggedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the failure was logged
     FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE CASCADE -- Automatically delete when the associated Thing is deleted
 );
-
 
 CREATE TABLE UserFCMTokens (
     id SERIAL PRIMARY KEY,                 -- Auto-incrementing primary key
@@ -248,9 +271,10 @@ CREATE TABLE IntegrationSettings (
     userId INT NOT NULL, -- Foreign key referencing Users(id)
     integrationType VARCHAR(255) NOT NULL,
     settings JSON NOT NULL, -- Settings stored as JSON
-    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (userId) REFERENCES Users(id) ON DELETE CASCADE
 );
+
 
 CREATE TABLE DeviceMapping (
     id SERIAL PRIMARY KEY,
@@ -265,28 +289,30 @@ CREATE TABLE DeviceMapping (
 --------------------------------------------------------------
 CREATE TABLE dealersStock (
     id SERIAL PRIMARY KEY, 
-    thingid INT NOT NULL,            -- Unique identifier for each record
-    user_id INT NOT NULL,  
-    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));            -- Reference to the user ID
+    thingid INT,  -- Can be NULL if the referenced `thingid` is deleted
+    user_id INT,  -- Can be NULL if the referenced `user_id` is deleted
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange')), 
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
-    added_id INT
-    added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
-    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);
-    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES dealers_details(id) -- Foreign key constraint
+    added_id INT,  -- Possible reference to a user who added the entry
+    added_by VARCHAR(100) NOT NULL, -- Username of the person who added the record
+    
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id) ON DELETE SET NULL,  
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES dealers_details(id) ON DELETE SET NULL
 );
+
 
 CREATE TABLE customersStock (
     id SERIAL PRIMARY KEY,             -- Unique identifier for each record
-    thingid INT NOT NULL,     
-    user_id INT NOT NULL,             -- Reference to the user ID
+    thingid INT,                        -- Allow NULL if referenced thing is deleted
+    user_id INT,                        -- Allow NULL if referenced user is deleted
     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
-    added_id INT
+    added_id INT,
     added_by VARCHAR(100) NOT NULL,    -- Username of the person who added the record
-    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange'));               -- Reference to the user ID
-    -- CONSTRAINT fk_users_username FOREIGN KEY (added_by) REFERENCES users(username), -- Foreign key constraint
-    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id);    
-    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) -- Foreign key constraint
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange')),  
+
+    -- Foreign key constraints with ON DELETE SET NULL
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id) ON DELETE SET NULL,    
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) ON DELETE SET NULL
 );
 
   
@@ -308,23 +334,42 @@ CREATE TABLE onlinecustomer_details (
     
 );
 -- Create customer_details table
+-- Create customers_details table
 CREATE TABLE customers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
     name VARCHAR(255) NOT NULL,                 -- Name of the customer
-    addedby INT,
+    addedby INT,                                -- User who added the customer
     address TEXT NOT NULL,                      -- Address of the customer
-    email VARCHAR(255) NULL,
+    email VARCHAR(255) NULL,                    
     phone VARCHAR(15) NOT NULL,                 -- Primary phone number
     alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
-    total_amount NUMERIC(10, 2),               -- Total amount associated with the customer
+    total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
     paid_amount NUMERIC(10, 2) DEFAULT 0, 
     balance NUMERIC(10, 2),                     -- Balance amount for the customer
     refund_amount NUMERIC(10, 2) DEFAULT 0,
-    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
-    CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
     
+    -- Foreign key constraint
+    CONSTRAINT fk_addedby FOREIGN KEY (addedby) REFERENCES Users(id) ON DELETE SET NULL
 );
 
+CREATE TABLE onlinecustomer_details (
+    id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
+    name VARCHAR(255) NOT NULL,                 -- Name of the customer
+    addedby INT,                                -- User who added the customer
+    address TEXT NOT NULL,                      -- Address of the customer
+    email VARCHAR(255) NULL,                    
+    phone VARCHAR(15) NOT NULL,                 -- Primary phone number
+    alt_phone VARCHAR(15),                      -- Alternate phone number (optional)
+    total_amount NUMERIC(10, 2),                -- Total amount associated with the customer
+    paid_amount NUMERIC(10, 2) DEFAULT 0, 
+    balance NUMERIC(10, 2),                     -- Balance amount for the customer
+    refund_amount NUMERIC(10, 2) DEFAULT 0,
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_addedby FOREIGN KEY (addedby) REFERENCES Users(id) ON DELETE SET NULL
+);
 -- Create dealers_details table
 CREATE TABLE dealers_details (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each record
@@ -338,10 +383,11 @@ CREATE TABLE dealers_details (
     paid_amount NUMERIC(10, 2) DEFAULT 0, 
     balance NUMERIC(10, 2),                     -- Balance amount for the dealer
     refund_amount NUMERIC(10, 2) DEFAULT 0,
-    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
-     
-    CONSTRAINT fk_addedbyFOREIGN KEY (addedby)REFERENCES Users(id)ON DELETE SET NULL;
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification
+    
+    CONSTRAINT fk_addedby FOREIGN KEY (addedby) REFERENCES Users(id) ON DELETE SET NULL
 );
+
 CREATE TABLE dealers_store (
     id SERIAL PRIMARY KEY,
     company_name VARCHAR(255) NOT NULL,
@@ -367,30 +413,6 @@ CREATE TABLE price_table (
     lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification
     
 );
-CREATE TABLE model_features (
-    id SERIAL PRIMARY KEY,
-    model_id INT NOT NULL,
-    feature VARCHAR(255) NOT NULL,
-    feature_value VARCHAR(255) ,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-model_no varchar(255)
-CREATE TABLE model_features_image (
-    id SERIAL PRIMARY KEY,
-    model_id INT,
-    model_no VARCHAR(255) NULL,
-    image_url TEXT,
-    CONSTRAINT fk_model_id FOREIGN KEY (model_id) REFERENCES price_table(id)
-);
-CREATE TABLE web_image (
-    id SERIAL PRIMARY KEY,
-    model_id INT,
-    model_no VARCHAR(255) NOT NULL,
-    image_url TEXT,
-    CONSTRAINT fk_model_id FOREIGN KEY (model_id) REFERENCES price_table(id)
-);
--- Create billing_receipt
 CREATE TABLE billing_receipt (
     id SERIAL PRIMARY KEY, 
     created_by INT NOT NULL REFERENCES Users(id),
@@ -401,20 +423,21 @@ CREATE TABLE billing_receipt (
     email VARCHAR(255) NULL,
     billing_address TEXT NOT NULL,                    -- Billing address
     shipping_address TEXT,                            -- Shipping address (optional)
-    dealer_or_customer VARCHAR(100) NOT NULL, -- Indicates dealer or customer
-    total_amount NUMERIC(10, 2) NOT NULL,             -- Total billed amount
-    paid_amount NUMERIC(10, 2) DEFAULT 0;, 
-    balance NUMERIC(10, 2),                   -- Remaining balance to be paid
+    dealer_or_customer VARCHAR(100) NOT NULL,        -- Indicates dealer or customer
+    total_amount NUMERIC(10, 2) NOT NULL,            -- Total billed amount
+    paid_amount NUMERIC(10, 2) DEFAULT 0,  
+    balance NUMERIC(10, 2),                          -- Remaining balance to be paid
     discount NUMERIC(10, 2),  
     payable_amount NUMERIC(10, 2),               
-    billing_createdby VARCHAR(255) NOT NULL,  
+    billing_createdby VARCHAR(255) NOT NULL,         -- Name or ID of the creator
     dealers_id INT,
     customers_id INT, 
-    onlinecustomer_id INT,      -- Name or ID of the creator
+    onlinecustomer_id INT,      
     type VARCHAR(50),
-    datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     -- Timestamp for billing or transaction date
-    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Automatically track last modification  
-);   
+    datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,    -- Timestamp for billing or transaction date
+    lastmodified TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Automatically track last modification  
+);
+
 
 -- Add a trigger to automatically update `lastmodified` for billing_receipt
 CREATE OR REPLACE FUNCTION update_billing_receipt_lastmodified()
@@ -443,18 +466,20 @@ CREATE TABLE payment_details (
 CREATE TABLE billing_items (
     id SERIAL PRIMARY KEY,                             -- Unique identifier for each record
     receipt_no VARCHAR(50) NOT NULL,                  -- Foreign key referencing `billing_receipt`
-    item_name VARCHAR(255) NULL,                  -- Name or description of the item
+    item_name VARCHAR(255) NULL,                      -- Name or description of the item
     model VARCHAR(255) NOT NULL,                      -- Model of the item
     mrp NUMERIC(10, 2) NOT NULL,                      -- Maximum Retail Price (MRP)
     serial_no VARCHAR(255) NOT NULL,                  -- Serial number of the item
-    retail_price NUMERIC(10, 2) NOT NULL,             -- Retail price of the item
-    item_discount NUMERIC(10, 2) DEFAULT 0 ,
-    sgst NUMERIC(10, 2) DEFAULT 0 ,
+    retail_price NUMERIC(10, 2)  NULL,             -- Retail price of the item
+    item_discount NUMERIC(10, 2) DEFAULT 0,
+    sgst NUMERIC(10, 2) DEFAULT 0,
     cgst NUMERIC(10, 2) DEFAULT 0,
     igst NUMERIC(10, 2) DEFAULT 0,
     final_price NUMERIC(10, 2),
-    type VARCHAR(50);
-    FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
+    type VARCHAR(50),                                 -- Type of item
+    
+    -- Foreign key constraint with ON DELETE CASCADE
+    CONSTRAINT fk_receipt_no FOREIGN KEY (receipt_no) REFERENCES billing_receipt(receipt_no) ON DELETE CASCADE
 );
 
 CREATE TABLE thing_warranty (
@@ -479,8 +504,10 @@ CREATE TABLE billing_session (
     total_cash NUMERIC(10, 2) DEFAULT 0,             -- Total cash collected in session
     total_bank NUMERIC(10, 2) DEFAULT 0,             -- Total bank payments collected
     total_online NUMERIC(10, 2) DEFAULT 0,           -- Total online payments collected
-    total_sales NUMERIC(10, 2) DEFAULT 0             -- Total sales for the session
-    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id)
+    total_sales NUMERIC(10, 2) DEFAULT 0,            -- Total sales for the session
+    
+    -- Foreign key with ON DELETE SET NULL
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE daily_report (
@@ -530,7 +557,8 @@ CREATE TABLE raw_materials_stock (
     total_price DECIMAL(10, 2) DEFAULT 0.00,  -- Calculated total price
     image VARCHAR(2080),           
     stock_quantity INT DEFAULT 0,  
-    reorder_level INT DEFAULT 0    
+    reorder_level INT DEFAULT 0
+
 );
 
 CREATE TABLE raw_material_features (
@@ -554,11 +582,11 @@ CREATE TABLE raw_materials_stock_history (
 );
 
 CREATE TABLE sales_graph (
-    id          SERIAL PRIMARY KEY,  -- Unique identifier for each sale
-    sale_by    INT NOT NULL,        -- ID of the seller
-    sale_to     VARCHAR(2550) ,        -- ID of the buyer/customer
-    thing_id    INT,        -- ID of the item/product being sold
-    timeanddate TIMESTAMP NOT NULL,  -- Timestamp of the sale
+    id SERIAL PRIMARY KEY,           -- Unique identifier for each sale
+    sale_by INT NOT NULL,            -- ID of the seller
+    sale_to VARCHAR(255),            -- ID or name of the buyer/customer
+    thing_id INT,                    -- ID of the item/product being sold
+    timeanddate TIMESTAMP NOT NULL    -- Timestamp of the sale
 );
 
 CREATE TABLE thing_raw_materials (
@@ -584,20 +612,18 @@ CREATE TABLE thing_raw_materials (
 
 CREATE TABLE audit_logs (
     id SERIAL PRIMARY KEY,
-    device_id VARCHAR(255)  NULL,
-    action VARCHAR(100)  NULL,
-    event_data JSONB NOT NULL,
+    device_id VARCHAR(255) NULL,
+    action VARCHAR(100) NULL,
+    event_data JSONB NOT NULL,       -- Storing event details in JSONB format
     user_id VARCHAR(255),
     timestamp TIMESTAMPTZ DEFAULT NOW(),
-    thing_mac VARCHAR(255) NOT NULL,
-    CONSTRAINT fk_thingmac FOREIGN KEY (thing_ mac) REFERENCES things(macaddress) 
+    thing_mac VARCHAR(255) NOT NULL
 );
-
 CREATE TABLE alert_notifications ( 
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
-    topic VARCHAR(100) ,
-    read BOOLEAN
-    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    topic VARCHAR(100),
+    read BOOLEAN,  -- Indicates if the notification has been read
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- Timestamp when the notification was sent
 );
