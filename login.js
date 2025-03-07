@@ -217,15 +217,19 @@ login.post('/refresh-token', async (req, res) => {
 
 // Logout API  
 login.post('/logout', async (req, res) => {
-    const accessToken = req.body.accessToken;
-
-    if (!accessToken) {
-        return res.status(400).json({ message: 'Missing required field: accessToken' });
-    }
-
-    const params = { AccessToken: accessToken };
-
     try {
+        if (!req.body || typeof req.body !== 'object') {
+            return res.status(400).json({ message: 'Invalid JSON format' });
+        }
+
+        const { accessToken } = req.body;
+
+        if (!accessToken) {
+            return res.status(400).json({ message: 'Missing required field: accessToken' });
+        }
+
+        const params = { AccessToken: accessToken };
+
         // Revoke access token in Cognito
         await cognito.globalSignOut(params).promise();
 
@@ -234,11 +238,13 @@ login.post('/logout', async (req, res) => {
         res.clearCookie('accessToken', { httpOnly: true, secure: true, sameSite: 'Strict' });
         res.clearCookie('refreshToken', { httpOnly: true, secure: true, sameSite: 'Strict' });
 
-        res.status(200).json({ message: 'Logout successful' });
+        return res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
-        res.status(500).json({ message: 'Error during logout', error: err.message });
+        console.error("Logout Error:", err);
+        return res.status(500).json({ message: 'Error during logout', error: err.message });
     }
 });
+
 
 
 // Endpoint to initiate the forgot password process

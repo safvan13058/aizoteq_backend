@@ -1202,9 +1202,11 @@ dashboard.post('/api/pay-balance',
       if (totalPaid > balance) {
         return res.status(400).json({ error: 'Total payment amount exceeds balance' });
       }
-
+        
+      const lastReceipt = await db.query(`SELECT receipt_no FROM billing_receipt ORDER BY id DESC LIMIT 1`);
+      const receipt_no = lastReceipt.rows.length > 0 ? parseInt(lastReceipt.rows[0].receipt_no) + 1 : 1000;
       // Generate a unique receipt number
-      const receipt_no = `B-${Date.now()}`;
+      // const receipt_no = `B-${Date.now()}`;
 
       // Update balance in the table
       const newBalance = balance - totalPaid;
