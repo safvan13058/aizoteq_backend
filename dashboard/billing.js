@@ -1119,7 +1119,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
       await sendEmailWithAttachment(email, name, phone, pdfPath);
     } 
     // Step 8: Print PDF
-    printPDF(pdfPath);
+    // printPDF(pdfPath);
     console.log("returned",pdfUrl)
     return {newReceiptNo,pdfUrl};
   } catch (error) {
