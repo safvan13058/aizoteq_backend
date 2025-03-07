@@ -38,7 +38,7 @@ admin.initializeApp({
 const client = new Client({
   host: 'database-2.cluster-cwzuruz2sxx0.ap-south-1.rds.amazonaws.com', // AWS RDS
   user: 'postgres',                      // Your database username
-  password: 'Aizoteqaizote',                 // Your database password
+  password: 'aizoteqaizote',                 // Your database password
   database: 'postgres',                  // Your database name
   port: 5432,                            // Default PostgreSQL port
   ssl: {

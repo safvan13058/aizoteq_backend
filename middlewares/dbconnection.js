@@ -19,7 +19,7 @@ const fs = require('fs'); // To handle SSL certificates if required
 const db = new Pool({
     host: 'database-2.cluster-cwzuruz2sxx0.ap-south-1.rds.amazonaws.com', // AWS RDS or Aurora endpoint
     user: 'postgres',                      // Your database username
-    password: 'Aizoteqaizote',                 // Your database password
+    password: 'aizoteqaizote',                 // Your database password
     database: 'postgres',                  // Your database name
     port: 5432,                            // Default PostgreSQL port
     max: 10,                               // Maximum number of connections in the pool
