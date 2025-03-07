@@ -59,7 +59,7 @@ login.post('/login', async (req, res) => {
         AuthParameters: {
             USERNAME:username,
             PASSWORD:password,
-            // SECRET_HASH: calculateSecretHash(username),
+            SECRET_HASH: calculateSecretHash(username),
         },
     };
     console.log(`login${calculateSecretHash(username)}`)
