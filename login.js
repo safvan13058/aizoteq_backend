@@ -217,6 +217,7 @@ login.post('/refresh-token', async (req, res) => {
 
 // Logout API  
 login.post('/logout', async (req, res) => {
+    console.log("loginout")
     try {
         if (!req.body || typeof req.body !== 'object') {
             return res.status(400).json({ message: 'Invalid JSON format' });
@@ -240,6 +241,7 @@ login.post('/logout', async (req, res) => {
 
         return res.status(200).json({ message: 'Logout successful' });
     } catch (err) {
+        console.log("notlogin",err)
         console.error("Logout Error:", err);
         return res.status(500).json({ message: 'Error during logout', error: err.message });
     }
