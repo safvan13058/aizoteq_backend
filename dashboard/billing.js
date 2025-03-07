@@ -328,7 +328,7 @@ async function processBilling(data, stockTable, username, res) {
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/receipt/${pdfFileName}`; // Change this URL based on your setup
     
-    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
+    // schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo,
       date: new Date().toLocaleDateString(),
@@ -1099,7 +1099,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     const pdfFileName = `receipt_${receiptNo}.pdf`;
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/returned/${pdfFileName}`; // Change this URL based on your setup
-    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
+    // schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo: "000",
       date: new Date().toLocaleDateString(),
