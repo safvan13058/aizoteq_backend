@@ -514,7 +514,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           t.serialno,
           s.status AS stock_status,
           ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'} AS addedat,
-          ${stockTable === 'AdminStock' ? 's.addedBy' : 's.addedby'} AS addedby,
+          ${stockTable === 'AdminStock' ? 's.addedBy' : 's.added_by'} AS addedby,
           tf.failureReason,
           tf.fixed_by,
           tf.loggedAt
