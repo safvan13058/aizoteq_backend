@@ -187,7 +187,7 @@ dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer')
 
     // Dynamic SQL grouping and sorting expressions
     const groupByExpression = {
-      day: "DATE(timeanddate)",
+      day: "DATE(timeanddate,'Mon DD')",
       month: "TO_CHAR(timeanddate, 'YYYY-MM')",
       year: "EXTRACT(YEAR FROM timeanddate)::INT",
     };
