@@ -169,7 +169,7 @@ signup.post('/verify-otp', async (req, res) => {
     console.log(`jwtsub==${req.session.jwtsub}`)
     console.log(req.cookies.jwtsub)
     
-
+   console.log("qwwr",req.body)
     if (!username|| !otp) {
         return res.status(400).json({ message: 'Missing required fields: username and otp are required' });
     }
@@ -200,6 +200,7 @@ signup.post('/verify-otp', async (req, res) => {
             return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
         }
         console.log("12344",err.message)
+        console.log("12344444",err)
         res.status(500).json({ message: 'Error during OTP verification', error: err.message });
     }
 });
