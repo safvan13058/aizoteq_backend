@@ -275,6 +275,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     try {
       let stockTable = '';
       let userTable = '';
+      let results='';
       const params = [status];
 
       if (userrole === 'admin') {
@@ -352,7 +353,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           }
 
           // Return results
-          res.json(result.rows);
+          results=result.rows
+          // res.json(result.rows);
         }
 
       } else if (userrole === 'dealer') {
@@ -441,8 +443,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       if (result.rows.length === 0) {
         return res.status(404).json({ message: 'No matching records found' });
       }
-
-      res.json(result.rows);
+      results=result.rows
+      res.json(results);
     } catch (err) {
       console.error('Error executing query:', err);
       res.status(500).json({
@@ -4518,8 +4520,6 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
                 time: timestamp,
                 method,
                 type: "Switch",
-              
-
               });
             }
           }
