@@ -895,8 +895,8 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     // Remove from original stock and add to AdminStock
     await client.query(`DELETE FROM ${item.source} WHERE id = $1`, [item.id]);
     await client.query(
-      `INSERT INTO AdminStock (thingId, addedBy, status) VALUES ($1, $2, $3)`,
-      [item.thingid, req.user?.username||userName, status]
+      `INSERT INTO AdminStock (thingId, addedBy, status,addedAt) VALUES ($1, $2, $3, NOW())`,
+      [item.thingid,userName, status]
     );
 
     totalReturnAmount += items.final_price;
