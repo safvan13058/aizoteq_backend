@@ -2167,7 +2167,7 @@ dashboard.post('/api/create/price_table',
     }
 
     // Validate input data
-    if (!model || !mrp || !retail_price) {
+    if (!model || !mrp) {
       return res.status(400).json({ error: 'Missing required fields: model, mrp, retail_price, or tax' });
     }
 
@@ -2213,7 +2213,7 @@ dashboard.post("/api/create/model_details",
     }
 
     // Validate input data
-    if (!model || !mrp || !retail_price) {
+    if (!model || !mrp ) {
       return res.status(400).json({ error: "Missing required fields: model, mrp, retail_price." });
     }
 
