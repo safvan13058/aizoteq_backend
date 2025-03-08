@@ -513,8 +513,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           t.securityKey,
           t.serialno,
           s.status AS stock_status,
-          ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'} AS added_date,
-          ${stockTable === 'AdminStock' ? 's.addedBy' : 's.added_by'} AS added_by,
+          ${stockTable === 'AdminStock' ? 's.addedAt' : 's.added_at'} AS addedat,
+          ${stockTable === 'AdminStock' ? 's.addedBy' : 's.addedby'} AS addedby,
           tf.failureReason,
           tf.fixed_by,
           tf.loggedAt
@@ -522,8 +522,8 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       
       if (userTable) {
         query += `,
-          u.name AS customer_name,
-          u.phone AS customer_phone,
+          u.name AS user_name,
+          u.phone AS user_phone,
           u.email AS customer_email
         `;
       }
