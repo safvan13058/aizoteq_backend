@@ -199,6 +199,7 @@ signup.post('/verify-otp', async (req, res) => {
         if (err.code === 'ExpiredCodeException') {
             return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
         }
+        console.log("12344",err.message)
         res.status(500).json({ message: 'Error during OTP verification', error: err.message });
     }
 });
