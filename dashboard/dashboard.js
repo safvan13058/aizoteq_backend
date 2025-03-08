@@ -164,6 +164,68 @@ dashboard.get('/api/sales/total', async (req, res) => {
   }
 });
 
+// dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
+//   const { role: userRole, id: userId } = req.user; // Extracted from JWT
+//   const { groupBy } = req.query; // Accept 'day', 'month', 'year' as a query parameter
+
+//   if (!["day", "month", "year"].includes(groupBy)) {
+//     return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'month', or 'year'." });
+//   }
+
+//   try {
+//     const params = [];
+//     let roleCondition = "";
+
+//     if (userRole === 'admin') {
+//       roleCondition = "u.userRole = 'admin'";
+//     } else if (userRole === 'dealer') {
+//       roleCondition = "sg.sale_by = $1";
+//       params.push(userId);
+//     } else {
+//       return res.status(403).json({ error: 'Unauthorized role' });
+//     }
+
+//     // Dynamic SQL grouping and sorting expressions
+//     const groupByExpression = {
+//       day: "DATE(timeanddate,'Mon DD')",
+//       month: "TO_CHAR(timeanddate, 'YYYY-MM')",
+//       year: "EXTRACT(YEAR FROM timeanddate)::INT",
+//     };
+
+//     const sortExpression = {
+//       day: "DATE(timeanddate)",
+//       month: "DATE_TRUNC('month', timeanddate)",
+//       year: "DATE_TRUNC('year', timeanddate)",
+//     };
+
+//     const query = `
+//       SELECT 
+//         ${groupByExpression[groupBy]} AS period,
+//         COUNT(*) AS total_sales,
+//         ${sortExpression[groupBy]} AS sort_date
+//       FROM sales_graph sg
+//       JOIN Users u ON sg.sale_by = u.id
+//       WHERE ${roleCondition}
+//       GROUP BY period, sort_date
+//       ORDER BY sort_date ASC;
+//     `;
+
+//     const result = await db.query(query, params);
+
+//     res.json({
+//       groupBy,
+//       sales_data: result.rows.map(row => ({
+//         period: row.period,
+//         total_sales: row.total_sales,
+//       })),
+//     });
+
+//   } catch (error) {
+//     console.error('Error generating sales graph:', error);
+//     res.status(500).json({ error: 'Internal server error' });
+//   }
+// });
+
 dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { role: userRole, id: userId } = req.user; // Extracted from JWT
   const { groupBy } = req.query; // Accept 'day', 'month', 'year' as a query parameter
@@ -185,17 +247,18 @@ dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer')
       return res.status(403).json({ error: 'Unauthorized role' });
     }
 
-    // Dynamic SQL grouping and sorting expressions
+    // Corrected groupByExpression
     const groupByExpression = {
-      day: "DATE(timeanddate,'Mon DD')",
-      month: "TO_CHAR(timeanddate, 'YYYY-MM')",
-      year: "EXTRACT(YEAR FROM timeanddate)::INT",
+      day: "TO_CHAR(timeanddate, 'Mon DD')", // Example: 'Mar 08'
+      month: "TO_CHAR(timeanddate, 'YYYY-MM')", // Example: '2025-03'
+      year: "EXTRACT(YEAR FROM timeanddate)::INT", // Example: 2025
     };
 
+    // Fixed sortExpression (replacing DATE() with CAST(... AS DATE))
     const sortExpression = {
-      day: "DATE(timeanddate)",
-      month: "DATE_TRUNC('month', timeanddate)",
-      year: "DATE_TRUNC('year', timeanddate)",
+      day: "CAST(timeanddate AS DATE)", // Extract only the date (removing time part)
+      month: "DATE_TRUNC('month', timeanddate)", // Sorting by first day of the month
+      year: "DATE_TRUNC('year', timeanddate)", // Sorting by first day of the year
     };
 
     const query = `
@@ -225,7 +288,6 @@ dashboard.get('/api/sales/graph', validateJwt, authorizeRoles('admin', 'dealer')
     res.status(500).json({ error: 'Internal server error' });
   }
 });
-
 
 
 //api for sale graph
