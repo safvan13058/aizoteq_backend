@@ -123,7 +123,7 @@ async function processBilling(data, stockTable, username, res) {
     if (entity.rows.length === 0) {
       const result = await client.query(
         `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone,addedby)
-           VALUES ($1, $2, $3, $4, $5,$6,) RETURNING id, email`,
+           VALUES ($1, $2, $3, $4, $5,$6) RETURNING id, email`,
         [name, address, phone, email, alt_phone, user_id]
       );
       entity = result.rows[0];
@@ -175,7 +175,7 @@ async function processBilling(data, stockTable, username, res) {
       // Stock validation and management
       if (stockTable === "AdminStock") {
         const stockCheck = await client.query(
-          `SELECT * FROM ${stockTable} WHERE thingId = $1 AND status = 'new'`,
+          `SELECT * FROM ${stockTable} WHERE thingid = $1 AND status = 'new'`,
           [thing.id]
         );
 
@@ -896,7 +896,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     await client.query(`DELETE FROM ${item.source} WHERE id = $1`, [item.id]);
     await client.query(
       `INSERT INTO AdminStock (thingId, addedBy, status) VALUES ($1, $2, $3)`,
-      [item.thing_id, userName, status]
+      [item.thingid, req.user?.username||userName, status]
     );
 
     totalReturnAmount += items.final_price;
@@ -931,7 +931,7 @@ async function processDealerReturn(client, serialNumbers, dealerId, userName, st
     // Remove from customersStock and add to dealersStock
     await client.query(`DELETE FROM customersStock WHERE id = $1`, [item.id]);
     await client.query(
-      `INSERT INTO dealersStock (thingId, addedBy, added_id, status) VALUES ($1, $2, $3, $4)`,
+      `INSERT INTO dealersStock(thingId, addedBy, added_id, status) VALUES ($1, $2, $3, $4)`,
       [item.thing_id, userName, dealerId, status]
     );
 
