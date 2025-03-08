@@ -467,6 +467,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       let userTable = null;
       let params = [status];
       let additionalFilter = '';
+      let searchFilter = '';
 
       if (userrole === 'admin') {
         if (stock === 'sold') {
@@ -527,21 +528,27 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
 
       query += ` LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId WHERE s.status = $1 ${additionalFilter}`;
 
-      // Search Term Filtering
+      // Apply search filter only if `userTable` is joined
       if (searchTerm) {
-        query += ` AND (
-          t.serialno ILIKE $${params.length + 1} 
-          OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
-          OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
-        )`;
+        if (userTable) {
+          searchFilter = ` AND (
+            t.serialno ILIKE $${params.length + 1} 
+            OR (u.name ILIKE $${params.length + 1} AND u.name IS NOT NULL) 
+            OR (u.phone ILIKE $${params.length + 1} AND u.phone IS NOT NULL)
+          )`;
+        } else {
+          searchFilter = ` AND t.serialno ILIKE $${params.length + 1}`;
+        }
         params.push(`%${searchTerm}%`);
       }
 
-      // Serial Number Filtering
+      // Apply Serial Number Filter
       if (serialno) {
         query += ` AND t.serialno ILIKE $${params.length + 1}`;
         params.push(`%${serialno}%`);
       }
+
+      query += searchFilter;
 
       console.log('Executing query:', query);
       console.log('Query parameters:', params);
@@ -562,6 +569,7 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
     }
   }
 );
+
 
 // dashboard.get('/api/searchThings/working/:stock/status/:status', async (req, res) => {
 //   const { searchTerm, party = "customer", serialno } = req.query;
