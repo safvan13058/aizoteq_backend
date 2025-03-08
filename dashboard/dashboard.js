@@ -4420,7 +4420,7 @@ dashboard.put('/update-dealer/:user_id', async (req, res) => {
 //             if (key.startsWith("s") && key.length === 2) {
 //               const switchNumber = `${thingmac}_${key.substring(1)}`;
 //               const switchState = value === "1" ? "ON" : "OFF";
-
+             
 //               events.push({
 //                 switch: switchNumber,
 //                 state: switchState,
@@ -4451,23 +4451,30 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
   const pageSize = parseInt(req.query.pageSize, 10) || 10;
 
   try {
-    // Fetch audit logs
-    const query = `
-      SELECT 
-        al.event_data, 
-        al.timestamp, 
-        COUNT(*) OVER() AS total_count
-      FROM audit_logs al
-      WHERE al.thing_mac = $1
-      ORDER BY al.timestamp DESC
-    `;
+    // Fetch deviceId and deviceName using thingmac (macAddress)
+    const deviceIdQuery = `SELECT deviceId, name FROM Devices WHERE macAddress = $1 LIMIT 1;`;
+    const deviceIdResult = await db.query(deviceIdQuery, [thingmac]);
 
+    let deviceId = "Unknown Device";
+    let deviceName = "Unknown Device";
+
+    if (deviceIdResult.rows.length > 0) {
+      deviceId = deviceIdResult.rows[0].deviceId;
+      deviceName = deviceIdResult.rows[0].name;
+    }
+
+    // Query audit logs
+    const query = `
+      SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
+      FROM audit_logs
+      WHERE thing_mac = $1
+      ORDER BY timestamp DESC;
+    `;
     const dbResult = await db.query(query, [thingmac]);
 
     let events = [];
-    let deviceIds = new Set(); // Collect unique deviceIds
 
-    dbResult.rows.forEach((row) => {
+    for (const row of dbResult.rows) {
       const eventData = row.event_data
         ? typeof row.event_data === "string"
           ? JSON.parse(row.event_data)
@@ -4479,54 +4486,65 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
       const desiredStatus = status?.desired || {};
       const method = status?.u || desiredStatus?.u || "Unknown";
 
-      // Collect device IDs for switch events
-      [status, desiredStatus].forEach((data) => {
-        if (data) {
-          Object.entries(data).forEach(([key, value]) => {
-            if (key.startsWith("s") && key.length === 2) {
-               const deviceId  = `${thingmac}_${key.substring(1)}`
-              // const deviceId = key.substring(1); // Extract the switch number as deviceId
-              deviceIds.add(deviceId); // Store deviceId to fetch names later
+      // ✅ Handling connection/disconnection events
+      if (status?.command === "device_update" || desiredStatus?.command === "device_update") {
+        const deviceStatus = status?.status || desiredStatus?.status;
+        if (deviceStatus === "disconnected") {
+          events.push({
+            state: "DISCONNECTED",
+            time: timestamp,
+            method,
+            type: "Connection",
+            deviceId,
+            deviceName,
+          });
+        } else if (deviceStatus === "connected") {
+          events.push({
+            state: "CONNECTED",
+            time: timestamp,
+            method,
+            type: "Connection",
+            deviceId,
+            deviceName,
+          });
+        }
+      }
 
+      // ✅ Handling switch logs (Check both status and status.desired)
+      for (const data of [status, desiredStatus]) {
+        if (data) {
+          for (const [key, value] of Object.entries(data)) {
+            if (key.startsWith("s") && key.length === 2) {
               const switchState = value === "1" ? "ON" : "OFF";
+              const switchId = `${deviceId}_${key.substring(1)}`;
+
+              // 🔥 FIXED: Await works properly in `for...of` loop
+              const switchNameQuery = `SELECT name FROM Devices WHERE deviceId = $1 LIMIT 1;`;
+              const switchResult = await db.query(switchNameQuery, [switchId]);
+              const switchDeviceName = switchResult.rows.length > 0 ? switchResult.rows[0].name : "Unknown Switch";
 
               events.push({
-                switch: deviceId,
+                switch: switchId,
+                switchName: switchDeviceName, // ✅ Includes the name of the switch device
                 state: switchState,
                 time: timestamp,
                 method,
                 type: "Switch",
-                deviceId, // We will replace this with the actual device name later
+                deviceId,
+                deviceName,
               });
             }
-          });
+          }
         }
-      });
-    });
-
-    // Fetch device names for the collected device IDs
-    if (deviceIds.size > 0) {
-      const deviceQuery = `
-        SELECT deviceId, name FROM Devices WHERE deviceId = ANY($1)
-      `;
-      const deviceResults = await db.query(deviceQuery, [[...deviceIds]]);
-
-      const deviceMap = {};
-      deviceResults.rows.forEach((row) => {
-        deviceMap[row.deviceid] = row.name;
-      });
-
-      // Replace deviceId with deviceName in events
-      events = events.map((event) => ({
-        ...event,
-        device: deviceMap[event.switch] || "Unknown",
-      }));
+      }
     }
 
     return res.json({
       page,
       pageSize,
       total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count, 10) : 0,
+      deviceId,
+      deviceName,
       events,
     });
   } catch (err) {
@@ -4534,6 +4552,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 
 dashboard.get("/api/device/wifi/status/:thingmac", wifidata);
 
