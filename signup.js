@@ -184,7 +184,7 @@ signup.post('/verify-otp', async (req, res) => {
     try {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4)';
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4,$5)';
         const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName,req.cookies?.phone];
 
         await db.query(query, values);
