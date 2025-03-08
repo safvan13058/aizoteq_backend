@@ -4452,16 +4452,6 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
 
   try {
     // Fetch deviceId and deviceName using thingmac (macAddress)
-    const deviceIdQuery = `SELECT deviceId, name FROM Devices WHERE macAddress = $1 LIMIT 1;`;
-    const deviceIdResult = await db.query(deviceIdQuery, [thingmac]);
-
-    let deviceId = "Unknown Device";
-    let deviceName = "Unknown Device";
-
-    if (deviceIdResult.rows.length > 0) {
-      deviceId = deviceIdResult.rows[0].deviceId;
-      deviceName = deviceIdResult.rows[0].name;
-    }
 
     // Query audit logs
     const query = `
@@ -4495,8 +4485,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
             time: timestamp,
             method,
             type: "Connection",
-            deviceId,
-            deviceName,
+            
           });
         } else if (deviceStatus === "connected") {
           events.push({
@@ -4504,8 +4493,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
             time: timestamp,
             method,
             type: "Connection",
-            deviceId,
-            deviceName,
+        
           });
         }
       }
@@ -4516,7 +4504,7 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
           for (const [key, value] of Object.entries(data)) {
             if (key.startsWith("s") && key.length === 2) {
               const switchState = value === "1" ? "ON" : "OFF";
-              const switchId = `${deviceId}_${key.substring(1)}`;
+              const switchId = `${thingmac}_${key.substring(1)}`;
 
               // 🔥 FIXED: Await works properly in `for...of` loop
               const switchNameQuery = `SELECT name FROM Devices WHERE deviceId = $1 LIMIT 1;`;
@@ -4530,8 +4518,8 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
                 time: timestamp,
                 method,
                 type: "Switch",
-                deviceId,
-                deviceName,
+              
+
               });
             }
           }
@@ -4543,8 +4531,6 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
       page,
       pageSize,
       total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count, 10) : 0,
-      deviceId,
-      deviceName,
       events,
     });
   } catch (err) {
