@@ -4484,7 +4484,8 @@ dashboard.get("/api/display/auditlog/:thingmac", async (req, res) => {
         if (data) {
           Object.entries(data).forEach(([key, value]) => {
             if (key.startsWith("s") && key.length === 2) {
-              const deviceId = key.substring(1); // Extract the switch number as deviceId
+               const deviceId  = `${thingmac}_${key.substring(1)}`
+              // const deviceId = key.substring(1); // Extract the switch number as deviceId
               deviceIds.add(deviceId); // Store deviceId to fetch names later
 
               const switchState = value === "1" ? "ON" : "OFF";
