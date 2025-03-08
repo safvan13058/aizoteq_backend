@@ -522,9 +522,9 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
       
       if (userTable) {
         query += `,
-          u.name AS name,
-          u.phone AS phone,
-          u.email AS email
+          u.name AS customer_name,
+          u.phone AS customer_phone,
+          u.email AS customer_email
         `;
       }
 
