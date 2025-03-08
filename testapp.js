@@ -64,7 +64,7 @@ testapp.post("/app/addThing",
                 thing.serialno,
                 thing.macaddress,
                 thing.type || null,
-                thing.securityKey,
+                thing.securitykey,
                 new Date() 
             ]);
             const thingId = thingResult.rows[0].id; // Retrieve the inserted thing ID
