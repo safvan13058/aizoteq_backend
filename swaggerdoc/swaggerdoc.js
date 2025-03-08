@@ -21,6 +21,7 @@ const Swaggerdoc = {
                   "model": { "type": "string", "example": "SL-100" },
                   "serialno": { "type": "string", "example": "SL100-ABC123" },
                   "macaddress": { "type": "string", "example": "1223422D23D" },
+                  "securityKey": { "type": "string", "example": "122342" },
                   "type": { "type": "string" }
                 },
                 "required": ["thingName", "serialno"]
