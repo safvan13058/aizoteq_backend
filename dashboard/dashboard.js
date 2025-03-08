@@ -518,10 +518,20 @@ dashboard.get('/api/searchThings/working/:stock/status/:status',
           tf.failureReason,
           tf.fixed_by,
           tf.loggedAt
+      `;
+      
+      if (userTable) {
+        query += `,
+          u.name AS customer_name,
+          u.phone AS customer_phone,
+          u.email AS customer_email
+        `;
+      }
+
+      query += `
         FROM Things t
         LEFT JOIN ${stockTable} s ON t.id = s.thingId
       `;
-
       if (userTable) {
         query += ` LEFT JOIN ${userTable} u ON s.user_id = u.id `;
       }
