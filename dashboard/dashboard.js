@@ -32,44 +32,149 @@ dashboard.get('/api/users/count',
     }
   });
 
-dashboard.get("/api/production/graph", async (req, res) => {
-  const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
+// dashboard.get("/api/production/graph", async (req, res) => {
+//   const { groupBy } = req.query; // Accept 'day', 'week', 'month', or 'year' as a query parameter
 
+//   if (!["day", "week", "month", "year"].includes(groupBy)) {
+//     return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
+//   }
+
+//   // Map groupBy to SQL expressions
+//   const groupByExpression = {
+//     day: "TO_CHAR( added_at, 'Mon DD')", // Example: "Feb 11"
+//     week: "TO_CHAR( added_at, 'IYYY-IW')", // Example: "2025-06" (ISO year-week)
+//     month: "TO_CHAR( added_at, 'Mon YYYY')", // Example: "Feb 2025"
+//     year: "EXTRACT(YEAR FROM  added_at)::INT", // Example: 2025
+//   };
+
+//   const sortExpression = {
+//     day: "DATE( added_at)", // Sort by actual date
+//     week: "DATE_TRUNC('week',  added_at)", // Start of the week
+//     month: "DATE_TRUNC('month',  added_at)", // Start of the month
+//     year: "DATE_TRUNC('year',  added_at)", // Start of the year
+//   };
+
+//   const query = `
+//       SELECT 
+//         ${groupByExpression[groupBy]} AS period,
+//         COUNT(*) AS thing_count,
+//         ${sortExpression[groupBy]} AS sort_date
+//       FROM 
+//         Things
+//       GROUP BY 
+//         ${groupByExpression[groupBy]}, sort_date
+//       ORDER BY 
+//         sort_date ASC;
+//     `;
+
+//   try {
+//     const client = await db.connect();
+//     const result = await client.query(query);
+
+//     res.status(200).json({
+//       groupBy,
+//       data: result.rows.map(row => ({
+//         period: row.period,
+//         thing_count: row.thing_count,
+//       })),
+//     });
+
+//     client.release();
+//   } catch (err) {
+//     console.error("Error fetching Things graph data:", err);
+//     res.status(500).json({ error: "Internal Server Error" });
+//   }
+// });
+
+dashboard.get("/api/production/graph",
+  validateJwt,
+  authorizeRoles('admin', 'dealer'),
+  async (req, res) => {
+  const { groupBy } = req.query; // Accept userId from request
+  const  userId =req.user.id;
   if (!["day", "week", "month", "year"].includes(groupBy)) {
     return res.status(400).json({ error: "Invalid groupBy value. Use 'day', 'week', 'month', or 'year'." });
   }
 
-  // Map groupBy to SQL expressions
-  const groupByExpression = {
-    day: "TO_CHAR( added_at, 'Mon DD')", // Example: "Feb 11"
-    week: "TO_CHAR( added_at, 'IYYY-IW')", // Example: "2025-06" (ISO year-week)
-    month: "TO_CHAR( added_at, 'Mon YYYY')", // Example: "Feb 2025"
-    year: "EXTRACT(YEAR FROM  added_at)::INT", // Example: 2025
-  };
-
-  const sortExpression = {
-    day: "DATE( added_at)", // Sort by actual date
-    week: "DATE_TRUNC('week',  added_at)", // Start of the week
-    month: "DATE_TRUNC('month',  added_at)", // Start of the month
-    year: "DATE_TRUNC('year',  added_at)", // Start of the year
-  };
-
-  const query = `
-      SELECT 
-        ${groupByExpression[groupBy]} AS period,
-        COUNT(*) AS thing_count,
-        ${sortExpression[groupBy]} AS sort_date
-      FROM 
-        Things
-      GROUP BY 
-        ${groupByExpression[groupBy]}, sort_date
-      ORDER BY 
-        sort_date ASC;
-    `;
-
   try {
     const client = await db.connect();
-    const result = await client.query(query);
+
+    // Get the user role and username
+    const userResult = await client.query(`SELECT userRole, userName FROM Users WHERE id = $1`, [userId]);
+    const user = userResult.rows[0];
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const isAdmin = user.userrole === "admin";
+    let query, params = [];
+
+    // Admins use `added_at` from Things
+    const adminGroupByExpression = {
+      day: "TO_CHAR(added_at, 'Mon DD')",
+      week: "TO_CHAR(added_at, 'IYYY-IW')",
+      month: "TO_CHAR(added_at, 'Mon YYYY')",
+      year: "EXTRACT(YEAR FROM added_at)::INT",
+    };
+
+    const adminSortExpression = {
+      day: "DATE(added_at)",
+      week: "DATE_TRUNC('week', added_at)",
+      month: "DATE_TRUNC('month', added_at)",
+      year: "DATE_TRUNC('year', added_at)",
+    };
+
+    // Dealers use `timeanddate` from sales_graph
+    const dealerGroupByExpression = {
+      day: "TO_CHAR(timeanddate, 'Mon DD')",
+      week: "TO_CHAR(timeanddate, 'IYYY-IW')",
+      month: "TO_CHAR(timeanddate, 'Mon YYYY')",
+      year: "EXTRACT(YEAR FROM timeanddate)::INT",
+    };
+
+    const dealerSortExpression = {
+      day: "DATE(timeanddate)",
+      week: "DATE_TRUNC('week', timeanddate)",
+      month: "DATE_TRUNC('month', timeanddate)",
+      year: "DATE_TRUNC('year', timeanddate)",
+    };
+
+    if (isAdmin) {
+      // Admins: Count things grouped by added_at
+      query = `
+        SELECT 
+          ${adminGroupByExpression[groupBy]} AS period,
+          COUNT(*) AS thing_count,
+          ${adminSortExpression[groupBy]} AS sort_date
+        FROM 
+          Things
+        GROUP BY 
+          ${adminGroupByExpression[groupBy]}, sort_date
+        ORDER BY 
+          sort_date ASC;
+      `;
+    } else {
+      // Dealers: Count things based on sales where sale_to matches their username
+      query = `
+        SELECT 
+          ${dealerGroupByExpression[groupBy]} AS period,
+          COUNT(*) AS thing_count,
+          ${dealerSortExpression[groupBy]} AS sort_date
+        FROM 
+          sales_graph
+        WHERE 
+          sale_to = $1
+        GROUP BY 
+          ${dealerGroupByExpression[groupBy]}, sort_date
+        ORDER BY 
+          sort_date ASC;
+      `;
+
+      params = [user.username];
+    }
+
+    const result = await client.query(query, params);
 
     res.status(200).json({
       groupBy,
@@ -81,10 +186,11 @@ dashboard.get("/api/production/graph", async (req, res) => {
 
     client.release();
   } catch (err) {
-    console.error("Error fetching Things graph data:", err);
+    console.error("Error fetching graph data:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
+
 dashboard.get('/api/sales/count', validateJwt, authorizeRoles('admin', 'dealer'), async (req, res) => {
   const { role: userRole, id: userId } = req.user; // Extracted from JWT
 

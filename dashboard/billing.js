@@ -927,7 +927,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
       retail_price: items.retail_price,
       item_discount: items.item_discount,
       sgst: items.sgst,
-      cgst: items.cgst,
+       cgst: items.cgst,
       igst: items.igst,
       discounted_price:items.mrp-items.item_discount ,
       final_price: -final_price, // Negating the amount for return
