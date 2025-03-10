@@ -119,7 +119,26 @@ async function processBilling(data, stockTable, username, res) {
 
   const client = await db.connect();
   try {
-    let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1 AND addedby=$2`, [phone, user_id]);
+    // Fetch user role
+    const user = await client.query(`SELECT userRole FROM Users WHERE id = $1`, [user_id]);
+
+    // Check if user is admin
+    const isAdmin = user.rows[0]?.userrole === 'admin';
+
+    let entity;
+    if (isAdmin) {
+      entity = await client.query(
+        `SELECT * FROM ${entityTable} WHERE phone = $1`,
+        [phone]
+      );
+    } else {
+      entity = await client.query(
+        `SELECT * FROM ${entityTable} WHERE phone = $1 AND addedby = $2`,
+        [phone, user_id]
+      );
+    }
+
+    // let entity = await client.query(`SELECT * FROM ${entityTable} WHERE phone = $1 AND addedby=$2`, [phone, user_id]);
     if (entity.rows.length === 0) {
       const result = await client.query(
         `INSERT INTO ${entityTable} (name, address, phone, email, alt_phone,addedby)
@@ -327,7 +346,7 @@ async function processBilling(data, stockTable, username, res) {
     const pdfFileName = `receipt_${receiptNo}.pdf`;
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/receipt/${pdfFileName}`; // Change this URL based on your setup
-    
+
     // schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo,
@@ -360,7 +379,7 @@ async function processBilling(data, stockTable, username, res) {
       await sendEmailWithAttachment(email, name, receiptNo, pdfPath);
     }
     printPDF(pdfPath);
-    console.log("pdfpath",pdfUrl)
+    console.log("pdfpath", pdfUrl)
     // if (fs.existsSync(pdfPath)) {
     //   fs.unlinkSync(pdfPath);
     // }
@@ -840,7 +859,7 @@ const returned = async (req, res) => {
     }
 
     // Generate receipt for the transaction
-    const {newReceiptNo,pdfUrl} = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
+    const { newReceiptNo, pdfUrl } = await generateReceipt(client, receiptItems, totalReturnAmount, status, userName);
 
     await client.query("COMMIT");
 
@@ -848,8 +867,8 @@ const returned = async (req, res) => {
     return res.status(200).json({
       message: "Items successfully processed",
       total_return_amount: -totalReturnAmount,
-      receipt_no:newReceiptNo,
-      pdfpath:pdfUrl,
+      receipt_no: newReceiptNo,
+      pdfpath: pdfUrl,
     });
   } catch (error) {
     await client.query("ROLLBACK");
@@ -896,7 +915,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
     await client.query(`DELETE FROM ${item.source} WHERE id = $1`, [item.id]);
     await client.query(
       `INSERT INTO AdminStock (thingId, addedBy, status,addedAt) VALUES ($1, $2, $3, NOW())`,
-      [item.thingid,userName, status]
+      [item.thingid, userName, status]
     );
 
     totalReturnAmount += items.final_price;
@@ -1117,11 +1136,11 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     if (email) {
       // Step 7: Send the email with the attached receipt
       await sendEmailWithAttachment(email, name, phone, pdfPath);
-    } 
+    }
     // Step 8: Print PDF
     // printPDF(pdfPath);
-    console.log("returned",pdfUrl)
-    return {newReceiptNo,pdfUrl};
+    console.log("returned", pdfUrl)
+    return { newReceiptNo, pdfUrl };
   } catch (error) {
     console.error("Error generating receipt:", error.message);
     throw error;
@@ -1145,10 +1164,10 @@ async function uploadToS3(pdfPath, bucketName) {
   const fileContent = fs.readFileSync(pdfPath);
 
   const params = {
-      Bucket: bucketName,
-      Key: `print-jobs/receipt_${Date.now()}.pdf`,
-      Body: fileContent,
-      ContentType: 'application/pdf'
+    Bucket: bucketName,
+    Key: `print-jobs/receipt_${Date.now()}.pdf`,
+    Body: fileContent,
+    ContentType: 'application/pdf'
   };
 
   const data = await s3.upload(params).promise();
