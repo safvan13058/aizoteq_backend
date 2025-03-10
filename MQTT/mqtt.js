@@ -47,7 +47,7 @@ client.on("connect", () => {
   console.log("Connected to MQTT broker");
 
   // Subscribe to shadow update topic
-  client.subscribe("$aws/things/84F703B5F560/shadow/update/accepted", { qos: 1 }, (err) => {
+  client.subscribe("$aws/things/+/shadow/update/accepted", { qos: 1 }, (err) => {
     if (err) {
       console.error("Subscription error:", err);
     } else {
