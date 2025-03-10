@@ -347,7 +347,7 @@ async function processBilling(data, stockTable, username, res) {
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/receipt/${pdfFileName}`; // Change this URL based on your setup
 
-    // schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
+    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo,
       date: new Date().toLocaleDateString(),
@@ -929,6 +929,7 @@ async function processAdminReturn(client, serialNumbers, userName, status) {
       sgst: items.sgst,
       cgst: items.cgst,
       igst: items.igst,
+      discounted_price:items.mrp-items.item_discount ,
       final_price: -final_price, // Negating the amount for return
       type: items.type,
     });
@@ -1072,8 +1073,8 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     // Step 5: Insert returned items into billing_items
     for (const item of receiptItems) {
       await client.query(
-        `INSERT INTO billing_items (receipt_no, serial_no, mrp, model, retail_price, final_price) VALUES ($1, $2, $3, $4, $5, $6)`,
-        [newReceiptNo, item.serial_no, item.mrp, item.model, item.retail_price, -item.retail_price]
+        `INSERT INTO billing_items (receipt_no, serial_no, mrp, model, retail_price, final_price,type) VALUES ($1, $2, $3, $4, $5, $6,%7)`,
+        [newReceiptNo, item.serial_no, item.mrp, item.model, item.retail_price, -item.final_price,status]
       );
     }
     // Step 5.1: Update dealer, customer, or online customer financial records
@@ -1118,7 +1119,7 @@ async function generateReceipt(client, receiptItems, totalReturnAmount, status, 
     const pdfFileName = `receipt_${receiptNo}.pdf`;
     const pdfPath = path.join(receiptDir, pdfFileName);
     const pdfUrl = `https://13.200.215.17:3000/dashboard/returned/${pdfFileName}`; // Change this URL based on your setup
-    // schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
+    schedulePDFDeletion(pdfPath, 24 * 60 * 60 * 1000);
     await generatePDF(pdfPath, {
       receiptNo: "000",
       date: new Date().toLocaleDateString(),
