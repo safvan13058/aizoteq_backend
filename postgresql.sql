@@ -80,6 +80,7 @@ CREATE TABLE AdminStock (
     status VARCHAR(255) CHECK (status IN ('new', 'returned', 'rework', 'exchange')), -- Device status in stock
     FOREIGN KEY (thingId) REFERENCES Things(id) ON DELETE SET NULL
 );
+
 -- Table to store home information
 -- CREATE TABLE HOME (
 --     id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
@@ -314,7 +315,18 @@ CREATE TABLE customersStock (
     CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id) ON DELETE SET NULL,    
     CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES customers_details(id) ON DELETE SET NULL
 );
-
+CREATE TABLE onlinecustomerStock (
+    id SERIAL PRIMARY KEY, 
+    thingid INT,  -- Can be NULL if the referenced `thingid` is deleted
+    user_id INT,  -- Can be NULL if the referenced `user_id` is deleted
+    status VARCHAR(20) NOT NULL CHECK (status IN ('new', 'returned', 'rework', 'exchange')), 
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Timestamp of when the record was added
+    added_id INT,  -- Possible reference to a user who added the entry
+    added_by VARCHAR(100) NOT NULL, -- Username of the person who added the record
+    
+    CONSTRAINT fk_things_id FOREIGN KEY (thingid) REFERENCES things(id) ON DELETE SET NULL,  
+    CONSTRAINT fk_users_id FOREIGN KEY (user_id) REFERENCES onlinecustomer_details(id) ON DELETE SET NULL
+);
   
 -- Create customer_details table
 CREATE TABLE onlinecustomer_details (
@@ -404,7 +416,7 @@ CREATE TABLE price_table (
     id SERIAL PRIMARY KEY,                      -- Unique identifier for each row
     model VARCHAR(255) NOT NULL,                -- Model name or identifier
     mrp NUMERIC(10, 2) NOT NULL,                -- Maximum retail price
-    retail_price NUMERIC(10, 2) NOT NULL,       -- Actual retail price
+    retail_price NUMERIC(10, 2)  NULL,       -- Actual retail price
     sgst NUMERIC(5, 2) DEFAULT 0.00, -- State GST as a percentage
     cgst NUMERIC(5, 2) DEFAULT 0.00,
     igst NUMERIC(5, 2) DEFAULT 0.00,
@@ -567,6 +579,13 @@ CREATE TABLE raw_material_features (
     raw_material_feature VARCHAR(255) NULL,
     raw_material_value VARCHAR(255)  NULL,
     FOREIGN KEY (material_id) REFERENCES raw_materials_stock(id) ON DELETE CASCADE
+);
+
+CREATE TABLE web_image (
+    id SERIAL PRIMARY KEY,       -- Auto-incrementing unique ID
+    model_id INT NOT NULL,       -- Model ID (integer)
+    model_no VARCHAR(255) NOT NULL, -- Model Number (string)
+    image_url TEXT NOT NULL      -- Image URL (string)
 );
 CREATE TABLE raw_materials_stock_history (
     id SERIAL PRIMARY KEY,        

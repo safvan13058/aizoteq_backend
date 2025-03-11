@@ -60,3 +60,25 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+
+
+
+
+-------------------------------------------------------
+CREATE OR REPLACE FUNCTION delete_customer_access_on_room_device_delete()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM customer_access 
+    WHERE thing_id = (SELECT thingId FROM devices WHERE deviceId = OLD.device_id);
+    
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER room_device_delete_trigger
+AFTER DELETE ON room_device
+FOR EACH ROW
+EXECUTE FUNCTION delete_customer_access_on_room_device_delete();
