@@ -129,7 +129,8 @@ client.on("notification", async (msg) => {
       const text = `Stock is low for ${component} (Reference: ${referenceNo}).`;
 
       // Send email alert
-      await sendEmail("safvan13473@gmail.com", subject, text);
+      // await sendEmail("safvan13473@gmail.com", subject, text);
+      await sendEmail("aizoteq@gmail.com", subject, text);
 
       // Send push notification
       await sendPushNotification(`Reorder Needed: ${component}`, text);
