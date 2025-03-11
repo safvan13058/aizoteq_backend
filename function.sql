@@ -82,3 +82,17 @@ CREATE TRIGGER room_device_delete_trigger
 AFTER DELETE ON room_device
 FOR EACH ROW
 EXECUTE FUNCTION delete_customer_access_on_room_device_delete();
+--------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION delete_old_audit_logs()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM audit_logs WHERE timestamp < NOW() - INTERVAL '30 days';
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER audit_logs_cleanup_trigger
+AFTER INSERT ON audit_logs
+FOR EACH ROW
+EXECUTE FUNCTION delete_old_audit_logs();

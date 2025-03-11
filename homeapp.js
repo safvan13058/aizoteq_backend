@@ -1028,7 +1028,14 @@ homeapp.post('/api/access/customer/:roomid',
             const { securitykey, serialno } = req.body;
 
             await client.query('BEGIN'); // Start a transaction
-
+             // ✅ Step 1: Check if the room exists
+             const checkRoomQuery = `SELECT * FROM room WHERE id = $1`;
+             const roomResult = await client.query(checkRoomQuery, [roomid]);
+ 
+             if (roomResult.rows.length === 0) {
+                 await client.query('ROLLBACK');
+                 return res.status(404).json({ message: "Room not found" });
+             }
             // Verify the thing
             const verifyQuery = 'SELECT * FROM things WHERE serialno = $1 AND securitykey = $2';
             const verifyResult = await client.query(verifyQuery, [serialno, securitykey]);
