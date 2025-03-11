@@ -184,7 +184,7 @@ async function handleDeviceStatus(deviceId, status) {
 
     // Prevent duplicate insertions
     if (processedMessages.has(uniqueKey)) {
-      console.log(`Skipping duplicate entry for device ${deviceId}`);
+      // console.log(`Skipping duplicate entry for device ${deviceId}`);
       return;
     }
 
@@ -195,8 +195,8 @@ async function handleDeviceStatus(deviceId, status) {
       VALUES ($1, $2, $3, $4)
     `;
 
-    console.log(`Logging status for device ${deviceId}`);
-    console.log(`eventData===${eventData}`);
+    // console.log(`Logging status for device ${deviceId}`);
+    // console.log(`eventData===${eventData}`);
 
     // ✅ Use a fresh connection to avoid closed pool issues
     const client = await db.connect();
