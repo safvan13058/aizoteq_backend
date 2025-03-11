@@ -206,7 +206,7 @@ async function handleDeviceStatus(deviceId, status) {
       client.release(); // ✅ Always release the client back to the pool
     }
 
-    console.log(`Status logged for device ${deviceId} at ${timestamp}`);
+    // console.log(`Status logged for device ${deviceId} at ${timestamp}`);
 
     // ✅ Use a timeout to clear old processed messages (avoid memory issues)
     setTimeout(() => processedMessages.delete(uniqueKey), 300000);
