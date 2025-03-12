@@ -49,7 +49,7 @@ const cors = require('cors');
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const allowedOrigins = ['https://demo.ollinwon.com', 'http://localhost:3000',"http://127.0.0.1:5500","http://localhost:5500"];
+const allowedOrigins = ['https://demo.ollinwon.com', 'https://iot.aizoteq.com','http://localhost:3000',"http://127.0.0.1:5500","http://localhost:5500"];
 
 const corsOptions = {
     origin: (origin, callback) => {
@@ -111,7 +111,7 @@ const PORT_HTTP = 3001;  // HTTP port
 
 let isHttpsAvailable = false;
 
-try {
+try { 
     // Try loading SSL certificates
     // const options = {
     //     key: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/privkey.pem'),
