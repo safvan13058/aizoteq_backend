@@ -730,7 +730,7 @@ homeapp.post('/app/add/room/:floor_id',
             let fileUrl = null;
             if (req.file) {
                 const file = req.file
-                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+                const fileKey = `aizoteq/images/${Date.now()}-${file.originalname}`; // Unique file name
                 const params = {
                     Bucket: process.env.S3_BUCKET_NAME,
                     Key: fileKey,
@@ -937,8 +937,8 @@ homeapp.put('/app/update/rooms/:id',
 
             let fileUrl;
             if (file) {
-                // Define S3 upload parameters
-                const fileKey = `images/${Date.now()}-${file.originalname}`; // Unique file name
+                // Define S3 upload parameters 
+                const fileKey = `aizoteq/images/${Date.now()}-${file.originalname}`; // Unique file name
                 const params = {
                     Bucket: process.env.S3_BUCKET_NAME,
                     Key: fileKey,
@@ -2441,7 +2441,7 @@ homeapp.put('/app/update/scenes/:id',
 
         // If an icon file is provided, upload it to S3
         if (file) {
-            const fileKey = `icons/${Date.now()}-${file.originalname}`;
+            const fileKey = `aizoteq/icons/${Date.now()}-${file.originalname}`;
             const params = {
                 Bucket: process.env.S3_BUCKET_NAME,
                 Key: fileKey,
