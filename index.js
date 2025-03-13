@@ -49,48 +49,73 @@ const cors = require('cors');
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const allowedOrigins = ['https://demo.ollinwon.com', 'https://iot.aizoteq.com','https://aizoteq.com','http://localhost:3000',"http://127.0.0.1:5500","http://localhost:5500"];
+// const allowedOrigins = ['https://demo.ollinwon.com', 'https://iot.aizoteq.com','https://aizoteq.com','http://localhost:3000',"http://127.0.0.1:5500","http://localhost:5500"];
+
+// const corsOptions = {
+//     origin: (origin, callback) => {
+//         if (!origin || allowedOrigins.includes(origin)) {
+//             callback(null, true);
+//         } else {
+//             callback(new Error('Not allowed by CORS'));
+//         }
+//     },
+//     credentials: true, // Allow cookies and credentials
+// };
+const allowedOrigins = [
+    'https://demo.ollinwon.com',
+    'https://iot.aizoteq.com',
+    'https://aizoteq.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:5500',
+    'http://localhost:5500'
+];
 
 const corsOptions = {
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
+            callback(null, origin); // Dynamically allow the requesting origin
         } else {
-            callback(new Error('Not allowed by CORS'));
+            callback(new Error('CORS not allowed'));
         }
     },
-    credentials: true, // Allow cookies and credentials
+    credentials: true, // Allow cookies and authentication headers
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Handle preflight requests
 
-// Optional: Manually handle OPTIONS preflight requests
-app.options('*', cors(corsOptions)); // Allow preflight for all routes
+// Apply CORS middleware
+// app.use(cors(corsOptions));
+
+// // Optional: Manually handle OPTIONS preflight requests
+// app.options('*', cors(corsOptions)); // Allow preflight for all routes
 
 // Example route
 app.get('/api/test', (req, res) => {
     res.json({ message: 'CORS is working!' });
 });
 
-app.use((req, res, next) => {
-    console.log(req.headers.origin)
-    const origin = req.headers.origin; // Get the origin of the incoming request
-    if (allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
-    }
-    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+// app.use((req, res, next) => {
+//     console.log(req.headers.origin)
+//     const origin = req.headers.origin; // Get the origin of the incoming request
+//     if (allowedOrigins.includes(origin)) {
+//         res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
+//     }
+//     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
+//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
+//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
 
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end(); // Handle preflight requests
-    }
-    next();
-});
+//     if (req.method === 'OPTIONS') {
+//         return res.status(200).end(); // Handle preflight requests
+//     }
+//     next();
+// });
 
 // app.use((req, res, next) => {
-//     res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com'); // Allow only the specified origin
+//     res.setHeader('Access-Control-Allow-Origin', 'https://.ollinwon.com'); // Allow only the specified origin
 //     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
 //     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
 //     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
