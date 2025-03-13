@@ -27,10 +27,10 @@ const allowedOrigins = [
 testapp.use((req, res, next) => {
     const origin = req.headers.origin;
     
-    console.log("🔹 Incoming Request:");
-    console.log(`🔸 Origin: ${origin}`);
-    console.log(`🔸 Method: ${req.method}`);
-    console.log(`🔸 Path: ${req.path}`);
+    // console.log("🔹 Incoming Request:");
+    // console.log(`🔸 Origin: ${origin}`);
+    // console.log(`🔸 Method: ${req.method}`);
+    // console.log(`🔸 Path: ${req.path}`);
 
     if (allowedOrigins.includes(origin)) {
         res.setHeader("Access-Control-Allow-Origin", origin); // ✅ Only set one origin
