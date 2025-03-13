@@ -70,7 +70,6 @@ app.use((req, res, next) => {
     next();
 });
 const allowedOrigins = [
-    'https://demo.ollinwon.com',
     'https://iot.aizoteq.com', // ✅ ADD THIS
     'https://api.aizoteq.com',
     'https://aizoteq.com',
