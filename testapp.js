@@ -15,25 +15,49 @@ function SecurityKey(macAddress) {
     return randomKey;
 }
 const allowedOrigins = [
-    'https://demo.ollinwon.com',
-    'https://iot.aizoteq.com', // ✅ ADD THIS
-    'https://api.aizoteq.com',
-    'https://aizoteq.com',
-    'http://localhost:3000',
-    'http://127.0.0.1:5500',
-    'http://localhost:5500'
+    "https://demo.ollinwon.com",
+    "https://iot.aizoteq.com",
+    "https://api.aizoteq.com",
+    "https://aizoteq.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500"
 ];
 
-testapp.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin',allowedOrigins  ); // Allow only the specified origin
-    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
-    if (req.method === 'OPTIONS') {
-        return res.status(200).end(); // Handle preflight requests
+app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    console.log("🔹 Incoming Request:");
+    console.log(`🔸 Origin: ${origin}`);
+    console.log(`🔸 Method: ${req.method}`);
+    console.log(`🔸 Path: ${req.path}`);
+
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin); // ✅ Only set one origin
     }
+
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+        return res.status(200).end(); // Preflight request handling
+    }
+
     next();
 });
+
+
+// testapp.use((req, res, next) => {
+//     res.setHeader('Access-Control-Allow-Origin', 'https://demo.ollinwon.com'); // Allow only the specified origin
+//     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
+//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
+//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+//     if (req.method === 'OPTIONS') {
+//         return res.status(200).end(); // Handle preflight requests
+//     }
+//     next();
+// });
 testapp.get('/testapp', (req, res) => {
     res.send("testapp working")
 })
