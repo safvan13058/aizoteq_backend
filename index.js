@@ -61,6 +61,14 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 //     },
 //     credentials: true, // Allow cookies and credentials
 // };
+
+app.use((req, res, next) => {
+    console.log("Incoming Request:");
+    console.log(`Origin: ${req.headers.origin}`);
+    console.log(`Method: ${req.method}`);
+    console.log(`Path: ${req.path}`);
+    next();
+});
 const allowedOrigins = [
     'https://demo.ollinwon.com',
     'https://iot.aizoteq.com',
