@@ -1360,190 +1360,6 @@ homeapp.put('/api/devices/:device_id/change/:newroomid',
 });
 
 //display all devices with floor name and room name 
-// homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
-//     const userId = req.params.userId;
-//     const limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
-//     const offset = parseInt(req.query.offset) || 0; // Default offset to 0 if not provided
-
-//     console.log('Fetching devices for userId:', userId);
-
-//     try {
-//         // Execute the query
-//         const result = await db.query(
-//             `
-//             SELECT DISTINCT
-//                 d.id AS device_id,
-//                 d.deviceId,
-//                 d.macAddress,
-//                 d.hubIndex,
-//                 d.createdBy,
-//                 d.enable,
-//                 d.status,
-//                 d.icon,
-//                 d.name AS device_name,
-//                 d.type AS device_type,
-//                 d.lastModified AS device_last_modified,
-//                 f.name AS floor_name,
-//                 r.name AS room_name,
-//                 r.id AS roomid,
-//                 f.id AS floorid
-//             FROM 
-//                 users u
-//             JOIN 
-//                 home h ON u.id = h.userid
-//             JOIN 
-//                 floor f ON h.id = f.home_id
-//             JOIN 
-//                 room r ON f.id = r.floor_id
-//             JOIN 
-//                 room_device rd ON r.id = rd.room_id
-//             JOIN 
-//                 devices d ON rd.device_id = d.deviceId
-//             WHERE 
-//                 u.id = $1
-//             ORDER BY 
-//                 f.name ASC,
-//                 r.name ASC
-//             LIMIT $2 OFFSET $3;
-//             `,
-//             [userId, limit, offset] // Parameterized query with limit and offset
-//         );
-
-//         // Debug the result structure
-//         console.log('Query Result:', result);
-
-//         // Extract rows from the result object
-//         const rows = result.rows;
-
-//         if (!rows || rows.length === 0) {
-//             return res.status(404).json({ message: 'No devices found for this user.' });
-//         }
-
-//         // Group devices by room
-//         const rooms = rows.reduce((acc, device) => {
-//             const roomKey = device.roomid;
-//             if (!acc[roomKey]) {
-//                 acc[roomKey] = {
-//                     room_name: device.room_name,
-//                     floor_name: device.floor_name,
-//                     floorid: device.floorid,
-//                     devices: [],
-//                 };
-//             }
-//             acc[roomKey].devices.push(device);
-//             return acc;
-//         }, {});
-
-//         // Format rooms as an array with device count
-//         const formattedRooms = Object.values(rooms).map((room) => ({
-//             ...room,
-//             device_count: room.devices.length,
-//         }));
-
-//         // Respond with paginated and formatted data
-//         res.status(200).json({
-//             total_rooms: formattedRooms.length,
-//             rooms: formattedRooms,
-//         });
-//     } catch (error) {
-//         console.error('Error fetching devices with full details:', { userId, error });
-//         res.status(500).json({ error: 'Internal Server Error' });
-//     }
-// });
-// homeapp.get('/api/display/all/devices/:userId', async (req, res) => {
-//     const userId = req.params.userId;
-//     const limit = parseInt(req.query.limit) || 10; // Default limit to 10 if not provided
-//     const offset = parseInt(req.query.offset) || 0; // Default offset to 0 if not provided
-
-//     console.log('Fetching devices for userId:', userId);
-
-//     try {
-//         // Execute the query
-//         const result = await db.query(
-//             `
-//             SELECT DISTINCT
-//                 d.id AS device_id,
-//                 d.deviceId,
-//                 d.macAddress,
-//                 d.hubIndex,
-//                 d.createdBy,
-//                 d.enable,
-//                 d.status,
-//                 d.icon,
-//                 d.name AS device_name,
-//                 d.type AS device_type,
-//                 d.lastModified AS device_last_modified,
-//                 f.name AS floor_name,
-//                 r.name AS room_name,
-//                 r.id AS roomid,
-//                 f.id AS floorid,
-//                 COALESCE(ufd.favorite, FALSE) AS favorite -- Include favorite status
-//             FROM 
-//                 users u
-//             JOIN 
-//                 home h ON u.id = h.userid
-//             JOIN 
-//                 floor f ON h.id = f.home_id
-//             JOIN 
-//                 room r ON f.id = r.floor_id
-//             JOIN 
-//                 room_device rd ON r.id = rd.room_id
-//             JOIN 
-//                 devices d ON rd.device_id = d.deviceId
-//             LEFT JOIN 
-//                 UserFavoriteDevices ufd ON ufd.device_id = d.id AND ufd.user_id = $1 -- Join for favorite status
-//             WHERE 
-//                 u.id = $1
-//             ORDER BY 
-//                 f.name ASC,
-//                 r.name ASC
-//             LIMIT $2 OFFSET $3;
-//             `,
-//             [userId, limit, offset] // Parameterized query with limit and offset
-//         );
-
-//         // Debug the result structure
-//         console.log('Query Result:', result);
-
-//         // Extract rows from the result object
-//         const rows = result.rows;
-
-//         if (!rows || rows.length === 0) {
-//             return res.status(404).json({ message: 'No devices found for this user.' });
-//         }
-
-//         // Group devices by room
-//         const rooms = rows.reduce((acc, device) => {
-//             const roomKey = device.roomid;
-//             if (!acc[roomKey]) {
-//                 acc[roomKey] = {
-//                     room_name: device.room_name,
-//                     roomid: device.roomid,
-//                     floor_name: device.floor_name,
-//                     floorid: device.floorid,
-//                     devices: [],
-//                 };
-//             }
-//             acc[roomKey].devices.push(device);
-//             return acc;
-//         }, {});
-
-//         // Format rooms as an array with device count
-//         const formattedRooms = Object.values(rooms).map((room) => ({
-//             ...room,
-//             device_count: room.devices.length,
-//         }));
-
-//         // Respond with paginated and formatted data
-//         res.status(200).json({
-//             total_rooms: formattedRooms.length,
-//             rooms: formattedRooms,
-//         });
-//     } catch (error) {
-//         console.error('Error fetching devices with full details:', { userId, error });
-//         res.status(500).json({ error: 'Internal Server Error' });
-//     }
-// });
 
 homeapp.get('/api/display/all/devices/:userId',
      validateJwt,
@@ -1699,209 +1515,6 @@ homeapp.get('/api/display/all/devices/:userId',
 
 
 //add device to favorite
-// homeapp.put('/api/device/favorite/:deviceid',
-
-//     async (req, res) => {
-//         const client = await db.connect(); // Get a client from the db
-//         try {
-//             const deviceid = req.params.deviceid;
-//             const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
-
-//             // Update the favorite status of the device for the user
-//             const updateFavoriteQuery = `
-//                INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
-//                VALUES ($1, $2, $3)
-//                ON CONFLICT (user_id, device_id)
-//                DO NOTHING;
-    
-//                UPDATE UserFavoriteDevices
-//                SET favorite = $3, last_modified = CURRENT_TIMESTAMP
-//                 WHERE user_id = $1 AND device_id = $2;
-// `;
-//             await client.query(updateFavoriteQuery, [user_id, deviceid, true]);
-
-//             res.status(200).json({ message: `Device ${deviceid} marked as favorite successfully.` });
-//         } catch (error) {
-//             console.error('Error updating favorite status:', error);
-//             res.status(500).json({ message: 'An error occurred while updating favorite status.', error });
-//         } finally {
-//             client.release(); // Release the client back to the pool
-//         }
-//     }
-// );
-// homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
-//     const client = await db.connect(); // Get a client from the db
-//     try {
-//         const deviceid = req.params.deviceid;
-//         const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
-
-//         // Toggle the favorite status of the device for the user
-//         const toggleFavoriteQuery = `
-//             INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
-//             VALUES ($1, $2, $3)
-//             ON CONFLICT (user_id, device_id)
-//             DO UPDATE 
-//             SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
-//             WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
-//               AND UserFavoriteDevices.favorite IS NOT NULL;
-//         `;
-//         await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
-
-//         res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
-//     } catch (error) {
-//         console.error('Error toggling favorite status:', error);
-//         res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
-//     } finally {
-//         client.release(); // Release the client back to the pool
-//     }
-// });
-
-//diplay favorite devices
-// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-//     const { userId } = req.params;
-//     const client = await db.connect();
-
-//     try {
-//         const query = `
-//             SELECT d.*
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd
-//             ON d.id = ufd.device_id
-//             WHERE ufd.user_id = $1
-//             AND ufd.favorite = true;
-//         `;
-//         const result = await client.query(query, [userId]);
-
-//         res.status(200).json({ success: true, data: result.rows });
-//     } catch (error) {
-//         console.error('Error fetching favorite devices:', error);
-//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
-//     } finally {
-//         client.release();
-//     }
-// });
-// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-//     const { userId } = req.params;
-//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
-//     const client = await db.connect();
-
-//     try {
-//         // Calculate offset for pagination
-//         const offset = (page - 1) * limit;
-
-//         const query = `
-//             SELECT d.*, r.id AS room_id, r.name AS room_name
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd
-//             ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd
-//             ON d.deviceId = rd.device_id
-//             LEFT JOIN room r
-//             ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1
-//             AND ufd.favorite = true
-//             LIMIT $2 OFFSET $3;
-//         `;
-
-//         const countQuery = `
-//             SELECT COUNT(*) AS total
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd
-//             ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd
-//             ON d.deviceId = rd.device_id
-//             LEFT JOIN room r
-//             ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1
-//             AND ufd.favorite = true;
-//         `;
-
-//         // Fetch the paginated data
-//         const result = await client.query(query, [userId, limit, offset]);
-
-//         // Fetch the total count
-//         const countResult = await client.query(countQuery, [userId]);
-//         const total = parseInt(countResult.rows[0].total, 10);
-
-//         // Restructure the data to group devices by room
-//         const rooms = {};
-//         result.rows.forEach(row => {
-//             const { room_id, room_name, ...device } = row;
-
-//             if (!rooms[room_id]) {
-//                 rooms[room_id] = {
-//                     room_id,
-//                     room_name,
-//                     devices: [],
-//                 };
-//             }
-
-//             rooms[room_id].devices.push(device);
-//         });
-
-//         // Convert the rooms object into an array
-//         const roomArray = Object.values(rooms);
-
-//         res.status(200).json({
-//             success: true,
-//             data: roomArray,
-//             pagination: {
-//                 currentPage: parseInt(page, 10),
-//                 totalPages: Math.ceil(total / limit),
-//                 totalItems: total,
-//                 pageSize: parseInt(limit, 10),
-//             },
-//         });
-//     } catch (error) {
-//         console.error('Error fetching favorite devices:', error);
-//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
-//     } finally {
-//         client.release();
-//     }
-// });
-
-// homeapp.put('/api/device/favorite/:deviceid', async (req, res) => {
-//     const client = await db.connect(); // Get a client from the db
-//     try {
-//         const deviceid = req.params.deviceid;
-//         const user_id = req.user?.id || req.body.userid; // Extract user ID from JWT middleware
-
-//         // Check if the user has access to the device through Things table
-//         const accessCheckQuery = `
-//             SELECT 1 
-//             FROM customer_access ca
-//             INNER JOIN Things t ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
-//             INNER JOIN Devices d ON d.thingId = t.id
-//             WHERE ca.user_id = $1 AND d.deviceId = $2;
-//         `;
-        
-//         const accessResult = await client.query(accessCheckQuery, [user_id, deviceid]);
-
-//         if (accessResult.rowCount === 0) {
-//             return res.status(403).json({ message: 'Access denied: You do not have permission to favorite this device.' });
-//         }
-
-//         // Toggle the favorite status of the device for the user
-//         const toggleFavoriteQuery = `
-//             INSERT INTO UserFavoriteDevices (user_id, device_id, favorite)
-//             VALUES ($1, $2, $3)
-//             ON CONFLICT (user_id, device_id)
-//             DO UPDATE 
-//             SET favorite = NOT UserFavoriteDevices.favorite, last_modified = CURRENT_TIMESTAMP
-//             WHERE UserFavoriteDevices.user_id = $1 AND UserFavoriteDevices.device_id = $2
-//               AND UserFavoriteDevices.favorite IS NOT NULL;
-//         `;
-//         await client.query(toggleFavoriteQuery, [user_id, deviceid, true]);
-
-//         res.status(200).json({ message: `Device ${deviceid} favorite status toggled successfully.` });
-//     } catch (error) {
-//         console.error('Error toggling favorite status:', error);
-//         res.status(500).json({ message: 'An error occurred while toggling favorite status.', error });
-//     } finally {
-//         client.release(); // Release the client back to the pool
-//     }
-// });
-
 homeapp.put('/api/device/favorite/:deviceid',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
@@ -1949,179 +1562,6 @@ homeapp.put('/api/device/favorite/:deviceid',
         client.release(); // Release the client back to the pool
     }
 });
-
-
-// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-//     const { userId } = req.params;
-//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
-//     const client = await db.connect();
-
-//     try {
-//         // Calculate offset for pagination
-//         const offset = (page - 1) * limit;
-
-//         const query = `
-//             SELECT d.*, r.id AS room_id, r.name AS room_name
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd
-//             ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd
-//             ON d.deviceId = rd.device_id
-//             LEFT JOIN room r
-//             ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1
-//             AND ufd.favorite = true
-//             LIMIT $2 OFFSET $3;
-//         `;
-
-//         const countQuery = `
-//             SELECT COUNT(*) AS total
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd
-//             ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd
-//             ON d.deviceId = rd.device_id
-//             LEFT JOIN room r
-//             ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1
-//             AND ufd.favorite = true;
-//         `;
-
-//         // Fetch the paginated data
-//         const result = await client.query(query, [userId, limit, offset]);
-
-//         // Fetch the total count
-//         const countResult = await client.query(countQuery, [userId]);
-//         const total = parseInt(countResult.rows[0].total, 10);
-
-//         // Restructure the data to group devices by room
-//         const rooms = {};
-//         result.rows.forEach(row => {
-//             const { room_id, room_name, ...device } = row;
-
-//             if (!rooms[room_id]) {
-//                 rooms[room_id] = {
-//                     room_id,
-//                     room_name,
-//                     devices: [],
-//                 };
-//             }
-
-//             rooms[room_id].devices.push(device);
-//         });
-
-//         // Convert the rooms object into an array
-//         const roomArray = Object.values(rooms);
-
-//         res.status(200).json({
-//             success: true,
-//             data: roomArray,
-//             pagination: {
-//                 currentPage: parseInt(page, 10),
-//                 totalPages: Math.ceil(total / limit),
-//                 totalItems: total,
-//                 pageSize: parseInt(limit, 10),
-//             },
-//         });
-//     } catch (error) {
-//         console.error('Error fetching favorite devices:', error);
-//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
-//     } finally {
-//         client.release();
-//     }
-// });
-
-// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-//     const { userId } = req.params;
-//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
-//     const client = await db.connect();
-
-//     try {
-//         // Step 1: Check if the user has access to the devices
-//         const accessCheckQuery = `
-//             SELECT DISTINCT d.deviceId
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             INNER JOIN Things t ON d.thingId = t.id
-//             INNER JOIN customer_access ca ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true;
-//         `;
-        
-//         const accessResult = await client.query(accessCheckQuery, [userId]);
-
-//         if (accessResult.rowCount === 0) {
-//             return res.status(403).json({ success: false, message: 'No accessible favorite devices found for this user.' });
-//         }
-
-//         // Step 2: Fetch the paginated list of favorite devices with access
-//         const offset = (page - 1) * limit;
-
-//         const query = `
-//             SELECT d.*, r.id AS room_id, r.name AS room_name
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
-//             LEFT JOIN room r ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true
-//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2))
-//             LIMIT $3 OFFSET $4;
-//         `;
-
-//         const deviceIds = accessResult.rows.map(row => row.deviceid); // Get the accessible device IDs
-
-//         const countQuery = `
-//             SELECT COUNT(*) AS total
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
-//             LEFT JOIN room r ON rd.room_id = r.id
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true
-//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2));
-//         `;
-
-//         // Fetch the paginated data
-//         const result = await client.query(query, [userId, deviceIds, limit, offset]);
-
-//         // Fetch the total count
-//         const countResult = await client.query(countQuery, [userId, deviceIds]);
-//         const total = parseInt(countResult.rows[0].total, 10);
-
-//         // Restructure the data to group devices by room
-//         const rooms = {};
-//         result.rows.forEach(row => {
-//             const { room_id, room_name, ...device } = row;
-
-//             if (!rooms[room_id]) {
-//                 rooms[room_id] = {
-//                     room_id,
-//                     room_name,
-//                     devices: [],
-//                 };
-//             }
-
-//             rooms[room_id].devices.push(device);
-//         });
-
-//         // Convert the rooms object into an array
-//         const roomArray = Object.values(rooms);
-
-//         res.status(200).json({
-//             success: true,
-//             data: roomArray,
-//             pagination: {
-//                 currentPage: parseInt(page, 10),
-//                 totalPages: Math.ceil(total / limit),
-//                 totalItems: total,
-//                 pageSize: parseInt(limit, 10),
-//             },
-//         });
-//     } catch (error) {
-//         console.error('Error fetching favorite devices:', error);
-//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
-//     } finally {
-//         client.release();
-//     }
-// });
 
 homeapp.get('/api/favorite-devices',
     validateJwt,
@@ -2255,115 +1695,6 @@ homeapp.get('/api/favorite-devices',
         client.release();
     }
 });
-
-// homeapp.get('/api/favorite-devices/:userId', async (req, res) => {
-//     const { userId } = req.params;
-//     const { page = 1, limit = 10 } = req.query; // Default to page 1 and limit 10
-//     const client = await db.connect();
-
-//     try {
-//         // Step 1: Check if the user has access to the devices
-//         const accessCheckQuery = `
-//             SELECT DISTINCT d.deviceId
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             INNER JOIN Things t ON d.thingId = t.id
-//             INNER JOIN customer_access ca ON ca.thing_id = t.id AND ca.securityKey = t.securityKey
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true;
-//         `;
-        
-//         const accessResult = await client.query(accessCheckQuery, [userId]);
-
-//         if (accessResult.rowCount === 0) {
-//             return res.status(403).json({ success: false, message: 'No accessible favorite devices found for this user.' });
-//         }
-
-//         // Step 2: Fetch the paginated list of favorite devices with access
-//         const offset = (page - 1) * limit;
-
-//         const query = `
-//             SELECT d.*, r.id AS room_id, r.name AS room_name, h.id AS home_id, h.name AS home_name
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
-//             LEFT JOIN room r ON rd.room_id = r.id
-//             LEFT JOIN home h ON r.home_id = h.id  -- Fetch home ID and name
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true
-//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2))
-//             LIMIT $3 OFFSET $4;
-//         `;
-
-//         const deviceIds = accessResult.rows.map(row => row.deviceid); // Get the accessible device IDs
-
-//         const countQuery = `
-//             SELECT COUNT(*) AS total
-//             FROM Devices d
-//             INNER JOIN UserFavoriteDevices ufd ON d.id = ufd.device_id
-//             LEFT JOIN room_device rd ON d.deviceId = rd.device_id
-//             LEFT JOIN room r ON rd.room_id = r.id
-//             LEFT JOIN home h ON r.home_id = h.id
-//             WHERE ufd.user_id = $1 AND ufd.favorite = true
-//             AND d.deviceId IN (SELECT deviceId FROM Devices WHERE deviceId = ANY($2));
-//         `;
-
-//         // Fetch the paginated data
-//         const result = await client.query(query, [userId, deviceIds, limit, offset]);
-
-//         // Fetch the total count
-//         const countResult = await client.query(countQuery, [userId, deviceIds]);
-//         const total = parseInt(countResult.rows[0].total, 10);
-
-//         // Restructure the data to group devices by home and room
-//         const homes = {};
-//         result.rows.forEach(row => {
-//             const { home_id, home_name, room_id, room_name, ...device } = row;
-
-//             if (!homes[home_id]) {
-//                 homes[home_id] = {
-//                     home_id,
-//                     home_name,
-//                     rooms: {},
-//                 };
-//             }
-
-//             if (!homes[home_id].rooms[room_id]) {
-//                 homes[home_id].rooms[room_id] = {
-//                     room_id,
-//                     room_name,
-//                     devices: [],
-//                 };
-//             }
-
-//             homes[home_id].rooms[room_id].devices.push(device);
-//         });
-
-//         // Convert the homes object into an array with nested rooms
-//         const homeArray = Object.values(homes).map(home => ({
-//             home_id: home.home_id,
-//             home_name: home.home_name,
-//             rooms: Object.values(home.rooms),
-//         }));
-
-//         res.status(200).json({
-//             success: true,
-//             data: homeArray,
-//             pagination: {
-//                 currentPage: parseInt(page, 10),
-//                 totalPages: Math.ceil(total / limit),
-//                 totalItems: total,
-//                 pageSize: parseInt(limit, 10),
-//             },
-//         });
-//     } catch (error) {
-//         console.error('Error fetching favorite devices:', error);
-//         res.status(500).json({ success: false, message: 'Failed to fetch favorite devices' });
-//     } finally {
-//         client.release();
-//     }
-// });
-
-
-
 
 // 1. Create a Scene
 
@@ -3211,7 +2542,7 @@ homeapp.get('/app/shared/access',
                     WHEN sa.entity_type = 'floor' THEN f.name
                     WHEN sa.entity_type = 'room' THEN r.name
                 END AS entity_name
-            FROM sharedaccess sa
+            FROM sharedusers sa
             LEFT JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
             LEFT JOIN floor f ON sa.entity_id = f.id AND sa.entity_type = 'floor'
             LEFT JOIN room r ON sa.entity_id = r.id AND sa.entity_type = 'room'
@@ -3268,7 +2599,7 @@ homeapp.get('/accept-share/:shareRequestId',
         // Validate the share request ID
         const query = `
             SELECT id, entity_id, entity_type, shared_with_user_email, status
-            FROM sharedaccess
+            FROM sharedusers
             WHERE id = $1
         `;
         const result = await db.query(query, [shareRequestId]);
@@ -3307,7 +2638,7 @@ homeapp.post('/app/revoke/access',
         // Verify that the user has `admin` access for the shared access record
         const verifyQuery = `
             SELECT sa.id, sa.access_type
-            FROM sharedaccess sa
+            FROM sharedusers sa
             WHERE sa.id = $1 AND sa.user_id = $2 AND sa.access_type = 'admin'
         `;
 
@@ -3319,7 +2650,7 @@ homeapp.post('/app/revoke/access',
 
         // Update the shared access status to "revoked"
         const revokeQuery = `
-            UPDATE sharedaccess
+            UPDATE sharedusers
             SET status = 'revoked'
             WHERE id = $1
         `;
@@ -3351,7 +2682,7 @@ homeapp.delete('/app/shared/access/:shareId',
         // Check if the shared access exists and if the user has admin privileges
         const checkQuery = `
             SELECT sa.user_id, sa.access_type
-            FROM sharedaccess sa
+            FROM sharedusers sa
             WHERE sa.id = $1
         `;
         const checkResult = await db.query(checkQuery, [shareId]);
@@ -3369,7 +2700,7 @@ homeapp.delete('/app/shared/access/:shareId',
 
         // Delete the shared access
         const deleteQuery = `
-            DELETE FROM sharedaccess
+            DELETE FROM sharedusers
             WHERE id = $1
         `;
         await db.query(deleteQuery, [shareId]);
@@ -3397,7 +2728,7 @@ homeapp.post('/app/update/access/status',
         // Verify that the user has `admin` access for the shared access record
         const verifyQuery = `
             SELECT sa.id, sa.access_type
-            FROM sharedaccess sa
+            FROM sharedusers sa
             WHERE sa.id = $1 AND sa.user_id = $2 AND sa.access_type = 'admin'
         `;
 
@@ -3409,7 +2740,7 @@ homeapp.post('/app/update/access/status',
 
         // Update the shared access status
         const updateQuery = `
-            UPDATE sharedaccess
+            UPDATE sharedusers
             SET status = $1
             WHERE id = $2
         `;
