@@ -24,7 +24,7 @@ const allowedOrigins = [
     "http://localhost:5500"
 ];
 
-app.use((req, res, next) => {
+testapp.use((req, res, next) => {
     const origin = req.headers.origin;
     
     console.log("🔹 Incoming Request:");
