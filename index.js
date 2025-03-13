@@ -71,13 +71,13 @@ app.use((req, res, next) => {
 });
 const allowedOrigins = [
     'https://demo.ollinwon.com',
-    'https://iot.aizoteq.com',
+    'https://iot.aizoteq.com', // ✅ ADD THIS
+    'https://api.aizoteq.com',
     'https://aizoteq.com',
     'http://localhost:3000',
     'http://127.0.0.1:5500',
     'http://localhost:5500'
 ];
-
 const corsOptions = {
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
