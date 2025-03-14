@@ -320,7 +320,7 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
+            ClientId: "3l325a6514drkco6mlhd9fv63a",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
@@ -362,7 +362,7 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
+            ClientId: "3l325a6514drkco6mlhd9fv63a",
             AuthParameters: {
                 REFRESH_TOKEN: loginRefreshToken,
                 USERNAME: username,
