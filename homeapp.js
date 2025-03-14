@@ -1209,10 +1209,10 @@ homeapp.delete('/api/remove/access/:roomid/:thingid',
             FROM customer_access ca
             INNER JOIN devices d ON ca.thing_id = d.thingid
             INNER JOIN room_device rd ON rd.device_id = d.deviceId
-            WHERE ca.user_id = $1 AND ca.thing_id = $2 AND rd.room_id = $3
+            WHERE ca.user_id = $1 AND ca.thing_id = $2 
             LIMIT 1;
         `;
-        const accessCheckResult = await client.query(accessCheckQuery, [user_id, thingid, roomid]);
+        const accessCheckResult = await client.query(accessCheckQuery, [user_id, thingid]);
 
         if (accessCheckResult.rows.length === 0) {
             await client.query('ROLLBACK');
@@ -1221,19 +1221,19 @@ homeapp.delete('/api/remove/access/:roomid/:thingid',
         console.log(roomid, thingid)
         const deleteRoomDeviceQuery = `
             DELETE FROM room_device
-            WHERE room_id = $1 AND device_id IN (
-                SELECT deviceId FROM devices WHERE thingid = $2
+            WHERE device_id IN (
+                SELECT deviceId FROM devices WHERE thingid = $1
             );
         `;
-        await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
+        await client.query(deleteRoomDeviceQuery, [thingid]);
 
         const deleteUserDevicesOrderQuery = `
             DELETE FROM UserDevicesorder
-            WHERE roomid = $1 AND device_id IN (
-                SELECT id FROM devices WHERE thingid = $2
+            WHERE device_id IN (
+                SELECT id FROM devices WHERE thingid = $1
             );
         `;
-        await client.query(deleteUserDevicesOrderQuery, [roomid, thingid]);
+        await client.query(deleteUserDevicesOrderQuery, [thingid]);
         console.log(user_id, thingid)
         const deleteCustomerAccessQuery = `
             DELETE FROM customer_access
