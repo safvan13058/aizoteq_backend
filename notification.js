@@ -24,28 +24,28 @@ admin.initializeApp({
 });
 
 // Configure PostgreSQL client for LISTEN/NOTIFY
-const client = new Client({
-    host: 'database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com', // AWS RDS
-    user: 'postgres',                      // Your database username
-    password: 'Aizo12345',                 // Your database password
-    database: 'postgres',                  // Your database name
-    port: 5432,                            // Default PostgreSQL port
-    ssl: {
-        rejectUnauthorized: true,
-        ca: fs.readFileSync('global-bundle.pem').toString() // RDS SSL Cert
-    }
-});
 // const client = new Client({
-//   host: 'database-1.cwzuruz2sxx0.ap-south-1.rds.amazonaws.com', // AWS RDS
-//   user: 'postgres',                      // Your database username
-//   password: 'aizoteqaizote',                 // Your database password
-//   database: 'postgres',                  // Your database name
-//   port: 5432,                            // Default PostgreSQL port
-//   ssl: {
-//       rejectUnauthorized: true,
-//       ca: fs.readFileSync('global-bundle.pem').toString() // RDS SSL Cert
-//   }
+//     host: 'database-1.cdiqmk28wk12.ap-south-1.rds.amazonaws.com', // AWS RDS
+//     user: 'postgres',                      // Your database username
+//     password: 'Aizo12345',                 // Your database password
+//     database: 'postgres',                  // Your database name
+//     port: 5432,                            // Default PostgreSQL port
+//     ssl: {
+//         rejectUnauthorized: true,
+//         ca: fs.readFileSync('global-bundle.pem').toString() // RDS SSL Cert
+//     }
 // });
+const client = new Client({
+  host: 'database-1.cwzuruz2sxx0.ap-south-1.rds.amazonaws.com', // AWS RDS
+  user: 'postgres',                      // Your database username
+  password: 'aizoteqaizote',                 // Your database password
+  database: 'postgres',                  // Your database name
+  port: 5432,                            // Default PostgreSQL port
+  ssl: {
+      rejectUnauthorized: true,
+      ca: fs.readFileSync('global-bundle.pem').toString() // RDS SSL Cert
+  }
+});
 // Connect to PostgreSQL
 client.connect().then(() => {
     console.log("Connected to PostgreSQL!");
