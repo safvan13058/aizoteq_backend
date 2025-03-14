@@ -151,8 +151,8 @@ try {
     //     cert: fs.readFileSync('/etc/letsencrypt/live/auslandenglish.com/fullchain.pem'),
     // };
     const options = {
-        key: fs.readFileSync('/etc/letsencrypt/live/admin.aizoteq.com/privkey.pem'),
-        cert: fs.readFileSync('/etc/letsencrypt/live/admin.aizoteq.com/fullchain.pem'),
+        key: fs.readFileSync('/etc/letsencrypt/live/api.aizoteq.com/privkey.pem'),
+        cert: fs.readFileSync('/etc/letsencrypt/live/api.aizoteq.com/fullchain.pem'),
     };
 
     // If SSL certificates are available, start the HTTPS server
