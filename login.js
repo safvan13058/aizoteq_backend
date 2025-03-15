@@ -17,6 +17,12 @@ const cors = require('cors');
 //     credentials: true, // Allow cookies to be sent
 // }));
 
+login.use(cors({
+    origin: '*',  // Allow all origins (for testing)
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true
+}));
+
 AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey:process.env.AWS_SECRET_ACCESS_KEY,
