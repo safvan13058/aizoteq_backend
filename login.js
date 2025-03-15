@@ -217,7 +217,7 @@ login.post('/refresh-token', async (req, res) => {
 
     } catch (err) {
         console.error("❌ Token refresh error:", err.message);
-        res.status(500).json({ message: 'Error during token refresh', error: err.message });
+        res.status(500).json({ message: 'Error during token refresh', error: err});
     }
 });
 
