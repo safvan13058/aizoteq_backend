@@ -221,7 +221,7 @@ login.post('/refresh-token', async (req, res) => {
     }
 });
 
-// Logout API  
+// Logout API        
 login.post('/logout', async (req, res) => {
     console.log("loginout")
     try {
@@ -326,7 +326,7 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "3l325a6514drkco6mlhd9fv63a",
+            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
@@ -368,7 +368,7 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "3l325a6514drkco6mlhd9fv63a",
+            ClientId: "2h3nid8ifjsojo4hsk96me5ntt",
             AuthParameters: {
                 REFRESH_TOKEN: loginRefreshToken,
                 // USERNAME: username,
