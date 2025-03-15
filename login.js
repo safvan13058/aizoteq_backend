@@ -371,7 +371,7 @@ login.post('/auth', async (req, res) => {
             ClientId: "3l325a6514drkco6mlhd9fv63a",
             AuthParameters: {
                 REFRESH_TOKEN: loginRefreshToken,
-                USERNAME: username,
+                // USERNAME: username,
                 // SECRET_HASH: calculateSecretHash(username),
             },
         };
