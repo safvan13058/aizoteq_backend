@@ -106,21 +106,21 @@ app.get('/api/test', (req, res) => {
     res.json({ message: 'CORS is working!' });
 });
 
-// app.use((req, res, next) => {
-//     console.log(req.headers.origin)
-//     const origin = req.headers.origin; // Get the origin of the incoming request
-//     if (allowedOrigins.includes(origin)) {
-//         res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
-//     }
-//     res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
-//     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
-//     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
+app.use((req, res, next) => {
+    console.log(req.headers.origin)
+    const origin = req.headers.origin; // Get the origin of the incoming request
+    if (allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin); // Dynamically set the allowed origin
+    }
+    res.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow cookies and credentials
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Specify allowed HTTP methods
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Specify allowed headers
 
-//     if (req.method === 'OPTIONS') {
-//         return res.status(200).end(); // Handle preflight requests
-//     }
-//     next();
-// });
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end(); // Handle preflight requests
+    }
+    next();
+});
 
 // app.use((req, res, next) => {
 //     res.setHeader('Access-Control-Allow-Origin', 'https://.ollinwon.com'); // Allow only the specified origin
