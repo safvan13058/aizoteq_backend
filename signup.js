@@ -90,7 +90,9 @@ async function handleSignup(req, res, role) {
         // const values = [userName, jwtsub, role,fullName];
 
         // await db.query(query, values);
-
+        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4,$5)';
+        const values = [userName, jwtsub, role,fullName,phoneNumber];
+        await db.query(query, values);
         req.session.username = userName; // Store username in session
         res.cookie('username', userName, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
         res.cookie('jwtsub', jwtsub, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 3600000 });
@@ -184,10 +186,10 @@ signup.post('/verify-otp', async (req, res) => {
     try {
         console.log("working")
         await cognito.confirmSignUp(params).promise();
-        const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4,$5)';
-        const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName,req.cookies?.phone];
+        // const query = 'INSERT INTO Users (userName, jwtsub, userRole,name,phone) VALUES ($1, $2,$3,$4,$5)';
+        // const values = [username, jwtsub||req.session?.jwtsub||req.cookies?.jwtsub, role||req.session?.role||req.cookies.role,fullName,req.cookies?.phone];
 
-        await db.query(query, values);
+        // await db.query(query, values);
         console.log("workings")
         req.session.destroy();
         res.status(200).json({ message: 'OTP verified successfully' });
