@@ -326,7 +326,7 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "6biorq19ems8ntv5r3lkcfop2c",
+            ClientId: "5s58c551kfg8e22bvda348epu0",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password
@@ -368,9 +368,9 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "6biorq19ems8ntv5r3lkcfop2c",  // ✅ Use your new Client ID
+            ClientId: "5s58c551kfg8e22bvda348epu0",  // ✅ Use your new Client ID
             AuthParameters: {
-                REFRESH_TOKEN: loginRefreshToken  // ✅ Ensure you use the correct token
+                REFRESH_TOKEN:loginRefreshToken,// ✅ Ensure you use the correct token
             }
         };
 
