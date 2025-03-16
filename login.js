@@ -367,10 +367,10 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
+            ClientId: "263uvo2o5nua10nbaurvg2l06u",  // ✅ Use your new Client ID
             AuthParameters: {
-                REFRESH_TOKEN:loginRefreshToken,
-            },
+                REFRESH_TOKEN: loginRefreshToken  // ✅ Ensure you use the correct token
+            }
         };
 
         console.log('🔄 [REFRESH] Sending refresh request to Cognito...');
