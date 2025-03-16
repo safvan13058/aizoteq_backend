@@ -315,14 +315,13 @@ login.post('/auth', async (req, res) => {
         res.cookie('AccessToken', AccessToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         res.cookie('refreshToken', RefreshToken, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
         res.cookie('username', username, { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
-        res.cookie('SecretHash', calculateSecretHash(username), { httpOnly: true, secure: true, sameSite: 'Strict', maxAge: 2592000000 });
     };
 
     try {
         // 🟢 STEP 1: LOGIN FLOW
         console.log('🔑 [LOGIN] Starting login process...');
-        const secretHash = calculateSecretHash(username);
-        console.log(`🔑 [LOGIN] Calculated SECRET_HASH: ${secretHash}`);
+        // const secretHash = calculateSecretHash(username);
+        // console.log(`🔑 [LOGIN] Calculated SECRET_HASH: ${secretHash}`);
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
