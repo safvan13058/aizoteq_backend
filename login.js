@@ -352,11 +352,11 @@ login.post('/auth', async (req, res) => {
         const jwtsub = decodedLogin.sub;
         console.log(`🔑 [LOGIN] JWT sub: ${jwtsub}`);
 
-        const { rows } = await db.query('SELECT * FROM Users WHERE jwtsub = $1', [jwtsub]);
-        if (rows.length === 0) {
-            console.warn('⚠️ [LOGIN] No user found for the provided sub.');
-            return res.status(404).json({ message: 'User not found for the provided sub' });
-        }
+        // const { rows } = await db.query('SELECT * FROM Users WHERE jwtsub = $1', [jwtsub]);
+        // if (rows.length === 0) {
+        //     console.warn('⚠️ [LOGIN] No user found for the provided sub.');
+        //     return res.status(404).json({ message: 'User not found for the provided sub' });
+        // }
 
         setAuthCookies(loginIdToken, loginAccessToken, loginRefreshToken, username);
         console.log('✅ [LOGIN] Tokens set in cookies.');
