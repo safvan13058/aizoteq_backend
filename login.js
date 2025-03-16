@@ -369,8 +369,7 @@ login.post('/auth', async (req, res) => {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
             ClientId: "54sa2genjgv718oe4mj44q8cto",
             AuthParameters: {
-                REFRESH_TOKEN: loginRefreshToken,
-                DEVICE_KEY: "ap-south-1_adc20050-4c8e-4770-883f-861c7ee46126",
+                REFRESH_TOKEN: loginRefreshToken
             },
         };
 
