@@ -325,11 +325,11 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "3q3mepoj9th8rjspmb3evmo3qo",
+            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
             AuthParameters: {
                 USERNAME: username,
                 PASSWORD: password,
-                SECRET_HASH: calculateSecretHash(username)
+                // SECRET_HASH: calculateSecretHash(username)
 
             },
         };
@@ -369,11 +369,11 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "3q3mepoj9th8rjspmb3evmo3qo",
+            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
             AuthParameters: {
                 REFRESH_TOKEN:loginRefreshToken.trim(),
-                USERNAME: username,
-                SECRET_HASH: calculateSecretHash(username),
+                // USERNAME: username,
+                // SECRET_HASH: calculateSecretHash(username),
                 grant_type:"refresh_token",
             },
         };
