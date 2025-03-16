@@ -325,10 +325,10 @@ login.post('/auth', async (req, res) => {
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
+            ClientId: "263uvo2o5nua10nbaurvg2l06u",
             AuthParameters: {
                 USERNAME: username,
-                PASSWORD: password,
+                PASSWORD: password
             },
         };
 
