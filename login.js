@@ -12,16 +12,16 @@ login.use(cookieParser());
 login.use(bodyParser.json());
 login.use(bodyParser.urlencoded({ extended: true }));
 const cors = require('cors');
-// login.use(cors({
-//     origin:['http://127.0.0.1:5500','https://iot.aizoteq.com', 'http://172.20.10.7:5500',"http://localhost:5500"], // Allow all origins
-//     credentials: true, // Allow cookies to be sent
-// }));
-
 login.use(cors({
-    origin: '*',  // Allow all origins (for testing)
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true
+    origin:['http://127.0.0.1:5500','https://iot.aizoteq.com', 'http://172.20.10.7:5500',"http://localhost:5500"], // Allow all origins
+    credentials: true, // Allow cookies to be sent
 }));
+
+// login.use(cors({
+//     origin: '*',  // Allow all origins (for testing)
+//     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+//     credentials: true
+// }));
 
 AWS.config.update({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
