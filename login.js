@@ -370,6 +370,7 @@ login.post('/auth', async (req, res) => {
             ClientId: "52ml9t6v1s6esabq5j03vohkl6",
             AuthParameters: {
                 REFRESH_TOKEN: loginRefreshToken.trim(),
+                grant_type:"refresh_token",
             },
         };
 
