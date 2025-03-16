@@ -329,8 +329,7 @@ login.post('/auth', async (req, res) => {
             ClientId: "54sa2genjgv718oe4mj44q8cto",
             AuthParameters: {
                 USERNAME: username,
-                PASSWORD: password,
-                // SECRET_HASH: secretHash,
+                PASSWORD: password
             },
         };
 
@@ -370,9 +369,7 @@ login.post('/auth', async (req, res) => {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
             ClientId: "54sa2genjgv718oe4mj44q8cto",
             AuthParameters: {
-                REFRESH_TOKEN: loginRefreshToken,
-                // USERNAME: username,
-                // SECRET_HASH: calculateSecretHash(username),
+                REFRESH_TOKEN: loginRefreshToken
             },
         };
 
