@@ -320,15 +320,17 @@ login.post('/auth', async (req, res) => {
     try {
         // 🟢 STEP 1: LOGIN FLOW
         console.log('🔑 [LOGIN] Starting login process...');
-        // const secretHash = calculateSecretHash(username);
-        // console.log(`🔑 [LOGIN] Calculated SECRET_HASH: ${secretHash}`);
+        const secretHash = calculateSecretHash(username);
+        console.log(`🔑 [LOGIN] Calculated SECRET_HASH: ${secretHash}`);
 
         const loginParams = {
             AuthFlow: 'USER_PASSWORD_AUTH',
-            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
+            ClientId: "3q3mepoj9th8rjspmb3evmo3qo",
             AuthParameters: {
                 USERNAME: username,
-                PASSWORD: password
+                PASSWORD: password,
+                SECRET_HASH: calculateSecretHash(username)
+
             },
         };
 
@@ -367,9 +369,11 @@ login.post('/auth', async (req, res) => {
 
         const refreshParams = {
             AuthFlow: 'REFRESH_TOKEN_AUTH',
-            ClientId: "52ml9t6v1s6esabq5j03vohkl6",
+            ClientId: "3q3mepoj9th8rjspmb3evmo3qo",
             AuthParameters: {
                 REFRESH_TOKEN:loginRefreshToken.trim(),
+                USERNAME: username,
+                SECRET_HASH: calculateSecretHash(username),
                 grant_type:"refresh_token",
             },
         };
