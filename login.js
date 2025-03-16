@@ -359,7 +359,8 @@ login.post('/auth', async (req, res) => {
 
         setAuthCookies(loginIdToken, loginAccessToken, loginRefreshToken, username);
         console.log('✅ [LOGIN] Tokens set in cookies.');
-
+        // Adding 2-second delay before using refresh token
+         await new Promise(resolve => setTimeout(resolve, 2000)); 
         // 🔄 STEP 2: REFRESH TOKEN FLOW (Immediately after login)
         console.log('🔄 [REFRESH] Starting token refresh using login refreshToken...');
         console.log(`🔄 [REFRESH] Using refreshToken: ${loginRefreshToken}`);
