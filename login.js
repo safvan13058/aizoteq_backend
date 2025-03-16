@@ -410,7 +410,7 @@ login.post('/auth', async (req, res) => {
 
     } catch (err) {
         console.error('❌ [ERROR] During login or token refresh:', err.message);
-        return res.status(500).json({ message: 'Error during login or token refresh', error: err.message });
+        return res.status(500).json({ message: 'Error during login or token refresh', error: err });
     }
 });
 
