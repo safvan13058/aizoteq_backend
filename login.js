@@ -165,61 +165,7 @@ login.post('/login', async (req, res) => {
 //     }
 // });
 
-login.post('/refresh-token', async (req, res) => {
-    console.log('Cookies refresh token:',req.cookies);  
-    console.log('Body refresh token::',req.body);    
-    const refreshToken = req.cookies?.refreshToken||req.body.refreshToken ;
-    const username = req.cookies?.username||req.body.username; // Required for SECRET_HASH
-    
-    if (!refreshToken) {
-        return res.status(400).json({ message: 'Refresh token  are required' });
-    }
-    console.log('Body refresh token:bvbbvbvbvbvbbbbbbbbbb:',req.body.refreshToken);    
-    // const clientId = process.env.clientId;
-    // const clientSecret = process.env.clientSecret;
-    console.log(`refresh::${refreshToken}`)
-    const params = {
-        AuthFlow:'REFRESH_TOKEN_AUTH',
-        ClientId:process.env.clientId,
-        AuthParameters: {
-            REFRESH_TOKEN:refreshToken,
-            // USERNAME:username, // REQUIRED for SECRET_HASH to match
-            // SECRET_HASH:req.cookies.SecretHash
-        },
-    };
 
-    try {
-        const response = await cognito.initiateAuth(params).promise();
-        const { IdToken, AccessToken } = response.AuthenticationResult;
-
-        if (!IdToken || !AccessToken) {
-            return res.status(400).json({ message: 'Failed to refresh tokens' });
-        }
-
-        const decoded = jwt.decode(IdToken);
-        if (!decoded?.sub) {
-            return res.status(400).json({ message: 'Invalid refreshed token: Missing `sub` claim' });
-        }
-
-        res.cookie('idToken', IdToken, {
-            httpOnly: true,
-            secure: true,
-            sameSite: 'Strict',
-            maxAge: 3600000, // 1 hour
-        });
-
-        res.status(200).json({
-            message: 'Token refreshed successfully',
-            IdToken,
-            AccessToken,
-            jwtsub: decoded.sub,
-        });
-
-    } catch (err) {
-        console.error("❌ Token refresh error:", err.message);
-        res.status(500).json({ message: 'Error during token refresh', error: err});
-    }
-});
 
 // Logout API        
 login.post('/logout', async (req, res) => {
