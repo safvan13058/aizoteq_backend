@@ -2568,7 +2568,7 @@ dashboard.get("/api/display/prices-table",
     try {
       const { search } = req.query;
       console.log("Search query:", search);
-
+     
       let query = `
         WITH FirstThing AS (
           SELECT DISTINCT ON (t.model) t.id AS thing_id, t.model
@@ -2591,7 +2591,12 @@ dashboard.get("/api/display/prices-table",
         query += ` WHERE p.model ILIKE $1`;
         values.push(`%${search}%`);
       }
-      query += ` GROUP BY p.id;`;
+      // query += ` GROUP BY p.id;`;
+      query += ` 
+      GROUP BY p.id
+      HAVING jsonb_agg(DISTINCT jsonb_build_object('feature_id', f.id, 'feature', f.feature, 'feature_value', f.feature_value)) <> '[{}]'
+      OR jsonb_agg(DISTINCT jsonb_build_object('attributeName', ta.attributeName, 'attributeValue', ta.attributeValue)) <> '[{}]';
+    `;
 
       console.log("Final Query:", query);
       console.log("Values:", values);
