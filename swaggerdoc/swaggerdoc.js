@@ -5788,6 +5788,760 @@ const Swaggerdoc = {
     }
   }
 },
+
+"/app/share/access": {
+      "post": {
+        "summary": "Share access to an entity",
+        "description": "Allows an authorized user to share access to a home, floor, room, or device with another user.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Sharing"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "entity_id": {
+                    "type": "string",
+                    "example": "12345"
+                  },
+                  "entity_type": {
+                    "type": "string",
+                    "enum": ["home", "floor", "room", "device"],
+                    "example": "room"
+                  },
+                  "shared_with_user_email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "user@example.com"
+                  },
+                  "access_type": {
+                    "type": "string",
+                    "example": "read"
+                  },
+                  "userid": {
+                    "type": "string",
+                    "description": "Optional user ID if not extracted from JWT",
+                    "example": "67890"
+                  }
+                },
+                "required": ["entity_id", "entity_type", "shared_with_user_email", "access_type"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Access shared successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Access shared successfully"
+                    },
+                    "shareRequestId": {
+                      "type": "string",
+                      "example": "abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "All fields are required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while sharing access"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/accept-share/{shareRequestId}": {
+      "get": {
+        "summary": "Accept a shared access request",
+        "description": "Retrieves the shared access request and serves the acceptance page if the request is valid and pending.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Sharing"],
+        "parameters": [
+          {
+            "name": "shareRequestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique ID of the shared access request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Serves the acceptance page",
+            "content": {
+              "text/html": {
+                "example": "<html><body><h1>Accept Share</h1></body></html>"
+              }
+            }
+          },
+          "404": {
+            "description": "Share request not found or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Share request not found or invalid."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "This share request has already been processed."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while loading the page."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/accept/{shareRequestId}": {
+      "post": {
+        "summary": "Accept a shared access request",
+        "description": "Allows a user to accept a shared access request if they are the intended recipient.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Sharing"],
+        "parameters": [
+          {
+            "name": "shareRequestId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The unique ID of the shared access request"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Access accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Access accepted successfully."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Unauthorized to accept this request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "You are not authorized to accept this request."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Share request not found or invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Share request not found or invalid."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Request already processed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "This share request has already been processed."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while accepting the access request."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+"/app/revoke/access": {
+      "post": {
+        "summary": "Revoke shared access",
+        "description": "Allows an admin user to revoke previously shared access.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "share_id": {
+                    "type": "string",
+                    "description": "The ID of the shared access record to revoke",
+                    "example": "abc123"
+                  },
+                  "userid": {
+                    "type": "string",
+                    "description": "Optional user ID if not extracted from JWT",
+                    "example": "67890"
+                  }
+                },
+                "required": ["share_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access revoked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Access revoked successfully."
+                    },
+                    "share_id": {
+                      "type": "string",
+                      "example": "abc123"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Share ID is required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - User lacks admin permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "You do not have admin permissions to revoke this access."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while revoking access."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "/app/delete/shared/access/{shareId}": {
+      "delete": {
+        "summary": "Delete shared access",
+        "description": "Allows an admin user to delete a shared access record.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Management"],
+        "parameters": [
+          {
+            "name": "shareId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the shared access record to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shared access deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Shared access deleted successfully"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Share ID is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - User lacks admin permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "You do not have permission to delete this access"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Shared access record not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Shared access record not found"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while deleting shared access"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/app/update/access/status": {
+      "post": {
+        "summary": "Update shared access status",
+        "description": "Allows an admin user to update the status of a shared access record.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "tags": ["Access Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "share_id": {
+                    "type": "string",
+                    "description": "The ID of the shared access record to update",
+                    "example": "abc123"
+                  },
+                  "new_status": {
+                    "type": "string",
+                    "enum": ["accepted", "revoked", "pending"],
+                    "description": "The new status to set for the shared access",
+                    "example": "accepted"
+                  },
+                  "userid": {
+                    "type": "string",
+                    "description": "Optional user ID if not extracted from JWT",
+                    "example": "67890"
+                  }
+                },
+                "required": ["share_id", "new_status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Access status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Access status updated successfully."
+                    },
+                    "share_id": {
+                      "type": "string",
+                      "example": "abc123"
+                    },
+                    "new_status": {
+                      "type": "string",
+                      "example": "accepted"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Share ID and new status are required."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - User lacks admin permissions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "You do not have admin permissions to update the status of this access."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while updating the access status."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+  "/api/device/auditlog/{thingmac}": {
+      "get": {
+        "summary": "Retrieve audit logs for a specific device",
+        "description": "Fetches paginated audit logs for a device (thingmac) if the user has access.",
+        "tags": ["Audit Logs"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "thingmac",
+            "in": "path",
+            "required": true,
+            "description": "MAC address of the device",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "description": "Page number for pagination (default: 1)",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "description": "Number of items per page (default: 10)",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with audit logs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "pageSize": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 5
+                    },
+                    "total": {
+                      "type": "integer",
+                      "example": 50
+                    },
+                    "events": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "state": {
+                            "type": "string",
+                            "example": "CONNECTED"
+                          },
+                          "time": {
+                            "type": "string",
+                            "format": "date-time",
+                            "example": "2024-03-18T14:30:00Z"
+                          },
+                          "method": {
+                            "type": "string",
+                            "example": "User Request"
+                          },
+                          "type": {
+                            "type": "string",
+                            "example": "Connection"
+                          },
+                          "switch": {
+                            "type": "string",
+                            "example": "00:1A:2B:3C:4D:5E_s1"
+                          },
+                          "switchName": {
+                            "type": "string",
+                            "example": "Living Room Light"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Unauthorized access to this device",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized access to this device"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 // "/api/display/all/devices/{userId}": {
 //       "get": {
 //         "tags": ["device"],

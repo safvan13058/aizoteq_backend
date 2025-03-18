@@ -37,6 +37,7 @@ CREATE TABLE Things (
 --     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 --     FOREIGN KEY (thingId) REFERENCES Things(id)
 -- );
+
 CREATE TABLE ThingAttributes (
     id SERIAL PRIMARY KEY,
     thingId INT,
@@ -579,6 +580,22 @@ CREATE TABLE raw_material_features (
     raw_material_feature VARCHAR(255) NULL,
     raw_material_value VARCHAR(255)  NULL,
     FOREIGN KEY (material_id) REFERENCES raw_materials_stock(id) ON DELETE CASCADE
+);
+CREATE TABLE model_features (
+    id SERIAL PRIMARY KEY,
+    model_id INT NOT NULL,
+    feature TEXT  NULL, 
+    feature_value TEXT  NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (model_id) REFERENCES price_table(id) ON DELETE CASCADE
+);
+CREATE TABLE model_features_image (
+    id SERIAL PRIMARY KEY,
+    model_id INT  NULL, 
+    model_no TEXT  NULL, 
+    image_url TEXT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (model_id) REFERENCES price_table(id) ON DELETE CASCADE
 );
 
 CREATE TABLE web_image (
