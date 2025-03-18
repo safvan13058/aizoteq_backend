@@ -2489,6 +2489,48 @@ homeapp.delete('/api/notifications/:notificationId',
     });
 
 // -------------------------
+
+homeapp.get("/api/users",
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'), async (req, res) => {
+        const { search = "", page = 1, pageSize = 10 } = req.query;
+        const offset = (parseInt(page, 10) - 1) * parseInt(pageSize, 10);
+
+        try {
+            // Query to fetch total user count
+            const countQuery = `
+            SELECT COUNT(*) AS total_count 
+            FROM Users 
+            WHERE userName ILIKE $1 OR name ILIKE $1;
+        `;
+            const countResult = await db.query(countQuery, [`%${search}%`]);
+            const totalCount = parseInt(countResult.rows[0].total_count, 10);
+            const totalPages = Math.ceil(totalCount / pageSize);
+
+            // Query to fetch paginated user list with search
+            const query = `
+            SELECT id, userName, name 
+            FROM Users 
+            WHERE userName ILIKE $1 OR name ILIKE $1
+            ORDER BY id ASC
+            LIMIT $2 OFFSET $3;
+        `;
+            const dbResult = await db.query(query, [`%${search}%`, pageSize, offset]);
+
+            return res.json({
+                page: parseInt(page, 10),
+                pageSize: parseInt(pageSize, 10),
+                totalRecords: totalCount,
+                totalPages,
+                users: dbResult.rows
+            });
+
+        } catch (err) {
+            console.error("Database query error:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
 homeapp.post('/app/share/access',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
@@ -2564,6 +2606,174 @@ homeapp.get('/app/shared/access',
             res.status(500).json({ error: 'An error occurred while retrieving shared access.' });
         }
     });
+
+
+homeapp.get('/app/shared/access/:entity_type',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        try {
+            const { username } = req.user || req.query; // Get user from authentication or query params
+            const { entity_type } = req.params; // Get entity type from URL
+
+            if (!username) {
+                return res.status(400).json({ error: 'Username is required.' });
+            }
+
+            // ✅ Validate entity_type
+            const validEntityTypes = ['home', 'floor', 'room', 'device'];
+            if (!validEntityTypes.includes(entity_type)) {
+                return res.status(400).json({ error: `Invalid entity_type. Allowed values: ${validEntityTypes.join(', ')}` });
+            }
+
+            let query, queryParams = [username];
+
+            // ✅ If `home`, fetch floors, rooms, and devices, where `status = 'accepted'`
+            if (entity_type === 'home') {
+                query = `
+                    SELECT 
+                        h.id AS home_id,
+                        h.name AS home_name,
+                        h.created_by,
+                        h.last_modified,
+                        COALESCE(
+                            JSON_AGG(
+                                DISTINCT JSONB_BUILD_OBJECT(
+                                    'floor_id', f.id,
+                                    'floor_name', f.name,
+                                    'floor_index', f.floor_index,
+                                    'last_modified', f.last_modified,
+                                    'rooms', (
+                                        SELECT COALESCE(
+                                            JSON_AGG(
+                                                DISTINCT JSONB_BUILD_OBJECT(
+                                                    'room_id', r.id,
+                                                    'room_name', r.name,
+                                                    'alias_name', r.alias_name,
+                                                    'image_url', r.image_url,
+                                                    'last_modified', r.last_modified,
+                                                    'devices', (
+                                                        SELECT COALESCE(
+                                                            JSON_AGG(
+                                                                DISTINCT JSONB_BUILD_OBJECT(
+                                                                    'device_id', d.deviceId,
+                                                                    'device_name', d.name,
+                                                                    'macAddress', d.macAddress,
+                                                                    'status', d.status
+                                                                )
+                                                            ) FILTER (WHERE d.deviceId IS NOT NULL), '[]'
+                                                        )
+                                                        FROM devices d
+                                                        JOIN room_device rd ON rd.device_id = d.deviceId
+                                                        WHERE rd.room_id = r.id
+                                                    )
+                                                )
+                                            ) FILTER (WHERE r.id IS NOT NULL), '[]'
+                                        )
+                                        FROM room r
+                                        WHERE r.floor_id = f.id
+                                    )
+                                )
+                            ) FILTER (WHERE f.id IS NOT NULL), '[]'
+                        ) AS floors
+                    FROM sharedusers sa
+                    JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
+                    LEFT JOIN floor f ON f.home_id = h.id
+                    WHERE sa.shared_with_user_email = $1 AND sa.status = 'accepted'
+                    GROUP BY h.id;
+                `;
+            }
+            // ✅ If `floor`, fetch all rooms under that floor where `status = 'accepted'`
+            else if (entity_type === 'floor') {
+                query = `
+                    SELECT 
+                        f.id AS floor_id,
+                        f.home_id,
+                        f.floor_index,
+                        f.name AS floor_name,
+                        f.last_modified,
+                        COALESCE(
+                            JSON_AGG(
+                                DISTINCT JSONB_BUILD_OBJECT(
+                                    'room_id', r.id,
+                                    'room_name', r.name,
+                                    'alias_name', r.alias_name,
+                                    'image_url', r.image_url,
+                                    'last_modified', r.last_modified
+                                )
+                            ) FILTER (WHERE r.id IS NOT NULL), '[]'
+                        ) AS rooms
+                    FROM sharedusers sa
+                    JOIN floor f ON sa.entity_id = f.id AND sa.entity_type = 'floor'
+                    LEFT JOIN room r ON r.floor_id = f.id
+                    WHERE sa.shared_with_user_email = $1 AND sa.status = 'accepted'
+                    GROUP BY f.id;
+                `;
+            }
+            // ✅ If `room`, fetch all room properties along with devices inside it where `status = 'accepted'`
+            else if (entity_type === 'room') {
+                query = `
+                    SELECT 
+                        r.id AS room_id,
+                        r.home_id,
+                        r.floor_id,
+                        r.name AS room_name,
+                        r.alias_name,
+                        r.image_url,
+                        r.last_modified,
+                        COALESCE(
+                            JSON_AGG(
+                                DISTINCT JSONB_BUILD_OBJECT(
+                                    'device_id', d.deviceId,
+                                    'device_name', d.name,
+                                    'macAddress', d.macAddress,
+                                    'status', d.status
+                                )
+                            ) FILTER (WHERE d.deviceId IS NOT NULL), '[]'
+                        ) AS devices
+                    FROM sharedusers sa
+                    JOIN room r ON sa.entity_id = r.id AND sa.entity_type = 'room'
+                    LEFT JOIN room_device rd ON rd.room_id = r.id
+                    LEFT JOIN devices d ON rd.device_id = d.deviceId
+                    WHERE sa.shared_with_user_email = $1 AND sa.status = 'accepted'
+                    GROUP BY r.id;
+                `;
+            }
+            // ✅ If `device`, fetch all device properties where `status = 'accepted'`
+            else if (entity_type === 'device') {
+                query = `
+                    SELECT 
+                        COALESCE(
+                            JSON_AGG(
+                                DISTINCT JSONB_BUILD_OBJECT(
+                                    'id', d.id,
+                                    'device_id', d.deviceId,
+                                    'macAddress', d.macAddress,
+                                    'status', d.status
+                                )
+                            ) FILTER (WHERE d.deviceId IS NOT NULL), '[]'
+                        ) AS devices
+                    FROM sharedusers sa
+                    JOIN devices d ON sa.entity_id = d.id AND sa.entity_type = 'device'
+                    WHERE sa.shared_with_user_email = $1 AND sa.status = 'accepted';
+                `;
+            }
+
+            // ✅ Execute Query
+            const result = await db.query(query, queryParams);
+
+            res.status(200).json({
+                message: 'Shared access retrieved successfully',
+                sharedAccess: result.rows.length > 0 ? result.rows[0] : {}
+            });
+
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'An error occurred while retrieving shared access.' });
+        }
+    }
+);
+
 
 const sendEmailToSharedUser = async (email, shareRequestId) => {
     try {

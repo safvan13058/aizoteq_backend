@@ -6542,6 +6542,250 @@ const Swaggerdoc = {
         }
       }
     },
+"/app/shared/access/{entity_type}": {
+      "get": {
+        "summary": "Retrieve shared access details",
+        "description": "Fetches shared access details for a specific entity type (home, floor, room, device) where status is 'accepted'.",
+        "tags": ["Shared Access"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "entity_type",
+            "in": "path",
+            "required": true,
+            "description": "Entity type to fetch details for (home, floor, room, device)",
+            "schema": {
+              "type": "string",
+              "enum": ["home", "floor", "room", "device"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with shared access details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Shared access retrieved successfully"
+                    },
+                    "sharedAccess": {
+                      "type": "object",
+                      "oneOf": [
+                        {
+                          "properties": {
+                            "home_id": { "type": "integer", "example": 10 },
+                            "home_name": { "type": "string", "example": "My Smart Home" },
+                            "created_by": { "type": "string", "example": "admin" },
+                            "last_modified": { "type": "string", "format": "date-time" },
+                            "floors": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "floor_id": { "type": "integer", "example": 1 },
+                                  "floor_name": { "type": "string", "example": "Ground Floor" },
+                                  "floor_index": { "type": "integer", "example": 1 },
+                                  "last_modified": { "type": "string", "format": "date-time" },
+                                  "rooms": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "room_id": { "type": "integer", "example": 101 },
+                                        "room_name": { "type": "string", "example": "Living Room" },
+                                        "alias_name": { "type": "string", "example": "Main Hall" },
+                                        "image_url": { "type": "string", "example": "https://example.com/living-room.jpg" },
+                                        "last_modified": { "type": "string", "format": "date-time" },
+                                        "devices": {
+                                          "type": "array",
+                                          "items": {
+                                            "type": "object",
+                                            "properties": {
+                                              "device_id": { "type": "string", "example": "D1001" },
+                                              "device_name": { "type": "string", "example": "Smart Light" },
+                                              "macAddress": { "type": "string", "example": "00:1A:2B:3C:4D:5E" },
+                                              "status": { "type": "string", "example": "accepted" }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "floor_id": { "type": "integer", "example": 1 },
+                            "floor_name": { "type": "string", "example": "Ground Floor" },
+                            "floor_index": { "type": "integer", "example": 1 },
+                            "last_modified": { "type": "string", "format": "date-time" },
+                            "rooms": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "room_id": { "type": "integer", "example": 101 },
+                                  "room_name": { "type": "string", "example": "Living Room" },
+                                  "alias_name": { "type": "string", "example": "Main Hall" },
+                                  "image_url": { "type": "string", "example": "https://example.com/living-room.jpg" },
+                                  "last_modified": { "type": "string", "format": "date-time" }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "room_id": { "type": "integer", "example": 101 },
+                            "room_name": { "type": "string", "example": "Living Room" },
+                            "alias_name": { "type": "string", "example": "Main Hall" },
+                            "image_url": { "type": "string", "example": "https://example.com/living-room.jpg" },
+                            "last_modified": { "type": "string", "format": "date-time" },
+                            "devices": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "device_id": { "type": "string", "example": "D1001" },
+                                  "device_name": { "type": "string", "example": "Smart Light" },
+                                  "macAddress": { "type": "string", "example": "00:1A:2B:3C:4D:5E" },
+                                  "status": { "type": "string", "example": "accepted" }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        {
+                          "properties": {
+                            "devices": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": { "type": "integer", "example": 1 },
+                                  "device_id": { "type": "string", "example": "D1001" },
+                                  "macAddress": { "type": "string", "example": "00:1A:2B:3C:4D:5E" },
+                                  "status": { "type": "string", "example": "accepted" }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid entity type",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Invalid entity_type. Allowed values: home, floor, room, device"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "An error occurred while retrieving shared access."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "summary": "Retrieve list of users",
+        "description": "Fetches a list of all users with their id, userName, and name.",
+        "tags": ["Access Sharing"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with user list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "example": 1
+                          },
+                          "userName": {
+                            "type": "string",
+                            "example": "johndoe"
+                          },
+                          "name": {
+                            "type": "string",
+                            "example": "John Doe"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Internal Server Error"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
 // "/api/display/all/devices/{userId}": {
 //       "get": {
 //         "tags": ["device"],
