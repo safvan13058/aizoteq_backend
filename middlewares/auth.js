@@ -180,15 +180,15 @@ async function validateJwt(req, res, next) {
 
         // Decode JWT header to extract `kid`
         const decodedHeader = jwt.decode(bearerToken, { complete: true });
-        if (!decodedHeader || !decodedHeader.header.kid) {
-            return res.status(401).json({ message: "Invalid JWT structure" });
-        }
+        // if (!decodedHeader || !decodedHeader.header.kid) {
+        //     return res.status(401).json({ message: "Invalid JWT structure" });
+        // }
 
         // Fetch the public key
-        const publicKey = await getSigningKey(decodedHeader.header.kid);
-        if (!publicKey) {
-            return res.status(401).json({ message: "Public key not found for JWT verification" });
-        }
+        // const publicKey = await getSigningKey(decodedHeader.header.kid);
+        // if (!publicKey) {
+        //     return res.status(401).json({ message: "Public key not found for JWT verification" });
+        // }
 
         // Verify JWT using the retrieved public key
         const decoded = jwt.verify(bearerToken, publicKey, {
