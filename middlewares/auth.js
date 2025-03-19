@@ -197,18 +197,22 @@ async function validateJwt(req, res, next) {
         // });
         const decoded = jwt.decode(bearerToken, { complete: true });
         console.log("Decoded Token:", decoded);
-
-        if (!decoded.sub) {
-            return res.status(403).json({ message: "JWT does not contain a valid sub field" });
+       
+        if (!decoded || !decoded.payload) {
+            return res.status(403).json({ message: "Invalid JWT structure" });
         }
+        
+        // Extract only the payload
+        const jwtPayload = decoded.payload;
+        
 
-        req.user = decoded;
+        req.user = jwtPayload;
 
         // Check if the user exists in the database
         const client = await db.connect();
         try {
             const query = "SELECT * FROM users WHERE jwtsub = $1";
-            const result = await client.query(query, [decoded.sub]);
+            const result = await client.query(query, [jwtPayload.sub]);
 
             if (result.rows.length === 0) {
                 return res.status(404).json({ message: "User not found" });
