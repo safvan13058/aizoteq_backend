@@ -85,7 +85,7 @@ const getSigningKey = promisify(client.getSigningKey.bind(client));
 // }
 async function validateJwt(req, res, next) {
     try {
-        // console.log(`headers ==${req.headers.authorization}`);
+        console.log(`headers ==${req.headers.authorization}`);
 
         const token = req.headers.authorization;
         if (!token || !token.startsWith('Bearer ')) {
