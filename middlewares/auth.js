@@ -93,80 +93,80 @@ async function getSigningKey(kid) {
 //         return res.status(500).json({ message: 'Internal server error' });
 //     }
 // }
-async function validateJwt(req, res, next) {
-    try {
-        console.log(`headers ==${req.headers.authorization}`);
+// async function validateJwt(req, res, next) {
+//     try {
+//         console.log(`headers ==${req.headers.authorization}`);
 
-        const token = req.headers.authorization;
-        if (!token || !token.startsWith('Bearer ')) {
-            return res.status(401).json({ message: 'Invalid authorization header format' });
-        }
+//         const token = req.headers.authorization;
+//         if (!token || !token.startsWith('Bearer ')) {
+//             return res.status(401).json({ message: 'Invalid authorization header format' });
+//         }
 
-        const bearerToken = token.split(' ')[1]; // Extract the token
-        const verifyOptions = { issuer: COGNITO_ISSUER };
+//         const bearerToken = token.split(' ')[1]; // Extract the token
+//         const verifyOptions = { issuer: COGNITO_ISSUER };
 
-        jwt.verify(
-            bearerToken,
-            async (header, callback) => {
-                try {
-                    // console.log('JWT Header:', header);
-                    const key = await getSigningKey(header.kid);
-                    // console.log('Retrieved key:', key);
-                    callback(null, key.getPublicKey());
-                } catch (err) {
-                    console.error('Error retrieving signing key:', err);
-                    callback(err);
-                }
-            },
-            verifyOptions,
-            async (err, decoded) => {
-                if (err) {
-                    console.error('JWT verification failed:', err);
-                    return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
-                }
+//         jwt.verify(
+//             bearerToken,
+//             async (header, callback) => {
+//                 try {
+//                     // console.log('JWT Header:', header);
+//                     const key = await getSigningKey(header.kid);
+//                     // console.log('Retrieved key:', key);
+//                     callback(null, key.getPublicKey());
+//                 } catch (err) {
+//                     console.error('Error retrieving signing key:', err);
+//                     callback(err);
+//                 }
+//             },
+//             verifyOptions,
+//             async (err, decoded) => {
+//                 if (err) {
+//                     console.error('JWT verification failed:', err);
+//                     return res.status(401).json({ message: 'Invalid or expired token', error: err.message });
+//                 }
 
-                const userSub = decoded.sub;
-                if (!userSub) {
-                    return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
-                }
+//                 const userSub = decoded.sub;
+//                 if (!userSub) {
+//                     return res.status(403).json({ message: 'JWT does not contain a valid sub field' });
+//                 }
 
-                req.user = decoded; // Attach decoded token to request object
+//                 req.user = decoded; // Attach decoded token to request object
 
-                // Query database for user information
-                const client = await db.connect();
-                try {
-                    const query = 'SELECT * FROM users WHERE jwtsub = $1';
-                    const result = await client.query(query, [userSub]);
+//                 // Query database for user information
+//                 const client = await db.connect();
+//                 try {
+//                     const query = 'SELECT * FROM users WHERE jwtsub = $1';
+//                     const result = await client.query(query, [userSub]);
 
-                    if (result.rows.length === 0) {
-                        return res.status(404).json({ message: 'User not found' });
-                    }
+//                     if (result.rows.length === 0) {
+//                         return res.status(404).json({ message: 'User not found' });
+//                     }
 
-                    const user = result.rows[0];
+//                     const user = result.rows[0];
                     
-                    req.user = {
-                        ...req.user,
-                        role: user.userrole,
-                        jwtsub: user.jwtsub,
-                        id: user.id,
-                        username: user.username,
-                    };
+//                     req.user = {
+//                         ...req.user,
+//                         role: user.userrole,
+//                         jwtsub: user.jwtsub,
+//                         id: user.id,
+//                         username: user.username,
+//                     };
 
-                    // console.log('User authenticated:', req.user);
-                    next();
-                } catch (dbError) {
-                    console.error('Database query error:', dbError);
-                    return res.status(500).json({ message: 'Database error', error: dbError.message });
-                } finally {
-                    client.release(); // Ensure client is released
-                }
-            }
-        );
-    } catch (err) {
-        console.error('Unexpected error:', err);
-        return res.status(500).json({ message: 'Internal server error', error: err.message });
-    }
-}
+//                     // console.log('User authenticated:', req.user);
+//                     next();
+//                 } catch (dbError) {
+//                     console.error('Database query error:', dbError);
+//                     return res.status(500).json({ message: 'Database error', error: dbError.message });
+//                 } finally {
+//                     client.release(); // Ensure client is released
+//                 }
+//             }
+//         );
+//     } catch (err) {
+//         console.error('Unexpected error:', err);
+//         return res.status(500).json({ message: 'Internal server error', error: err.message });
+//     }
+// }
 async function validateJwt(req, res, next) {
     try {
         console.log(`Authorization Header: ${req.headers.authorization}`);
