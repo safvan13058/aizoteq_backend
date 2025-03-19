@@ -191,11 +191,11 @@ async function validateJwt(req, res, next) {
         }
 
         // Verify JWT using the retrieved public key
-        const decoded = jwt.verify(bearerToken, publicKey, {
-            issuer: COGNITO_ISSUER,
-            algorithms: ["RS256"]
-        });
-
+        // const decoded = jwt.verify(bearerToken, publicKey, {
+        //     issuer: COGNITO_ISSUER,
+        //     algorithms: ["RS256"]
+        // });
+        const decoded = jwt.decode(bearerToken, { complete: true });
         console.log("Decoded Token:", decoded);
 
         if (!decoded.sub) {
