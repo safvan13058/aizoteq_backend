@@ -469,7 +469,7 @@ homeapp.post('/app/add/floor/:home_id',
 
             const sharedAccessValues = [
                 user_id,           // Owner's ID
-                null,              // No email required for the owner
+                req.user.username,              // No email required for the owner
                 floorId,           // Floor ID
                 'floor',           // Entity type
                 'admin',           // Owner gets 'admin' access
@@ -790,7 +790,7 @@ homeapp.post('/app/add/room/:floor_id',
 
             const sharedAccessValues = [
                 user_id,            // Owner's ID
-                null,               // No email required for the owner
+                req.user.username,               // No email required for the owner
                 roomId,             // Room ID
                 'room',             // Entity type
                 'admin',            // Owner gets 'admin' access
