@@ -4,7 +4,7 @@ const db = require('./middlewares/dbconnection');
 const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
-
+require('dotenv').config(); 
 homeapp.use(express.json({ limit: '10mb' }));
 homeapp.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -2796,6 +2796,7 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
         console.error('Error sending email:', error);
     }
 };
+
 const path = require('path');
 
 homeapp.get('/accept-share/:shareRequestId',
