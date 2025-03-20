@@ -55,10 +55,20 @@ function isPhoneNumber(input) {
 
 // Login API
 login.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+    let { username, password } = req.body;
     if (!username || !password) {
         return res.status(400).json({ message: 'Missing required fields' });
     }
+     // Function to check if it's a phone number
+     const isPhoneNumber = (input) => {
+        return /^\d{10}$/.test(input) || /^\+91\d{10}$/.test(input);
+    };
+
+    // If it's a phone number and does not start with +91, add it
+    if (isPhoneNumber(username) && !username.startsWith('+91')) {
+        username = `+91${username}`;
+    }
+
     const params = {
         AuthFlow: 'USER_PASSWORD_AUTH',
         ClientId: process.env.clientId,
