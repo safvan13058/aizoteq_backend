@@ -6724,6 +6724,72 @@ const Swaggerdoc = {
         }
       }
     },
+    "/app/shared/from/access": {
+      "get": {
+        "summary": "Get shared access records (for users who shared access)",
+        "description": "Returns all records where the authenticated user has shared access.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": ["Shared Access"],
+        "responses": {
+          "200": {
+            "description": "Successful response with shared access records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedUser"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No shared records found."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/app/shared/to/access": {
+      "get": {
+        "summary": "Get shared access records (for users who received access)",
+        "description": "Returns all records where the authenticated user's email has been granted shared access.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "tags": ["Shared Access"],
+        "responses": {
+          "200": {
+            "description": "Successful response with shared access records.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SharedUser"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No shared records found."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
     "/api/users": {
       "get": {
         "summary": "Retrieve list of users",

@@ -2607,7 +2607,6 @@ homeapp.get('/app/shared/access',
         }
     });
 
-
 homeapp.get('/app/shared/access/:entity_type',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
@@ -3012,6 +3011,53 @@ homeapp.post('/app/update/access/status',
             res.status(500).json({ error: 'An error occurred while updating the access status.' });
         }
     });
+
+homeapp.get('/app/shared/from/access',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
+        try {
+            const  userId  = req.user.id;
+            const sharedRecords = await db.query(
+                'SELECT * FROM sharedusers WHERE user_id = $1',
+                [userId]
+            );
+    
+            if (sharedRecords.rows.length === 0) {
+                return res.status(404).json({ message: 'No shared records found' });
+            }
+    
+            res.json(sharedRecords.rows);
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send('Server Error');
+        }
+    });
+    
+// Get shared access records for a specific email
+homeapp.get('/app/shared/to/access',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+     async (req, res) => {
+    try {
+        const email  = req.user.username;
+        const sanitizedEmail = email.toLowerCase(); // Ensure case-insensitive search
+
+        const sharedRecords = await db.query(
+            'SELECT * FROM sharedusers WHERE LOWER(shared_with_user_email) = $1',
+            [sanitizedEmail]
+        );
+
+        if (sharedRecords.rows.length === 0) {
+            return res.status(404).json({ message: 'No shared records found' });
+        }
+
+        res.json(sharedRecords.rows);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
 
 homeapp.get('/api/list/macaddress/user/:user_id',
     validateJwt,
