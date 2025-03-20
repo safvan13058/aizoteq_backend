@@ -50,7 +50,7 @@ homeapp.post("/api/users/profile-pic",
         try {
             // Generate unique file name
             const fileExtension = path.extname(req.file.originalname);
-            const fileName = `user_${userId}_${Date.now()}${fileExtension}`;
+            const fileName = `profile-pics/user_${userId}_${Date.now()}${fileExtension}`;
 
             // Upload file to S3
             const params = {
