@@ -2773,7 +2773,7 @@ homeapp.get('/app/shared/access/:entity_type',
     }
 );
 
-
+const nodemailer=require('nodemailer');
 const sendEmailToSharedUser = async (email, shareRequestId) => {
     try {
         const transporter = nodemailer.createTransport({
