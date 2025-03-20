@@ -2784,7 +2784,7 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
             }
         });
         const info = await transporter.sendMail({
-            from: process.env.EMAIL_USERNAME,
+            from: process.env.EMAIL_USER,
             to: email,
             subject: 'You have been shared access',
             text: `You have been shared access to an entity in the Home App. Click the link below to accept or reject the request:\n\n` +
