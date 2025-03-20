@@ -4,13 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Accept Share Request</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
 </head>
 <body>
-    <h1>Accept or Reject Share Request</h1>
-    <form action="/app/accept/shared/access" method="POST">
-        <input type="hidden" name="share_request_id" value="<%= shareRequestId %>">
-        <button type="submit" name="action" value="accept">Accept</button>
-        <button type="submit" name="action" value="reject">Reject</button>
-    </form>
+    <div class="container">
+        <h2>Accept Share Request</h2>
+        <p id="request-details">Loading share request details...</p>
+        <button id="accept-btn">Accept Request</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async function() {
+            const shareRequestId = window.location.pathname.split("/").pop();
+            const requestDetails = document.getElementById("request-details");
+            const acceptBtn = document.getElementById("accept-btn");
+
+            acceptBtn.addEventListener("click", async function() {
+                try {
+                    const response = await fetch(`/accept/${shareRequestId}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" }
+                    });
+                    const result = await response.json();
+                    alert(result.message || "Request accepted successfully");
+                } catch (error) {
+                    alert("Error accepting request.");
+                }
+            });
+        });
+    </script>
 </body>
 </html>
