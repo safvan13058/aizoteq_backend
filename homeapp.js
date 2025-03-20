@@ -2544,7 +2544,7 @@ homeapp.post('/app/share/access',
             }
 
             const query = `
-            INSERT INTO sharedaccess (user_id, entity_id, entity_type, shared_with_user_email, access_type, status) 
+            INSERT INTO sharedusers (user_id, entity_id, entity_type, shared_with_user_email, access_type, status) 
             VALUES ($1, $2, $3, $4, $5, 'pending')
             RETURNING id
         `;
