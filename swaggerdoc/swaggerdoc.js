@@ -6553,7 +6553,18 @@ const Swaggerdoc = {
           }
         ],
         "parameters": [
+          
+          
           {
+                "in": "header",
+                "name": "Authorization",
+                "schema": {
+                  "type": "string",
+                  "example": "Bearer your-jwt-token"
+                },
+                "required": true,
+                "description": "JWT token for authentication"
+          },{ 
             "name": "entity_type",
             "in": "path",
             "required": true,
@@ -6734,6 +6745,18 @@ const Swaggerdoc = {
           }
         ],
         "tags": ["Shared Access"],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "type": "string",
+              "example": "Bearer your-jwt-token"
+            },
+            "required": true,
+            "description": "JWT token for authentication"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response with shared access records.",
@@ -6767,6 +6790,18 @@ const Swaggerdoc = {
           }
         ],
         "tags": ["Shared Access"],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "type": "string",
+              "example": "Bearer your-jwt-token"
+            },
+            "required": true,
+            "description": "JWT token for authentication"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful response with shared access records.",
@@ -6798,6 +6833,18 @@ const Swaggerdoc = {
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "schema": {
+              "type": "string",
+              "example": "Bearer your-jwt-token"
+            },
+            "required": true,
+            "description": "JWT token for authentication"
           }
         ],
         "responses": {
