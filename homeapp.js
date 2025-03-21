@@ -2800,8 +2800,8 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
 const path = require('path');
 
 homeapp.get('/accept-share/:shareRequestId',
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const shareRequestId = req.params.shareRequestId;
@@ -2833,8 +2833,8 @@ homeapp.get('/accept-share/:shareRequestId',
     });
 
 homeapp.post('/accept/:shareRequestId',
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    // validateJwt,
+    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const shareRequestId = req.params.shareRequestId;
@@ -2858,9 +2858,9 @@ homeapp.post('/accept/:shareRequestId',
                 return res.status(400).json({ message: 'This share request has already been processed.' });
             }
 
-            if (shareRequest.shared_with_user_email !== userEmail) {
-                return res.status(403).json({ error: 'You are not authorized to accept this request.' });
-            }
+            // if (shareRequest.shared_with_user_email !== userEmail) {
+            //     return res.status(403).json({ error: 'You are not authorized to accept this request.' });
+            // }
 
             // Update status to "accepted"
             const updateQuery = `
