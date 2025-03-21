@@ -5,6 +5,8 @@ const { validateJwt, authorizeRoles } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
 require('dotenv').config(); 
+const crypto = require('crypto');
+const path = require("path");
 homeapp.use(express.json({ limit: '10mb' }));
 homeapp.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -2489,6 +2491,13 @@ homeapp.delete('/api/notifications/:notificationId',
     });
 
 // -------------------------
+function encryptId(shareRequestId) {
+    let encrypted = (parseInt(shareRequestId) * 99991).toString(36).toUpperCase();
+    return encrypted.padStart(10, '0'); // Ensures the length is exactly 10 characters
+}
+function decryptId(encryptedId) {
+    return parseInt(encryptedId, 36) / 99991;
+}
 
 homeapp.get("/api/users",
     validateJwt,
@@ -2551,9 +2560,9 @@ homeapp.post('/app/share/access',
             const result = await db.query(query, [user_id, entity_id, entity_type, shared_with_user_email, access_type]);
 
             const shareRequestId = result.rows[0].id;
-
+            const encryptedId = encryptId(shareRequestId);
             // Send email notification to the shared user
-            await sendEmailToSharedUser(shared_with_user_email, shareRequestId);
+            await sendEmailToSharedUser(shared_with_user_email, encryptedId);
 
             res.status(201).json({ message: 'Access shared successfully', shareRequestId });
         } catch (error) {
@@ -2788,7 +2797,7 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
             to: email,
             subject: 'You have been shared access',
             text: `You have been shared access to an entity in the Home App. Click the link below to accept or reject the request:\n\n` +
-                `https://api.aizoteq.com/accept-share/${shareRequestId}`
+                `https://13.200.215.17:3000/accept-share/${shareRequestId}`
         });
 
         console.log('Email sent: ' + info.response);
@@ -2797,22 +2806,24 @@ const sendEmailToSharedUser = async (email, shareRequestId) => {
     }
 };
 
-const path = require('path');
-
 homeapp.get('/accept-share/:shareRequestId',
     // validateJwt,
     // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
             const shareRequestId = req.params.shareRequestId;
-
+            const decryptedId = decryptId(shareRequestId);
+            // Validate decryptedId is a valid number
+            if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
+                return res.status(400).send('Invalid share request ID.');
+            }
             // Validate the share request ID
             const query = `
             SELECT id, entity_id, entity_type, shared_with_user_email, status
             FROM sharedusers
             WHERE id = $1
         `;
-            const result = await db.query(query, [shareRequestId]);
+            const result = await db.query(query, [decryptedId]);
 
             if (result.rows.length === 0) {
                 return res.status(404).send('Share request not found or invalid.');
@@ -2829,6 +2840,63 @@ homeapp.get('/accept-share/:shareRequestId',
         } catch (error) {
             console.error(error);
             res.status(500).send('An error occurred while loading the page.');
+        }
+    });
+homeapp.get("/api/share-details/:shareRequestId", async (req, res) => {
+        try {
+            const shareRequestId = req.params.shareRequestId;
+            const decryptedId = decryptId(shareRequestId);
+    
+            if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
+                return res.status(400).json({ error: "Invalid share request ID." });
+            }
+    
+            const query = `
+                SELECT id, entity_id, entity_type, shared_with_user_email, status
+                FROM sharedusers
+                WHERE id = $1
+            `;
+            const result = await db.query(query, [decryptedId]);
+    
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: "Share request not found or invalid." });
+            }
+    
+            return res.json(result.rows[0]);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred while fetching request details." });
+        }
+    });
+homeapp.post("/api/accept/:shareRequestId", async (req, res) => {
+        try {
+            const shareRequestId = req.params.shareRequestId;
+            const decryptedId = decryptId(shareRequestId);
+    
+            if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
+                return res.status(400).json({ error: "Invalid share request ID." });
+            }
+    
+            // Check if the request exists and is pending
+            const checkQuery = `SELECT status FROM sharedusers WHERE id = $1`;
+            const checkResult = await db.query(checkQuery, [decryptedId]);
+    
+            if (checkResult.rows.length === 0) {
+                return res.status(404).json({ error: "Share request not found." });
+            }
+    
+            if (checkResult.rows[0].status !== "pending") {
+                return res.json({ success: true, message: "Already accepted." });
+            }
+    
+            // Update status to accepted
+            const updateQuery = `UPDATE sharedusers SET status = 'accepted' WHERE id = $1`;
+            await db.query(updateQuery, [decryptedId]);
+    
+            res.json({ success: true, message: "Request accepted successfully." });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: "An error occurred while accepting the request." });
         }
     });
 

@@ -27,8 +27,13 @@
             color: white;
             border-radius: 5px;
         }
-        button:hover {
-            background-color: #218838;
+        button.processing {
+            background-color: #ffc107; /* Yellow */
+            cursor: not-allowed;
+        }
+        button.accepted {
+            background-color: #007bff; /* Blue */
+            cursor: not-allowed;
         }
     </style>
 </head>
@@ -40,21 +45,68 @@
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", async function() {
+        document.addEventListener("DOMContentLoaded", async function () {
             const shareRequestId = window.location.pathname.split("/").pop();
             const requestDetails = document.getElementById("request-details");
             const acceptBtn = document.getElementById("accept-btn");
 
-            acceptBtn.addEventListener("click", async function() {
+            // Fetch request details
+            try {
+                const response = await fetch(`/api/share-details/${shareRequestId}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    requestDetails.textContent = data.error;
+                    acceptBtn.style.display = "none"; // Hide button if error
+                    return;
+                }
+
+                requestDetails.innerHTML = `
+                    <strong>Entity:</strong> ${data.entity_type} (ID: ${data.entity_id})<br>
+                    <strong>Shared With:</strong> ${data.shared_with_user_email}<br>
+                    <strong>Status:</strong> ${data.status}
+                `;
+
+                if (data.status !== "pending") {
+                    acceptBtn.textContent = "Accepted";
+                    acceptBtn.classList.add("accepted");
+                    acceptBtn.disabled = true;
+                }
+
+            } catch (error) {
+                requestDetails.textContent = "Error loading request details.";
+            }
+
+            // Accept request button click
+            acceptBtn.addEventListener("click", async function () {
+                if (acceptBtn.disabled) return;
+
+                acceptBtn.textContent = "Processing...";
+                acceptBtn.classList.add("processing");
+                acceptBtn.disabled = true;
+
                 try {
-                    const response = await fetch(`/accept/${shareRequestId}`, {
+                    const response = await fetch(`/api/accept/${shareRequestId}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" }
                     });
                     const result = await response.json();
-                    alert(result.message || "Request accepted successfully");
+
+                    if (result.success) {
+                        acceptBtn.textContent = "Accepted";
+                        acceptBtn.classList.remove("processing");
+                        acceptBtn.classList.add("accepted");
+                    } else {
+                        acceptBtn.textContent = "Accept Request";
+                        acceptBtn.classList.remove("processing");
+                        acceptBtn.disabled = false;
+                        alert(result.error || "Error accepting request.");
+                    }
                 } catch (error) {
-                    alert("Error accepting request.");
+                    acceptBtn.textContent = "Accept Request";
+                    acceptBtn.classList.remove("processing");
+                    acceptBtn.disabled = false;
+                    alert("Error processing request.");
                 }
             });
         });
