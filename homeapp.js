@@ -1,7 +1,7 @@
 const express = require('express');
 const homeapp = express.Router();
 const db = require('./middlewares/dbconnection');
-const { validateJwt, authorizeRoles } = require('./middlewares/auth');
+const { validateJwt, authorizeRoles, validateAccessType } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
 require('dotenv').config(); 
@@ -173,82 +173,82 @@ homeapp.post('/app/add/home/',
 );
 
 //display home
-homeapp.get('/app/display/homes/',
-    validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    async (req, res) => {
-        try {
-            console.log(req.body)
-            console.log(req.query)
+// homeapp.get('/app/display/homes/',
+//     validateJwt,
+//     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+//     async (req, res) => {
+//         try {
+//             console.log(req.body)
+//             console.log(req.query)
 
-            const userId = req.user?.id || req.query.userId; // Get the user_id from the authenticated user
-            // const userId = req.body; // for testing
+//             const userId = req.user?.id || req.query.userId; // Get the user_id from the authenticated user
+//             // const userId = req.body; // for testing
 
-            // Query to fetch homes by user_id
-            const query = `
-                SELECT * 
-                FROM home
-                WHERE userid = $1
-            `;
+//             // Query to fetch homes by user_id
+//             const query = `
+//                 SELECT * 
+//                 FROM home
+//                 WHERE userid = $1
+//             `;
 
-            // Execute the query
-            const result = await db.query(query, [userId]);
+//             // Execute the query
+//             const result = await db.query(query, [userId]);
 
-            // If no homes are found, return a 404
-            if (result.rows.length === 0) {
-                return res.status(404).json({ error: 'No homes found for this user' });
-            }
+//             // If no homes are found, return a 404
+//             if (result.rows.length === 0) {
+//                 return res.status(404).json({ error: 'No homes found for this user' });
+//             }
 
-            // Respond with the homes
-            res.status(200).json(result.rows);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: 'An error occurred while fetching homes' });
-        }
-    }
-);
-
-
-// homeapp.get('/app/display/homes/',  async (req, res) => {
-//     try {
-//         const { id: userId, email } = req.user || req.query; // Get user details from authentication middleware
-
-//         if (!userId && !email) {
-//             return res.status(400).json({ error: 'User authentication required' });
+//             // Respond with the homes
+//             res.status(200).json(result.rows);
+//         } catch (error) {
+//             console.error(error);
+//             res.status(500).json({ error: 'An error occurred while fetching homes' });
 //         }
-
-//         // Query to fetch homes accessible to the user via email or user_id
-//         const query = `
-//             SELECT 
-//                 h.id AS home_id,
-//                 h.name AS home_name,
-//                 sa.access_type AS access_type,
-//                 sa.status AS share_status
-//             FROM sharedusers sa
-//             INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
-//             WHERE 
-//                 (sa.shared_with_user_email = $1 OR sa.user_id = $2)
-//                 AND sa.status = 'accepted'
-//         `;
-
-//         // Execute the query with email and user_id
-//         const result = await db.query(query, [email, userId]);
-
-//         // If no homes are found, return a 404
-//         if (result.rows.length === 0) {
-//             return res.status(404).json({ error: 'No shared homes found for this user' });
-//         }
-
-//         // Respond with the list of shared homes
-//         res.status(200).json({
-//             message: 'Shared homes retrieved successfully',
-//             sharedHomes: result.rows
-//         });
-//     } catch (error) {
-//         console.error('Error fetching shared homes:', error.message);
-//         res.status(500).json({ error: 'An error occurred while fetching shared homes' });
 //     }
-// });
+// );
+
+
+homeapp.get('/app/display/homes/',  async (req, res) => {
+    try {
+        const { id: userId, username:email } = req.user || req.query; // Get user details from authentication middleware
+
+        if (!userId && !email) {
+            return res.status(400).json({ error: 'User authentication required' });
+        }
+
+        // Query to fetch homes accessible to the user via email or user_id
+        const query = `
+            SELECT 
+                h.id AS home_id,
+                h.name AS home_name,
+                sa.access_type AS access_type,
+                sa.status AS share_status
+            FROM sharedusers sa
+            INNER JOIN home h ON sa.entity_id = h.id AND sa.entity_type = 'home'
+            WHERE 
+                (sa.shared_with_user_email = $1 OR sa.user_id = $2)
+                AND sa.status = 'accepted'
+        `;
+
+        // Execute the query with email and user_id
+        const result = await db.query(query, [email, userId]);
+
+        // If no homes are found, return a 404
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'No shared homes found for this user' });
+        }
+
+        // Respond with the list of shared homes
+        res.status(200).json({
+            message: 'Shared homes retrieved successfully',
+            sharedHomes: result.rows
+        });
+    } catch (error) {
+        console.error('Error fetching shared homes:', error.message);
+        res.status(500).json({ error: 'An error occurred while fetching shared homes' });
+    }
+});
 
 // Update Home
 
@@ -304,6 +304,7 @@ homeapp.put('/app/update/home/:id',
 homeapp.delete('/app/delete/home/:id',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    validateAccessType("admin","home", req.params.id),
     async (req, res) => {
         try {
             const homeId = req.params.id; // Get the home ID from the URL parameter
@@ -1113,77 +1114,6 @@ homeapp.post('/api/access/customer/:roomid',
     }
 );
 //remove access
-// homeapp.delete('/api/remove/access/:roomid/:thingid', async (req, res) => {
-//     const client = await db.connect(); // Get a client from the database pool
-//     try {
-//         const roomid = parseInt(req.params.roomid, 10);
-//         const thingid = parseInt(req.params.thingid, 10);
-//         const user_id = req.user?.id || req.body.userid; // Fetch the user ID dynamically from authentication context
-
-//         // Validate parameters
-//         if (isNaN(roomid) || isNaN(thingid) || !user_id) {
-//             return res.status(400).json({ message: "Missing or invalid required parameters" });
-//         }
-
-//         await client.query('BEGIN'); // Start a transaction
-
-//         // Verify the user has access to the specified thing and room
-//         const accessCheckQuery = `
-//             SELECT ca.id
-//             FROM customer_access ca
-//             INNER JOIN devices d ON ca.thing_id = d.thingid
-//             INNER JOIN room_device rd ON rd.device_id = d.id
-//             WHERE ca.user_id = $1 AND ca.thing_id = $2 AND rd.room_id = $3
-//             LIMIT 1;
-//         `;
-//         const accessCheckResult = await client.query(accessCheckQuery, [user_id, thingid, roomid]);
-
-//         if (accessCheckResult.rows.length === 0) {
-//             await client.query('ROLLBACK');
-//             return res.status(404).json({ message: "No access found for the specified thing in the room" });
-//         }
-
-//         // Remove devices associated with the specified thing from `room_device`
-//         const deleteRoomDeviceQuery = `
-//             DELETE FROM room_device
-//             WHERE room_id = $1 AND device_id IN (
-//                 SELECT id FROM devices WHERE thingid = $2
-//             );
-//         `;
-//         await client.query(deleteRoomDeviceQuery, [roomid, thingid]);
-
-//         // Remove devices associated with the specified thing from `UserDevicesorder`
-//         const deleteUserDevicesOrderQuery = `
-//             DELETE FROM UserDevicesorder
-//             WHERE roomid = $1 AND device_id IN (
-//                 SELECT id FROM devices WHERE thingid = $2
-//             );
-//         `;
-//         await client.query(deleteUserDevicesOrderQuery, [roomid, thingid]);
-
-//         // Optionally, remove customer access if no devices of the thing are linked to any rooms
-//         const deleteCustomerAccessQuery = `
-//             DELETE FROM customer_access
-//             WHERE user_id = $1 AND thing_id = $2
-//             AND NOT EXISTS (
-//                 SELECT 1 FROM devices d
-//                 INNER JOIN room_device rd ON rd.device_id = d.id
-//                 WHERE d.thingid = $2
-//             );
-//         `;
-//         await client.query(deleteCustomerAccessQuery, [user_id, thingid]);
-
-//         await client.query('COMMIT'); // Commit the transaction
-//         res.status(200).json({ message: "Access for the specified thing removed successfully" });
-//     } catch (error) {
-//         await client.query('ROLLBACK'); // Rollback the transaction on error
-//         console.error("Error removing access for thing:", error);
-//         res.status(500).json({ message: "Internal server error" });
-//     } finally {
-//         client.release(); // Release the client back to the database pool
-//     }
-// });
-
 homeapp.delete('/api/remove/access/:roomid/:thingid',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
@@ -1362,7 +1292,6 @@ homeapp.put('/api/devices/:device_id/change/:newroomid',
     });
 
 //display all devices with floor name and room name 
-
 homeapp.get('/api/display/all/devices/:userId',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
@@ -2040,111 +1969,6 @@ homeapp.get('/api/scene-events/scene/:sceneId',
     }
 );
 
-// homeapp.get('/api/display/device/rooms/:roomid', 
-//     // validateJwt,
-//     // authorizeRoles('customer'),
-//     async (req, res) => {
-//         const client = await db.connect();
-//         try {
-//             const roomid = req.params.roomid;
-
-//             // Fetch devices for the room, ordered by orderIndex
-//             const query = `
-//                 SELECT d.*
-//                 FROM devices d
-//                 INNER JOIN room_device rd ON d.deviceid = rd.device_id
-//                 INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
-//                 WHERE rd.room_id = $1
-//                 ORDER BY udo.orderIndex ASC
-//             `;
-//             const devicesResult = await client.query(query, [roomid]);
-
-//             if (devicesResult.rows.length === 0) {
-//                 return res.status(404).json({ message: 'No devices found for this room.' });
-//             }
-
-//             // Return the ordered device data
-//             res.status(200).json({ devices: devicesResult.rows });
-//         } catch (error) {
-//             console.error('Error fetching devices:', error);
-//             res.status(500).json({ message: 'An error occurred while fetching devices.', error });
-//         } finally {
-//             client.release();
-//         }
-//     }
-// );
-
-// homeapp.get('/api/display/device/rooms/:roomid',
-//     // validateJwt,
-//     // authorizeRoles('customer'),
-//     async (req, res) => {
-//         const client = await db.connect();
-//         try {
-//             const roomid = req.params.roomid;
-
-//             // Fetch unique devices for the room, ordered by orderIndex
-//             const query = `
-//                 SELECT DISTINCT ON (d.id) d.*
-//                 FROM devices d
-//                 INNER JOIN room_device rd ON d.deviceid = rd.device_id
-//                 INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
-//                 WHERE rd.room_id = $1
-//                 ORDER BY d.id, udo.orderIndex ASC
-//             `;
-//             const devicesResult = await client.query(query, [roomid]);
-
-//             if (devicesResult.rows.length === 0) {
-//                 return res.status(404).json({ message: 'No devices found for this room.' });
-//             }
-
-//             // Return the ordered device data without duplicates
-//             res.status(200).json({ devices: devicesResult.rows });
-//         } catch (error) {
-//             console.error('Error fetching devices:', error);
-//             res.status(500).json({ message: 'An error occurred while fetching devices.', error });
-//         } finally {
-//             client.release();
-//         }
-//     }
-// );
-// homeapp.get('/api/display/device/rooms/:roomid',
-//     // validateJwt,
-//     // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-//     async (req, res) => {
-//         const client = await db.connect();
-//         try {
-//             const roomid = req.params.roomid;
-//             // const userId =req.user?.id|| req.query.userid; // Assuming user information is available in req.user
-//             const userId =87; // Assuming user information is available in req.user
-
-//             // Fetch unique devices for the room, ordered by orderIndex, and include favorite status
-//             const query = `
-//                 SELECT DISTINCT ON (d.id) d.*, 
-//                     COALESCE(ufd.favorite, FALSE) AS favorite -- Include favorite field
-//                 FROM devices d
-//                 INNER JOIN room_device rd ON d.deviceid = rd.device_id
-//                 INNER JOIN UserDevicesorder udo ON udo.device_id = d.id
-//                 LEFT JOIN UserFavoriteDevices ufd 
-//                     ON ufd.device_id = d.id AND ufd.user_id = $2 -- Join on user_id and device_id
-//                 WHERE rd.room_id = $1
-//                 ORDER BY d.id, udo.orderIndex ASC
-//             `;
-//             const devicesResult = await client.query(query, [roomid, userId]);
-
-//             if (devicesResult.rows.length === 0) {
-//                 return res.status(404).json({ message: 'No devices found for this room.' });
-//             }
-
-//             // Return the ordered device data with the favorite field
-//             res.status(200).json({ devices: devicesResult.rows });
-//         } catch (error) {
-//             console.error('Error fetching devices:', error);
-//             res.status(500).json({ message: 'An error occurred while fetching devices.', error });
-//         } finally {
-//             client.release();
-//         }
-//     }
-// );
 
 homeapp.get('/api/display/device/rooms/:roomid',
     validateJwt,
@@ -2188,52 +2012,6 @@ homeapp.get('/api/display/device/rooms/:roomid',
     }
 );
 
-
-
-// homeapp.put('/api/update/devices/:id', async (req, res) => {
-//     const { id } = req.params; // Get device ID from the URL
-//     const { name, icon,newroomid } = req.body; // Get the updated name and icon from the request body
-
-//     // Ensure at least one field is provided
-//     if (!name && !icon) {
-//       return res.status(400).json({ error: 'At least one of name or icon must be provided' });
-//     }
-
-//     try {
-//       // Dynamically build the query based on available fields
-//       const fields = [];
-//       const values = [];
-//       let query = 'UPDATE Devices SET ';
-//       let paramIndex = 1;
-
-//       if (name) {
-//         fields.push(`name = $${paramIndex++}`);
-//         values.push(name);
-//       }
-//       if (icon) {
-//         fields.push(`icon = $${paramIndex++}`);
-//         values.push(icon);
-//       }
-
-//       // Add lastModified field and WHERE condition
-//       fields.push(`lastModified = CURRENT_TIMESTAMP`);
-//       query += fields.join(', ') + ` WHERE id = $${paramIndex} RETURNING *`;
-//       values.push(id);
-
-//       // Execute the update query
-//       const result = await db.query(query, values);
-
-//       // Check if a device was updated
-//       if (result.rowCount === 0) {
-//         return res.status(404).json({ error: 'Device not found' });
-//       }
-
-//       res.status(200).json({ message: 'Device updated successfully', device: result.rows[0] });
-//     } catch (error) {
-//       console.error('Error updating device:', error);
-//       res.status(500).json({ error: 'Internal Server Error' });
-//     }
-//   });
 
 homeapp.put('/api/update/devices/:deviceid',
     validateJwt,
