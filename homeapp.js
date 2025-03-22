@@ -209,7 +209,9 @@ homeapp.post('/app/add/home/',
 // );
 
 
-homeapp.get('/app/display/homes/',  async (req, res) => {
+homeapp.get('/app/display/homes/', 
+    validateJwt,
+        authorizeRoles('admin', 'dealer', 'staff', 'customer'), async (req, res) => {
     try {
         const { id: userId, username:email } = req.user || req.query; // Get user details from authentication middleware
 
