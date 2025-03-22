@@ -6827,8 +6827,8 @@ const Swaggerdoc = {
     },
     "/api/users": {
       "get": {
-        "summary": "Retrieve list of users",
-        "description": "Fetches a list of all users with their id, userName, and name.",
+        "summary": "Fetch users with search and pagination",
+        "description": "Retrieves a list of users with optional search and pagination.",
         "tags": ["Access Sharing"],
         "security": [
           {
@@ -6837,24 +6837,56 @@ const Swaggerdoc = {
         ],
         "parameters": [
           {
-            "in": "header",
-            "name": "Authorization",
+            "name": "search",
+            "in": "query",
+            "description": "Search term to filter users by userName or name",
             "schema": {
-              "type": "string",
-              "example": "Bearer your-jwt-token"
-            },
-            "required": true,
-            "description": "JWT token for authentication"
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Page number for pagination",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Number of records per page",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response with user list",
+            "description": "Successful response with user data",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "pageSize": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "totalRecords": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "totalPages": {
+                      "type": "integer",
+                      "example": 10
+                    },
                     "users": {
                       "type": "array",
                       "items": {
@@ -6871,6 +6903,10 @@ const Swaggerdoc = {
                           "name": {
                             "type": "string",
                             "example": "John Doe"
+                          },
+                          "phone": {
+                            "type": "string",
+                            "example": "+1234567890"
                           }
                         }
                       }
