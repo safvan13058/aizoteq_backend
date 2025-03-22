@@ -211,9 +211,10 @@ homeapp.post('/app/add/home/',
 
 homeapp.get('/app/display/homes/', 
     validateJwt,
-        authorizeRoles('admin', 'dealer', 'staff', 'customer'), async (req, res) => {
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'), 
+    async (req, res) => {
     try {
-        const { id: userId, username:email } = req.user || req.query; // Get user details from authentication middleware
+        const { id: userId, username: email } = req.user || req.query; // Get user details from authentication middleware
 
         if (!userId && !email) {
             return res.status(400).json({ error: 'User authentication required' });
@@ -222,8 +223,7 @@ homeapp.get('/app/display/homes/',
         // Query to fetch homes accessible to the user via email or user_id
         const query = `
             SELECT 
-                h.id AS home_id,
-                h.name AS home_name,
+                h.*, 
                 sa.access_type AS access_type,
                 sa.status AS share_status
             FROM sharedusers sa
@@ -242,15 +242,14 @@ homeapp.get('/app/display/homes/',
         }
 
         // Respond with the list of shared homes
-        res.status(200).json({
-            message: 'Shared homes retrieved successfully',
-            sharedHomes: result.rows
-        });
+        res.status(200).json(result.rows);
+
     } catch (error) {
         console.error('Error fetching shared homes:', error.message);
         res.status(500).json({ error: 'An error occurred while fetching shared homes' });
     }
 });
+
 
 // Update Home
 
