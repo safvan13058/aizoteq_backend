@@ -2842,7 +2842,7 @@ homeapp.post('/app/update/access/status',
             // Update the shared access status
             const updateQuery = `
             UPDATE sharedusers
-            SET status = $1
+            SET entity_type = $1
             WHERE id = $2
         `;
 
