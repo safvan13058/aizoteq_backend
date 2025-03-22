@@ -304,7 +304,7 @@ homeapp.put('/app/update/home/:id',
 homeapp.delete('/app/delete/home/:id',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    validateAccessType("admin","home", req.params.id),
+    // validateAccessType("admin","home", req.params.id),
     async (req, res) => {
         try {
             const homeId = req.params.id; // Get the home ID from the URL parameter
