@@ -2303,7 +2303,7 @@ homeapp.get("/api/users",
             LIMIT $2 OFFSET $3;
         `;
             const dbResult = await db.query(query, [`%${search}%`, pageSize, offset]);
-
+            console.log("seach",dbResult.rows)
             return res.json({
                 page: parseInt(page, 10),
                 pageSize: parseInt(pageSize, 10),
