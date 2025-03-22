@@ -2296,9 +2296,9 @@ homeapp.get("/api/users",
 
             // Query to fetch paginated user list with search
             const query = `
-            SELECT id, userName, name 
+            SELECT id, userName, name ,phone
             FROM Users 
-            WHERE userName ILIKE $1 OR name ILIKE $1
+            WHERE userName ILIKE $1 OR name ILIKE $1 OR phone ILIKE $1
             ORDER BY id ASC
             LIMIT $2 OFFSET $3;
         `;
