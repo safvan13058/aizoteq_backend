@@ -2910,7 +2910,7 @@ homeapp.get(
 
             // Extract user ID and email
             const userId = req.user.id;
-            const email = req.user.username ? req.user.username.toLowerCase() : null;
+            const email = req.user.username ;
 
             // Debug: Log user info
             console.log('User ID:', userId);
@@ -2936,7 +2936,7 @@ homeapp.get(
 
             // Filter out records where shared_with_user_email matches the requesting user's email
             const filteredRecords = sharedRecords.rows.filter(
-                (record) => record.shared_with_user_email.toLowerCase() !== email
+                (record) => record.shared_with_user_email !== email
             );
 
             // Debug: Log filtered records
