@@ -2863,8 +2863,7 @@ homeapp.post('/app/update/access/status',
 
 
 // Get shared access records for a specific email
-homeapp.get(
-    '/app/shared/from/access',
+homeapp.get('/app/shared/from/access',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
@@ -2919,6 +2918,33 @@ homeapp.get(
         }
     }
 );
+// Get shared access records for a specific email
+homeapp.get('/app/shared/to/access',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        try {
+            const email = req.user.username.toLowerCase(); // Ensure case-insensitive search
+
+            const sharedRecords = await db.query(
+                `SELECT su.*
+                 FROM sharedusers su
+                 JOIN users u ON su.user_id = u.id
+                 WHERE LOWER(su.shared_with_user_email) = $1
+                 AND LOWER(u.userName) <> LOWER(su.shared_with_user_email)`,
+                [email]
+            );
+
+            if (sharedRecords.rows.length === 0) {
+                return res.status(404).json({ message: 'No shared records found' });
+            }
+
+            res.json(sharedRecords.rows);
+        } catch (err) {
+            console.error(err.message);
+            res.status(500).send('Server Error');
+        }
+    });
 
 
 homeapp.get('/api/list/macaddress/user/:user_id',
