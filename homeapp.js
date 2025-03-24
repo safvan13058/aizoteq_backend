@@ -2860,41 +2860,7 @@ homeapp.post('/app/update/access/status',
         }
     });
 
-    homeapp.get('/app/shared/from/access',
-        validateJwt,
-        authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-        async (req, res) => {
-            try {
-                const userId = req.user.id;
-                const email = req.user.username.toLowerCase(); // Normalize email for case-insensitive comparison
-    
-                // Fetch all shared records for the user
-                const sharedRecords = await db.query(
-                    'SELECT * FROM sharedusers WHERE user_id = $1',
-                    [userId]
-                );
-    
-                if (sharedRecords.rows.length === 0) {
-                    return res.status(404).json({ message: 'No shared records found' });
-                }
-    
-                // Filter out records where shared_with_user_email matches the requesting user's email
-                const filteredRecords = sharedRecords.rows.filter(record => 
-                    record.shared_with_user_email.toLowerCase() !== email
-                );
-    
-                if (filteredRecords.length === 0) {
-                    return res.status(404).json({ message: 'No valid shared records found' });
-                }
-    
-                res.json(filteredRecords);
-            } catch (err) {
-                console.error(err.message);
-                res.status(500).send('Server Error');
-            }
-        }
-    );
-    
+
 
 // Get shared access records for a specific email
 homeapp.get(
