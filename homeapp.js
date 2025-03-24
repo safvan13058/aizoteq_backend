@@ -2897,27 +2897,59 @@ homeapp.post('/app/update/access/status',
     
 
 // Get shared access records for a specific email
-homeapp.get('/app/shared/to/access',
+homeapp.get(
+    '/app/shared/from/access',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
-            const email = req.user.username;
-            const sanitizedEmail = email.toLowerCase(); // Ensure case-insensitive search
-
-            const sharedRecords = await db.query(
-                'SELECT * FROM sharedusers WHERE LOWER(shared_with_user_email) = $1 AND status = $2',
-                [sanitizedEmail, 'pending']  // Filter only 'pending' records
-            );
-
-            if (sharedRecords.rows.length === 0) {
-                return res.status(404).json({ message: 'No pending shared records found' });
+            // Debug: Check if `req.user` exists
+            if (!req.user) {
+                return res.status(401).json({ message: 'Unauthorized: No user data found' });
             }
 
-            res.json(sharedRecords.rows);
+            // Extract user ID and email
+            const userId = req.user.id;
+            const email = req.user.username ? req.user.username.toLowerCase() : null;
+
+            // Debug: Log user info
+            console.log('User ID:', userId);
+            console.log('User Email:', email);
+
+            // Ensure email is valid
+            if (!email) {
+                return res.status(400).json({ message: 'Invalid user data: missing email' });
+            }
+
+            // Fetch all shared records for the user
+            const sharedRecords = await db.query(
+                'SELECT * FROM sharedusers WHERE user_id = $1',
+                [userId]
+            );
+
+            // Debug: Log shared records
+            console.log('Shared Records:', sharedRecords.rows);
+
+            if (sharedRecords.rows.length === 0) {
+                return res.status(404).json({ message: 'No shared records found' });
+            }
+
+            // Filter out records where shared_with_user_email matches the requesting user's email
+            const filteredRecords = sharedRecords.rows.filter(
+                (record) => record.shared_with_user_email.toLowerCase() !== email
+            );
+
+            // Debug: Log filtered records
+            console.log('Filtered Records:', filteredRecords);
+
+            if (filteredRecords.length === 0) {
+                return res.status(404).json({ message: 'No valid shared records found' });
+            }
+
+            res.json(filteredRecords);
         } catch (err) {
-            console.error(err.message);
-            res.status(500).send('Server Error');
+            console.error('Server Error:', err.message);
+            res.status(500).json({ message: 'Server Error', error: err.message });
         }
     }
 );
