@@ -1629,43 +1629,62 @@ homeapp.get('/api/favorite-devices',
     });
 
 // 1. Create a Scene
-
 homeapp.post('/app/add/scenes', upload.single('icon'),
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
-        const user_id = req.user.id
-        const createdBy = req.user?.username || req.body.createdBy
-        const { name, aliasName, type } = req.body;
+        const user_id = req.user.id;
+        const createdBy = req.user?.username || req.body.createdBy;
+        const { name, aliasName, type, device_ids } = req.body;
         const file = req.file;
+
         try {
             let iconUrl = null;
 
-            // If an icon file is provided, upload it to S3
+            // ✅ Upload Icon to S3 (If provided)
             if (file) {
-                const fileKey = `icons/${Date.now()}-${file.originalname}`; // Generate unique file name
+                const fileKey = `icons/${Date.now()}-${file.originalname}`;
                 const params = {
                     Bucket: process.env.S3_BUCKET_NAME,
                     Key: fileKey,
                     Body: file.buffer,
                     ContentType: file.mimetype,
-                    ACL: 'public-read', // Make the file publicly readable
+                    ACL: 'public-read',
                 };
 
-                // Upload file to S3
                 const uploadResult = await s3.upload(params).promise();
-                iconUrl = uploadResult.Location; // Get the public URL of the uploaded file
+                iconUrl = uploadResult.Location;
             }
-            const result = await db.query(
-                `INSERT INTO Scenes (name, aliasName, createdBy, icon,  type, user_id)
-             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+
+            // ✅ Insert Scene into Database
+            const sceneResult = await db.query(
+                `INSERT INTO Scenes (name, aliasName, createdBy, icon, type, user_id)
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
                 [name, aliasName, createdBy, iconUrl, type, user_id]
             );
-            res.status(201).json(result.rows[0]);
+
+            const scene_id = sceneResult.rows[0].id;
+
+            // ✅ Insert Scene-Device Mappings (if device_ids array is provided)
+            if (device_ids && Array.isArray(device_ids) && device_ids.length > 0) {
+                const values = device_ids.map(device_id => `(${device_id}, ${scene_id})`).join(", ");
+                await db.query(`INSERT INTO scene_device (device_id, scene_id) VALUES ${values}`);
+            }
+
+            res.status(201).json({
+                message: "Scene and devices added successfully",
+                scene_id,
+                iconUrl,
+                device_ids: device_ids || []
+            });
+
         } catch (error) {
+            console.error("Error creating scene with devices:", error);
             res.status(500).json({ error: error.message });
         }
-    });
+    }
+);
+
 
 //  Get All Scenes by userid
 homeapp.get('/app/display/scenes',
@@ -1820,7 +1839,6 @@ homeapp.get('/api/display/scenes/:scene_id/devices',
             res.status(500).json({ error: error.message });
         }
     });
-
 
 // 4. Update a Scene Device
 homeapp.put('/app/Update/scene_devices/:id',
