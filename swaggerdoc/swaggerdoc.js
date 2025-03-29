@@ -6935,90 +6935,111 @@ const Swaggerdoc = {
         }
       }
     },
-// "/api/display/all/devices/{userId}": {
-//       "get": {
-//         "tags": ["device"],
-//         "summary": "Get All Devices for a User",
-//         "description": "Fetch all devices with their details, along with the floor and room they are located in, for a specific user.",
-//         "parameters": [
+
+// "/app/add/scenes": {
+//       "post": {
+//         "summary": "Add a new scene",
+//         "description": "Adds a new scene with an optional icon uploaded to S3.",
+//         "tags": ["Scenes"],
+//         "security": [
 //           {
-//             "name": "userId",
-//             "in": "path",
-//             "required": true,
-//             "description": "The ID of the user whose devices are being fetched.",
-//             "schema": {
-//               "type": "integer",
-//               "example": 1
-//             }
+//             "BearerAuth": []
 //           }
 //         ],
-//         "responses": {
-//           "200": {
-//             "description": "List of devices with full details.",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "array",
-//                   "items": {
-//                     "type": "object",
-//                     "properties": {
-//                       "device_id": { "type": "integer", "example": 1 },
-//                       "deviceId": { "type": "string", "example": "ABC123" },
-//                       "macAddress": { "type": "string", "example": "00:1B:44:11:3A:B7" },
-//                       "hubIndex": { "type": "string", "example": "HUB01" },
-//                       "createdBy": { "type": "string", "example": "admin" },
-//                       "enable": { "type": "boolean", "example": true },
-//                       "status": { "type": "string", "example": "new" },
-//                       "icon": { "type": "string", "example": "thermostat.png" },
-//                       "device_name": { "type": "string", "example": "Smart Thermostat" },
-//                       "device_type": { "type": "string", "example": "Thermostat" },
-//                       "device_last_modified": {
-//                         "type": "string",
-//                         "format": "date-time",
-//                         "example": "2025-01-01T12:34:56"
-//                       },
-//                       "floor_name": { "type": "string", "example": "First Floor" },
-//                       "room_name": { "type": "string", "example": "Living Room" }
-//                     }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "404": {
-//             "description": "No devices found for the user.",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "message": { "type": "string", "example": "No devices found for this user." }
-//                   }
-//                 }
-//               }
-//             }
-//           },
-//           "500": {
-//             "description": "Internal Server Error.",
-//             "content": {
-//               "application/json": {
-//                 "schema": {
-//                   "type": "object",
-//                   "properties": {
-//                     "error": { "type": "string", "example": "Internal Server Error" }
+//         "requestBody": {
+//           "required": true,
+//           "content": {
+//             "multipart/form-data": {
+//               "schema": {
+//                 "type": "object",
+//                 "required": ["name","type"],
+//                 "properties": {
+//                   "name": {
+//                     "type": "string",
+//                     "description": "The name of the scene."
+//                   },
+//                   "aliasName": {
+//                     "type": "string",
+//                     "description": "Alternative name for the scene."
+//                   },
+//                   "type": {
+//                     "type": "string",
+//                     "description": "The type/category of the scene."
+//                   },
+//                   "icon": {
+//                     "type": "string",
+//                     "format": "binary",
+//                     "description": "Optional icon file to be uploaded."
 //                   }
 //                 }
 //               }
 //             }
 //           }
 //         },
-//         "tags": ["Devices"]
+//         "responses": {
+//           "201": {
+//             "description": "Scene successfully created.",
+//             "content": {
+//               "application/json": {
+//                 "schema": {
+//                   "type": "object",
+//                   "properties": {
+//                     "id": {
+//                       "type": "integer",
+//                       "description": "Unique ID of the created scene."
+//                     },
+//                     "name": {
+//                       "type": "string",
+//                       "description": "Name of the scene."
+//                     },
+//                     "aliasName": {
+//                       "type": "string",
+//                       "nullable": true,
+//                       "description": "Alias name of the scene."
+//                     },
+//                     "createdBy": {
+//                       "type": "string",
+//                       "description": "Username of the creator."
+//                     },
+//                     "icon": {
+//                       "type": "string",
+//                       "format": "uri",
+//                       "nullable": true,
+//                       "description": "URL of the uploaded icon (if provided)."
+//                     },
+//                     "type": {
+//                       "type": "string",
+//                       "description": "Type of the scene."
+//                     },
+//                     "user_id": {
+//                       "type": "integer",
+//                       "description": "ID of the user who created the scene."
+//                     }
+//                   }
+//                 }
+//               }
+//             }
+//           },
+//           "400": {
+//             "description": "Bad request, missing required fields or invalid file format."
+//           },
+//           "401": {
+//             "description": "Unauthorized, JWT validation failed."
+//           },
+//           "403": {
+//             "description": "Forbidden, user lacks necessary permissions."
+//           },
+//           "500": {
+//             "description": "Internal server error."
+//           }
+//         }
 //       }
 //     },
+
 "/app/add/scenes": {
       "post": {
-        "summary": "Add a new scene",
-        "description": "Adds a new scene with an optional icon uploaded to S3.",
+        "summary": "Add a new scene with associated devices",
+        "description": "Creates a new scene and links multiple devices to it.",
         "tags": ["Scenes"],
         "security": [
           {
@@ -7035,7 +7056,7 @@ const Swaggerdoc = {
                 "properties": {
                   "name": {
                     "type": "string",
-                    "description": "The name of the scene."
+                    "description": "Name of the scene."
                   },
                   "aliasName": {
                     "type": "string",
@@ -7043,12 +7064,19 @@ const Swaggerdoc = {
                   },
                   "type": {
                     "type": "string",
-                    "description": "The type/category of the scene."
+                    "description": "Category or type of the scene."
+                  },
+                  "device_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Array of device database IDs to link with this scene."
                   },
                   "icon": {
                     "type": "string",
                     "format": "binary",
-                    "description": "Optional icon file to be uploaded."
+                    "description": "Optional icon file to upload."
                   }
                 }
               }
@@ -7057,42 +7085,32 @@ const Swaggerdoc = {
         },
         "responses": {
           "201": {
-            "description": "Scene successfully created.",
+            "description": "Scene and devices successfully created.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
+                    "message": {
+                      "type": "string",
+                      "example": "Scene and devices added successfully"
+                    },
+                    "scene_id": {
                       "type": "integer",
-                      "description": "Unique ID of the created scene."
+                      "description": "ID of the newly created scene."
                     },
-                    "name": {
-                      "type": "string",
-                      "description": "Name of the scene."
-                    },
-                    "aliasName": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Alias name of the scene."
-                    },
-                    "createdBy": {
-                      "type": "string",
-                      "description": "Username of the creator."
-                    },
-                    "icon": {
+                    "iconUrl": {
                       "type": "string",
                       "format": "uri",
                       "nullable": true,
                       "description": "URL of the uploaded icon (if provided)."
                     },
-                    "type": {
-                      "type": "string",
-                      "description": "Type of the scene."
-                    },
-                    "user_id": {
-                      "type": "integer",
-                      "description": "ID of the user who created the scene."
+                    "device_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "List of device IDs linked to the scene."
                     }
                   }
                 }
