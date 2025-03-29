@@ -1790,25 +1790,34 @@ homeapp.delete('/app/delete/scenes/:id',
         }
     });
 
-homeapp.post('/app/create/scene_devices/:scene_id/:device_id',
-    // validateJwt,
-    // authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-    async (req, res) => {
-        // const { device_id, scene_id } = req.body;
-        const { device_id, scene_id } = req.params;
-        try {
-            const result = await db.query(
-                `INSERT INTO scene_device (device_id, scene_id)
-             VALUES ($1, $2) RETURNING *`,
-                [device_id, scene_id]
-            );
-            res.status(201).json(result.rows[0]);
-        } catch (error) {
-            console.error('Error creating scene_device:', error);
-            res.status(500).json({ error: error.message });
+    homeapp.post('/app/create/scene_devices/:scene_id',
+        validateJwt,
+        authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+        async (req, res) => {
+            const { scene_id } = req.params;
+            const { device_ids } = req.body; // Expecting an array of device_ids in the request body
+    
+            if (!Array.isArray(device_ids) || device_ids.length === 0) {
+                return res.status(400).json({ error: 'device_ids must be a non-empty array' });
+            }
+    
+            try {
+                const insertedRows = [];
+                for (const device_id of device_ids) {
+                    const result = await db.query(
+                        `INSERT INTO scene_device (device_id, scene_id) VALUES ($1, $2) RETURNING *`,
+                        [device_id, scene_id]
+                    );
+                    insertedRows.push(result.rows[0]);
+                }
+                res.status(201).json({ success: true, message: 'Scene devices inserted successfully', data: insertedRows });
+            } catch (error) {
+                console.error('Error creating scene_devices:', error);
+                res.status(500).json({ success: false, error: error.message });
+            }
         }
-    });
-
+    );
+    
 //display devices in scenes with scene_id
 homeapp.get('/api/display/scenes/:scene_id/devices',
     validateJwt,

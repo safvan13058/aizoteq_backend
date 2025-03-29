@@ -7313,84 +7313,188 @@ const Swaggerdoc = {
         }
       }
     },
-  
-"/app/create/scene_devices/{scene_id}/{device_id}": {
-    post: {
-      summary: "Create a Scene Device",
-      description: "Add a device to a scene by specifying the scene ID and device ID.",
-      tags: ["Scene Devices"],
-      security: [
-        {
-          bearerAuth: [] // JWT authentication
-        }
-      ],
-      parameters: [
-        {
-          name: "scene_id",
-          in: "path",
-          required: true,
-          schema: {
-            type: "integer"
+    "/app/create/scene_devices/{scene_id}": {
+      "post": {
+        "summary": "Create Scene Devices",
+        "description": "Insert multiple devices into a scene.",
+        "tags": ["Scene Devices"],
+        "parameters": [
+          {
+            "name": "scene_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The ID of the scene to which devices will be added."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "device_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Array of device IDs to be added to the scene."
+                  }
+                },
+                "required": ["device_ids"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Scene devices inserted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "device_id": { "type": "integer" },
+                          "scene_id": { "type": "integer" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
-          description: "The ID of the scene to associate the device with."
-        },
-        {
-          name: "device_id",
-          in: "path",
-          required: true,
-          schema: {
-            type: "integer"
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           },
-          description: "The ID of the device to associate with the scene."
-        }
-      ],
-      responses: {
-        201: {
-          description: "Scene device created successfully.",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  id: { type: "integer", example: 1 },
-                  device_id: { type: "integer", example: 3 },
-                  scene_id: { type: "integer", example: 5 },
-                  message: { type: "string", example: "Scene device created successfully" }
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
           }
         },
-        400: {
-          description: "Invalid input data",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  message: { type: "string", example: "Invalid input data" }
-                }
-              }
-            }
+        "security": [
+          {
+            "BearerAuth": []
           }
-        },
-        500: {
-          description: "Internal server error",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  message: { type: "string", example: "An error occurred" },
-                  error: { type: "string", example: "Error details" }
-                }
-              }
-            }
-          }
-        }
+        ]
       }
-    }
-  },
+    },
+// "/app/create/scene_devices/{scene_id}/{device_id}": {
+//     post: {
+//       summary: "Create a Scene Device",
+//       description: "Add a device to a scene by specifying the scene ID and device ID.",
+//       tags: ["Scene Devices"],
+//       security: [
+//         {
+//           bearerAuth: [] // JWT authentication
+//         }
+//       ],
+//       parameters: [
+//         {
+//           name: "scene_id",
+//           in: "path",
+//           required: true,
+//           schema: {
+//             type: "integer"
+//           },
+//           description: "The ID of the scene to associate the device with."
+//         },
+//         {
+//           name: "device_id",
+//           in: "path",
+//           required: true,
+//           schema: {
+//             type: "integer"
+//           },
+//           description: "The ID of the device to associate with the scene."
+//         }
+//       ],
+//       responses: {
+//         201: {
+//           description: "Scene device created successfully.",
+//           content: {
+//             "application/json": {
+//               schema: {
+//                 type: "object",
+//                 properties: {
+//                   id: { type: "integer", example: 1 },
+//                   device_id: { type: "integer", example: 3 },
+//                   scene_id: { type: "integer", example: 5 },
+//                   message: { type: "string", example: "Scene device created successfully" }
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         400: {
+//           description: "Invalid input data",
+//           content: {
+//             "application/json": {
+//               schema: {
+//                 type: "object",
+//                 properties: {
+//                   message: { type: "string", example: "Invalid input data" }
+//                 }
+//               }
+//             }
+//           }
+//         },
+//         500: {
+//           description: "Internal server error",
+//           content: {
+//             "application/json": {
+//               schema: {
+//                 type: "object",
+//                 properties: {
+//                   message: { type: "string", example: "An error occurred" },
+//                   error: { type: "string", example: "Error details" }
+//                 }
+//               }
+//             }
+//           }
+//         }
+//       }
+//     }},
 "/api/display/scenes/{scene_id}/devices": {
     get: {
       summary: "Get Devices in a Scene",
