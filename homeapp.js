@@ -3015,21 +3015,21 @@ homeapp.get("/api/device/auditlog/:thingmac",
 
         try {
             // Fetch deviceId and deviceName using thingmac (macAddress)
-            const result = await db.query(
-                `SELECT DISTINCT t.macaddress 
-             FROM customer_access ca
-             JOIN Things t ON ca.thing_id = t.id
-             WHERE ca.user_id = $1 AND t.macaddress IS NOT NULL;`,
-                [user_id]
-            );
+            // const result = await db.query(
+            //     `SELECT DISTINCT t.macaddress 
+            //  FROM customer_access ca
+            //  JOIN Things t ON ca.thing_id = t.id
+            //  WHERE ca.user_id = $1 AND t.macaddress IS NOT NULL;`,
+            //     [user_id]
+            // );
 
-            // Extract the list of allowed `thingmac` values
-            const allowedThingmacs = result.rows.map(row => row.macaddress);
+            // // Extract the list of allowed `thingmac` values
+            // const allowedThingmacs = result.rows.map(row => row.macaddress);
 
-            // ❌ If the requested thingmac is not in the allowed list, return 403
-            if (!allowedThingmacs.includes(thingmac)) {
-                return res.status(403).json({ error: "Unauthorized access to this device" });
-            }
+            // // ❌ If the requested thingmac is not in the allowed list, return 403
+            // if (!allowedThingmacs.includes(thingmac)) {
+            //     return res.status(403).json({ error: "Unauthorized access to this device" });
+            // }
 
             // Query audit logs
             const query = `
