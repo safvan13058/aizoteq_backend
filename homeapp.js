@@ -1630,11 +1630,11 @@ homeapp.get('/api/favorite-devices',
 
 // 1. Create a Scene
 
-homeapp.post('/app/add/scenes/:userid', upload.single('icon'),
+homeapp.post('/app/add/scenes', upload.single('icon'),
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
-        const user_id = req.params.userid
+        const user_id = req.user.id
         const createdBy = req.user?.username || req.body.createdBy
         const { name, aliasName, type } = req.body;
         const file = req.file;
@@ -1668,12 +1668,12 @@ homeapp.post('/app/add/scenes/:userid', upload.single('icon'),
     });
 
 //  Get All Scenes by userid
-homeapp.get('/app/display/scenes/:userid',
+homeapp.get('/app/display/scenes',
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
-            const { userid } = req.params;
+            const  userid  = req.user.id;
             const result = await db.query('SELECT * FROM Scenes WHERE user_id = $1', [userid]);
 
             res.status(200).json(result.rows);
