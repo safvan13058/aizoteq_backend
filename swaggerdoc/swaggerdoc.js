@@ -7031,7 +7031,7 @@ const Swaggerdoc = {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
-                "required": ["name", "aliasName", "type"],
+                "required": ["name","type"],
                 "properties": {
                   "name": {
                     "type": "string",
@@ -7073,6 +7073,7 @@ const Swaggerdoc = {
                     },
                     "aliasName": {
                       "type": "string",
+                      "nullable": true,
                       "description": "Alias name of the scene."
                     },
                     "createdBy": {
