@@ -1105,7 +1105,6 @@ dashboard.get('/api/things/model-count', async (req, res) => {
 });
 
 dashboard.post("/api/billing/create", billing);
-
 dashboard.post("/api/billing/return/:status", returned)
 
 // API Endpoint to search price_table by model and or attributes

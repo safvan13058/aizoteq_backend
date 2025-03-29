@@ -7015,25 +7015,14 @@ const Swaggerdoc = {
 //         "tags": ["Devices"]
 //       }
 //     },
-"/app/add/scenes/{userid}": {
+"/app/add/scenes": {
       "post": {
         "summary": "Add a new scene",
-        "description": "Create a new scene with optional icon upload and insert it into the database.",
+        "description": "Adds a new scene with an optional icon uploaded to S3.",
         "tags": ["Scenes"],
         "security": [
           {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "The ID of the user to whom the scene belongs",
-            "schema": {
-              "type": "string"
-            }
+            "BearerAuth": []
           }
         ],
         "requestBody": {
@@ -7042,86 +7031,93 @@ const Swaggerdoc = {
             "multipart/form-data": {
               "schema": {
                 "type": "object",
+                "required": ["name", "aliasName", "type"],
                 "properties": {
-                  "name": { "type": "string" },
-                  "aliasName": { "type": "string" },
-                  "type": { "type": "string" },
+                  "name": {
+                    "type": "string",
+                    "description": "The name of the scene."
+                  },
+                  "aliasName": {
+                    "type": "string",
+                    "description": "Alternative name for the scene."
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "The type/category of the scene."
+                  },
                   "icon": {
                     "type": "string",
-                    "format": "binary"
-                  },
-                  "createdBy": { "type": "string" }
-                },
-                "required": ["name", "type"]
+                    "format": "binary",
+                    "description": "Optional icon file to be uploaded."
+                  }
+                }
               }
             }
           }
         },
         "responses": {
           "201": {
-            "description": "Scene successfully created",
+            "description": "Scene successfully created.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": { "type": "integer", "example": 1 },
-                    "name": { "type": "string", "example": "My Scene" },
-                    "aliasName": { "type": "string", "example": "Scene Alias" },
-                    "type": { "type": "string", "example": "Type A" },
-                    "createdBy": { "type": "string", "example": "Admin" },
-                    "icon": { "type": "string", "example": "https://s3-bucket/icon-url.png" }
+                    "id": {
+                      "type": "integer",
+                      "description": "Unique ID of the created scene."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "Name of the scene."
+                    },
+                    "aliasName": {
+                      "type": "string",
+                      "description": "Alias name of the scene."
+                    },
+                    "createdBy": {
+                      "type": "string",
+                      "description": "Username of the creator."
+                    },
+                    "icon": {
+                      "type": "string",
+                      "format": "uri",
+                      "nullable": true,
+                      "description": "URL of the uploaded icon (if provided)."
+                    },
+                    "type": {
+                      "type": "string",
+                      "description": "Type of the scene."
+                    },
+                    "user_id": {
+                      "type": "integer",
+                      "description": "ID of the user who created the scene."
+                    }
                   }
                 }
               }
             }
           },
           "400": {
-            "description": "Invalid input data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string", "example": "Invalid input data" }
-                  }
-                }
-              }
-            }
+            "description": "Bad request, missing required fields or invalid file format."
+          },
+          "401": {
+            "description": "Unauthorized, JWT validation failed."
+          },
+          "403": {
+            "description": "Forbidden, user lacks necessary permissions."
           },
           "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": { "type": "string", "example": "An error occurred" },
-                    "error": { "type": "string", "example": "Error details" }
-                  }
-                }
-              }
-            }
+            "description": "Internal server error."
           }
         }
       }
     },
-"/app/display/scenes/{userid}": {
+"/app/display/scenes": {
       "get": {
         "summary": "Get all scenes for a user",
         "description": "Fetch all scenes that belong to a specific user.",
         "tags": ["Scenes"],
-        "parameters": [
-          {
-            "name": "userid",
-            "in": "path",
-            "required": true,
-            "description": "The ID of the user",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "List of scenes",
