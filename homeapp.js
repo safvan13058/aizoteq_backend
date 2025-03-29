@@ -1829,7 +1829,8 @@ homeapp.get('/api/display/scenes/:scene_id/devices',
             const query = `
             SELECT 
                 sd.*,
-                d.*
+                d.*,
+                sd.id as scene_device_id
             FROM 
                 scene_device sd
             JOIN 
