@@ -1636,6 +1636,8 @@ homeapp.post('/app/add/scenes', upload.single('icon'),
         const user_id = req.user.id;
         const createdBy = req.user?.username || req.body.createdBy;
         const { name, aliasName, type, device_ids } = req.body;
+        console.log('scenes==body',req.body)
+        console.log('scenes==params',req.params)
         const file = req.file;
 
         try {
