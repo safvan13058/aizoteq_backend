@@ -3118,7 +3118,8 @@ homeapp.get("/api/device/auditlog/:thingmac",
         }
     });
 
-homeapp.get("/api/device/devicelog/:thingmac",
+
+    homeapp.get("/api/device/devicelog/:thingmac",
     validateJwt,
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
@@ -3127,8 +3128,9 @@ homeapp.get("/api/device/devicelog/:thingmac",
         const page = parseInt(req.query.page, 10) || 1;
         const pageSize = parseInt(req.query.pageSize, 10) || 10;
         const offset = (page - 1) * pageSize;
-        const fromDate = req.query.fromDate ? req.query.fromDate : null;
-        const toDate = req.query.toDate ? req.query.toDate  : null;
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate).toISOString() : null;
+        const toDate = req.query.toDate ? new Date(req.query.toDate).toISOString() : null;
+        
 
         try {
             // Query audit logs with date filtering
