@@ -3196,6 +3196,7 @@ homeapp.get("/api/device/devicelog/:thingmac",
                                 events.push({
                                     switch: switchId,
                                     switchName: switchDeviceName,
+                                    hubindex:`${key.substring(1)}`,
                                     state: switchState,
                                     time: timestamp,
                                     method,

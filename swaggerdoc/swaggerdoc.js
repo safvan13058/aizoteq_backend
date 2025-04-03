@@ -6615,6 +6615,7 @@ const Swaggerdoc = {
                           "time": { "type": "string", "format": "date-time" },
                           "method": { "type": "string" },
                           "type": { "type": "string" },
+                          "hubindex": { "type": "integer", "nullable": true },
                           "switch": { "type": "string", "nullable": true },
                           "switchName": { "type": "string", "nullable": true }
                         }
