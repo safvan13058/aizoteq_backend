@@ -4,7 +4,7 @@ const db = require('./middlewares/dbconnection');
 const { validateJwt, authorizeRoles, validateAccessType } = require('./middlewares/auth');
 const { thingSchema } = require('./middlewares/validation');
 const { s3, upload } = require('./middlewares/s3');
-require('dotenv').config(); 
+require('dotenv').config();
 const crypto = require('crypto');
 const path = require("path");
 homeapp.use(express.json({ limit: '10mb' }));
@@ -209,19 +209,19 @@ homeapp.post('/app/add/home/',
 // );
 
 
-homeapp.get('/app/display/homes/', 
+homeapp.get('/app/display/homes/',
     validateJwt,
-    authorizeRoles('admin', 'dealer', 'staff', 'customer'), 
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
-    try {
-        const { id: userId, username: email } = req.user || req.query; // Get user details from authentication middleware
+        try {
+            const { id: userId, username: email } = req.user || req.query; // Get user details from authentication middleware
 
-        if (!userId && !email) {
-            return res.status(400).json({ error: 'User authentication required' });
-        }
+            if (!userId && !email) {
+                return res.status(400).json({ error: 'User authentication required' });
+            }
 
-        // Query to fetch homes accessible to the user via email or user_id
-        const query = `
+            // Query to fetch homes accessible to the user via email or user_id
+            const query = `
             SELECT 
                 h.*, 
                 sa.access_type AS access_type,
@@ -233,22 +233,22 @@ homeapp.get('/app/display/homes/',
                 AND sa.status = 'accepted'
         `;
 
-        // Execute the query with email and user_id
-        const result = await db.query(query, [email, userId]);
+            // Execute the query with email and user_id
+            const result = await db.query(query, [email, userId]);
 
-        // If no homes are found, return a 404
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'No shared homes found for this user' });
+            // If no homes are found, return a 404
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'No shared homes found for this user' });
+            }
+
+            // Respond with the list of shared homes
+            res.status(200).json(result.rows);
+
+        } catch (error) {
+            console.error('Error fetching shared homes:', error.message);
+            res.status(500).json({ error: 'An error occurred while fetching shared homes' });
         }
-
-        // Respond with the list of shared homes
-        res.status(200).json(result.rows);
-
-    } catch (error) {
-        console.error('Error fetching shared homes:', error.message);
-        res.status(500).json({ error: 'An error occurred while fetching shared homes' });
-    }
-});
+    });
 
 
 // Update Home
@@ -1636,8 +1636,8 @@ homeapp.post('/app/add/scenes', upload.single('icon'),
         const user_id = req.user.id;
         const createdBy = req.user?.username || req.body.createdBy;
         const { name, aliasName, type, device_ids } = req.body;
-        console.log('scenes==body',req.body)
-        console.log('scenes==params',req.params)
+        console.log('scenes==body', req.body)
+        console.log('scenes==params', req.params)
         const file = req.file;
 
         try {
@@ -1694,7 +1694,7 @@ homeapp.get('/app/display/scenes',
     authorizeRoles('admin', 'dealer', 'staff', 'customer'),
     async (req, res) => {
         try {
-            const  userid  = req.user.id;
+            const userid = req.user.id;
             const result = await db.query('SELECT * FROM Scenes WHERE user_id = $1', [userid]);
 
             res.status(200).json(result.rows);
@@ -1790,34 +1790,34 @@ homeapp.delete('/app/delete/scenes/:id',
         }
     });
 
-    homeapp.post('/app/create/scene_devices/:scene_id',
-        validateJwt,
-        authorizeRoles('admin', 'dealer', 'staff', 'customer'),
-        async (req, res) => {
-            const { scene_id } = req.params;
-            const { device_ids } = req.body; // Expecting an array of device_ids in the request body
-    
-            if (!Array.isArray(device_ids) || device_ids.length === 0) {
-                return res.status(400).json({ error: 'device_ids must be a non-empty array' });
-            }
-    
-            try {
-                const insertedRows = [];
-                for (const device_id of device_ids) {
-                    const result = await db.query(
-                        `INSERT INTO scene_device (device_id, scene_id) VALUES ($1, $2) RETURNING *`,
-                        [device_id, scene_id]
-                    );
-                    insertedRows.push(result.rows[0]);
-                }
-                res.status(201).json({ success: true, message: 'Scene devices inserted successfully', data: insertedRows });
-            } catch (error) {
-                console.error('Error creating scene_devices:', error);
-                res.status(500).json({ success: false, error: error.message });
-            }
+homeapp.post('/app/create/scene_devices/:scene_id',
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        const { scene_id } = req.params;
+        const { device_ids } = req.body; // Expecting an array of device_ids in the request body
+
+        if (!Array.isArray(device_ids) || device_ids.length === 0) {
+            return res.status(400).json({ error: 'device_ids must be a non-empty array' });
         }
-    );
-    
+
+        try {
+            const insertedRows = [];
+            for (const device_id of device_ids) {
+                const result = await db.query(
+                    `INSERT INTO scene_device (device_id, scene_id) VALUES ($1, $2) RETURNING *`,
+                    [device_id, scene_id]
+                );
+                insertedRows.push(result.rows[0]);
+            }
+            res.status(201).json({ success: true, message: 'Scene devices inserted successfully', data: insertedRows });
+        } catch (error) {
+            console.error('Error creating scene_devices:', error);
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+);
+
 //display devices in scenes with scene_id
 homeapp.get('/api/display/scenes/:scene_id/devices',
     validateJwt,
@@ -2334,7 +2334,7 @@ homeapp.get("/api/users",
             LIMIT $2 OFFSET $3;
         `;
             const dbResult = await db.query(query, [`%${search}%`, pageSize, offset]);
-            console.log("seach",dbResult.rows)
+            console.log("seach", dbResult.rows)
             return res.json({
                 page: parseInt(page, 10),
                 pageSize: parseInt(pageSize, 10),
@@ -2652,62 +2652,62 @@ homeapp.get('/accept-share/:shareRequestId',
         }
     });
 homeapp.get("/api/share-details/:shareRequestId", async (req, res) => {
-        try {
-            const shareRequestId = req.params.shareRequestId;
-            const decryptedId = decryptId(shareRequestId);
-    
-            if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
-                return res.status(400).json({ error: "Invalid share request ID." });
-            }
-    
-            const query = `
+    try {
+        const shareRequestId = req.params.shareRequestId;
+        const decryptedId = decryptId(shareRequestId);
+
+        if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
+            return res.status(400).json({ error: "Invalid share request ID." });
+        }
+
+        const query = `
                 SELECT id, entity_id, entity_type, shared_with_user_email, status
                 FROM sharedusers
                 WHERE id = $1
             `;
-            const result = await db.query(query, [decryptedId]);
-    
-            if (result.rows.length === 0) {
-                return res.status(404).json({ error: "Share request not found or invalid." });
-            }
-    
-            return res.json(result.rows[0]);
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "An error occurred while fetching request details." });
+        const result = await db.query(query, [decryptedId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: "Share request not found or invalid." });
         }
-    });
+
+        return res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "An error occurred while fetching request details." });
+    }
+});
 homeapp.post("/api/accept/:shareRequestId", async (req, res) => {
-        try {
-            const shareRequestId = req.params.shareRequestId;
-            const decryptedId = decryptId(shareRequestId);
-    
-            if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
-                return res.status(400).json({ error: "Invalid share request ID." });
-            }
-    
-            // Check if the request exists and is pending
-            const checkQuery = `SELECT status FROM sharedusers WHERE id = $1`;
-            const checkResult = await db.query(checkQuery, [decryptedId]);
-    
-            if (checkResult.rows.length === 0) {
-                return res.status(404).json({ error: "Share request not found." });
-            }
-    
-            if (checkResult.rows[0].status !== "pending") {
-                return res.json({ success: true, message: "Already accepted." });
-            }
-    
-            // Update status to accepted
-            const updateQuery = `UPDATE sharedusers SET status = 'accepted' WHERE id = $1`;
-            await db.query(updateQuery, [decryptedId]);
-    
-            res.json({ success: true, message: "Request accepted successfully." });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ error: "An error occurred while accepting the request." });
+    try {
+        const shareRequestId = req.params.shareRequestId;
+        const decryptedId = decryptId(shareRequestId);
+
+        if (!Number.isInteger(decryptedId) || decryptedId <= 0) {
+            return res.status(400).json({ error: "Invalid share request ID." });
         }
-    });
+
+        // Check if the request exists and is pending
+        const checkQuery = `SELECT status FROM sharedusers WHERE id = $1`;
+        const checkResult = await db.query(checkQuery, [decryptedId]);
+
+        if (checkResult.rows.length === 0) {
+            return res.status(404).json({ error: "Share request not found." });
+        }
+
+        if (checkResult.rows[0].status !== "pending") {
+            return res.json({ success: true, message: "Already accepted." });
+        }
+
+        // Update status to accepted
+        const updateQuery = `UPDATE sharedusers SET status = 'accepted' WHERE id = $1`;
+        await db.query(updateQuery, [decryptedId]);
+
+        res.json({ success: true, message: "Request accepted successfully." });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "An error occurred while accepting the request." });
+    }
+});
 
 homeapp.post('/accept/:shareRequestId',
     // validateJwt,
@@ -2905,7 +2905,7 @@ homeapp.get('/app/shared/from/access',
 
             // Extract user ID and email
             const userId = req.user.id;
-            const email = req.user.username ;
+            const email = req.user.username;
 
             // Debug: Log user info
             console.log('User ID:', userId);
@@ -3112,6 +3112,102 @@ homeapp.get("/api/device/auditlog/:thingmac",
                 total: dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count, 10) : 0,
                 events,
             });
+        } catch (err) {
+            console.error("Database query error:", err);
+            return res.status(500).json({ error: "Internal Server Error" });
+        }
+    });
+
+homeapp.get("/api/device/devicelog/:thingmac",
+    validateJwt,
+    authorizeRoles('admin', 'dealer', 'staff', 'customer'),
+    async (req, res) => {
+        const user_id = req.user.id;
+        const { thingmac } = req.params;
+        const page = parseInt(req.query.page, 10) || 1;
+        const pageSize = parseInt(req.query.pageSize, 10) || 10;
+        const offset = (page - 1) * pageSize;
+        const fromDate = req.query.fromDate ? req.query.fromDate + "T00:00:00.000Z" : null;
+        const toDate = req.query.toDate ? req.query.toDate + "T23:59:59.999Z" : null;
+
+
+        try {
+            // Query audit logs with date filtering
+            let query = `
+                    SELECT event_data, timestamp, COUNT(*) OVER() AS total_count
+                    FROM audit_logs
+                    WHERE thing_mac = $1`;
+
+            let queryParams = [thingmac];
+
+            if (fromDate && toDate) {
+                query += " AND timestamp BETWEEN $2 AND $3";
+                queryParams.push(fromDate, toDate);
+            } else if (fromDate) {
+                query += " AND timestamp >= $2";
+                queryParams.push(fromDate);
+            } else if (toDate) {
+                query += " AND timestamp <= $2";
+                queryParams.push(toDate);
+            }
+
+            query += " ORDER BY timestamp DESC LIMIT $" + (queryParams.length + 1) + " OFFSET $" + (queryParams.length + 2) + ";";
+            queryParams.push(pageSize, offset);
+
+            const dbResult = await db.query(query, queryParams);
+
+            let events = [];
+            let totalCount = dbResult.rows.length > 0 ? parseInt(dbResult.rows[0].total_count, 10) : 0;
+            let totalPages = Math.ceil(totalCount / pageSize);
+
+            for (const row of dbResult.rows) {
+                const eventData = row.event_data
+                    ? typeof row.event_data === "string"
+                        ? JSON.parse(row.event_data)
+                        : row.event_data
+                    : {};
+                const timestamp = new Date(row.timestamp).toISOString();
+                const status = eventData?.status || {};
+                const desiredStatus = status?.desired || {};
+                const method = status?.u || desiredStatus?.u || "Unknown";
+
+                // Handle connection/disconnection events
+                if (status?.command === "device_update" || desiredStatus?.command === "device_update") {
+                    const deviceStatus = status?.status || desiredStatus?.status;
+                    if (deviceStatus === "disconnected") {
+                        events.push({ state: "DISCONNECTED", time: timestamp, method, type: "Connection" });
+                    } else if (deviceStatus === "connected") {
+                        events.push({ state: "CONNECTED", time: timestamp, method, type: "Connection" });
+                    }
+                }
+
+                // Handle switch logs
+                for (const data of [status, desiredStatus]) {
+                    if (data) {
+                        for (const [key, value] of Object.entries(data)) {
+                            if (key.startsWith("s") && key.length === 2) {
+                                const switchState = value === "1" ? "ON" : "OFF";
+                                const switchId = `${thingmac}_${key.substring(1)}`;
+
+                                const switchNameQuery = `SELECT name FROM Devices WHERE deviceId = $1 LIMIT 1;`;
+                                const switchResult = await db.query(switchNameQuery, [switchId]);
+                                const switchDeviceName = switchResult.rows.length > 0 ? switchResult.rows[0].name : "Unknown Switch";
+
+                                events.push({
+                                    switch: switchId,
+                                    switchName: switchDeviceName,
+                                    state: switchState,
+                                    time: timestamp,
+                                    method,
+                                    type: "Switch",
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return res.json({ page, pageSize, totalPages, total: totalCount, events });
         } catch (err) {
             console.error("Database query error:", err);
             return res.status(500).json({ error: "Internal Server Error" });

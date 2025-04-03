@@ -7,7 +7,7 @@ CREATE TABLE Users (
     name VARCHAR(255),
     profilePic TEXT,
     phone VARCHAR(15),
-    -- Address TEXT,
+    -- Address TEXT, 
     lastModified TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -112,12 +112,12 @@ CREATE TABLE floor (
 
 -- Table to store room information
 CREATE TABLE room (
-    id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
-    home_id INT  NULL, -- Foreign key referencing home table
-    floor_id INT NOT NULL, -- Foreign key referencing floor table
+    id SERIAL PRIMARY KEY,      -- Auto-incrementing primary key
+    home_id INT  NULL,          -- Foreign key referencing home table
+    floor_id INT NOT NULL,      -- Foreign key referencing floor table
     name VARCHAR(255) NOT NULL, -- Name of the room
-    alias_name VARCHAR(255), -- Alias name for the room
-    image_url VARCHAR(2083), -- URL to an image of the room
+    alias_name VARCHAR(255),    -- Alias name for the room
+    image_url VARCHAR(2083),    -- URL to an image of the room
     last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Last modification timestamp
     FOREIGN KEY (home_id) REFERENCES HOME(id) ON DELETE CASCADE,
     FOREIGN KEY (floor_id) REFERENCES floor(id) ON DELETE CASCADE

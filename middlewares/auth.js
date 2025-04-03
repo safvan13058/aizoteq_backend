@@ -255,4 +255,49 @@ function authorizeRoles(...allowedRoles) {
 }
 
 
-module.exports = { validateJwt, authorizeRoles };
+async function validateAccessType(allowedAccessTypes, entityType, entityId) {
+    return async (req, res, next) => {
+        try {
+            const userId = req.user?.id || req.body.user_id;
+            const userEmail = req.user?.username || req.body.shared_with_user_email;
+
+            if (!userId && !userEmail) {
+                return res.status(400).json({ message: "User email or ID is required for access validation" });
+            }
+
+            if (!entityId) {
+                return res.status(400).json({ message: "Entity ID is required" });
+            }
+
+            // Query to check access
+            const query = `
+                SELECT access_type FROM sharedusers 
+                WHERE (user_id = $1 OR shared_with_user_email = $2) 
+                AND entity_id = $3 
+                AND entity_type = $4
+                ORDER BY shared_at DESC 
+                LIMIT 1
+            `;
+            const queryParam = [userId, userEmail, entityId, entityType];
+
+            const result = await db.query(query, queryParam);
+
+            if (result.rows.length === 0) {
+                return res.status(403).json({ message: `Access forbidden: No permissions found for ${entityType}` });
+            }
+
+            const userAccessType = result.rows[0].access_type.toLowerCase();
+
+            if (!allowedAccessTypes.includes(userAccessType)) {
+                return res.status(403).json({ message: `Access forbidden: You need ${allowedAccessTypes.join(" or ")} access for this ${entityType}` });
+            }
+
+            next();
+        } catch (error) {
+            console.error("Error validating access type:", error);
+            res.status(500).json({ message: "Server error while validating access type" });
+        }
+    };
+}
+
+module.exports = { validateJwt, authorizeRoles, validateAccessType };

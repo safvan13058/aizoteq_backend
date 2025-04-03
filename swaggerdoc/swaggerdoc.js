@@ -6404,101 +6404,219 @@ const Swaggerdoc = {
       }
     },
 
-  "/api/device/auditlog/{thingmac}": {
+  // "/api/device/auditlog/{thingmac}": {
+  //     "get": {
+  //       "summary": "Retrieve audit logs for a specific device",
+  //       "description": "Fetches paginated audit logs for a device (thingmac) if the user has access.",
+  //       "tags": ["Audit Logs"],
+  //       "security": [
+  //         {
+  //           "bearerAuth": []
+  //         }
+  //       ],
+  //       "parameters": [
+  //         {
+  //           "name": "thingmac",
+  //           "in": "path",
+  //           "required": true,
+  //           "description": "MAC address of the device",
+  //           "schema": {
+  //             "type": "string"
+  //           }
+  //         },
+  //         {
+  //           "name": "page",
+  //           "in": "query",
+  //           "required": false,
+  //           "description": "Page number for pagination (default: 1)",
+  //           "schema": {
+  //             "type": "integer",
+  //             "default": 1
+  //           }
+  //         },
+  //         {
+  //           "name": "pageSize",
+  //           "in": "query",
+  //           "required": false,
+  //           "description": "Number of items per page (default: 10)",
+  //           "schema": {
+  //             "type": "integer",
+  //             "default": 10
+  //           }
+  //         }
+  //       ],
+  //       "responses": {
+  //         "200": {
+  //           "description": "Successful response with audit logs",
+  //           "content": {
+  //             "application/json": {
+  //               "schema": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "page": {
+  //                     "type": "integer",
+  //                     "example": 1
+  //                   },
+  //                   "pageSize": {
+  //                     "type": "integer",
+  //                     "example": 10
+  //                   },
+  //                   "totalPages": {
+  //                     "type": "integer",
+  //                     "example": 5
+  //                   },
+  //                   "total": {
+  //                     "type": "integer",
+  //                     "example": 50
+  //                   },
+  //                   "events": {
+  //                     "type": "array",
+  //                     "items": {
+  //                       "type": "object",
+  //                       "properties": {
+  //                         "state": {
+  //                           "type": "string",
+  //                           "example": "CONNECTED"
+  //                         },
+  //                         "time": {
+  //                           "type": "string",
+  //                           "format": "date-time",
+  //                           "example": "2024-03-18T14:30:00Z"
+  //                         },
+  //                         "method": {
+  //                           "type": "string",
+  //                           "example": "User Request"
+  //                         },
+  //                         "type": {
+  //                           "type": "string",
+  //                           "example": "Connection"
+  //                         },
+  //                         "switch": {
+  //                           "type": "string",
+  //                           "example": "00:1A:2B:3C:4D:5E_s1"
+  //                         },
+  //                         "switchName": {
+  //                           "type": "string",
+  //                           "example": "Living Room Light"
+  //                         }
+  //                       }
+  //                     }
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         },
+  //         "403": {
+  //           "description": "Unauthorized access to this device",
+  //           "content": {
+  //             "application/json": {
+  //               "schema": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "error": {
+  //                     "type": "string",
+  //                     "example": "Unauthorized access to this device"
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         },
+  //         "500": {
+  //           "description": "Internal Server Error",
+  //           "content": {
+  //             "application/json": {
+  //               "schema": {
+  //                 "type": "object",
+  //                 "properties": {
+  //                   "error": {
+  //                     "type": "string",
+  //                     "example": "Internal Server Error"
+  //                   }
+  //                 }
+  //               }
+  //             }
+  //           }
+  //         }
+  //       }
+  //     }
+  //   },
+    "/api/device/devicelog/{thingmac}": {
       "get": {
-        "summary": "Retrieve audit logs for a specific device",
-        "description": "Fetches paginated audit logs for a device (thingmac) if the user has access.",
-        "tags": ["Audit Logs"],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "summary": "Retrieve device  logs",
+        "description": "Fetches device logs for a specific device, optionally filtered by date range.",
+        "tags": ["device Logs"],
         "parameters": [
           {
             "name": "thingmac",
             "in": "path",
             "required": true,
-            "description": "MAC address of the device",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "MAC address of the device."
+          },
+          {
+            "name": "fromDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "Start date for filtering logs."
+          },
+          {
+            "name": "toDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "End date for filtering logs."
           },
           {
             "name": "page",
             "in": "query",
-            "required": false,
-            "description": "Page number for pagination (default: 1)",
             "schema": {
               "type": "integer",
               "default": 1
-            }
+            },
+            "description": "Page number for pagination."
           },
           {
             "name": "pageSize",
             "in": "query",
-            "required": false,
-            "description": "Number of items per page (default: 10)",
             "schema": {
               "type": "integer",
               "default": 10
-            }
+            },
+            "description": "Number of logs per page."
           }
         ],
         "responses": {
           "200": {
-            "description": "Successful response with audit logs",
+            "description": "Successful response",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "page": {
-                      "type": "integer",
-                      "example": 1
-                    },
-                    "pageSize": {
-                      "type": "integer",
-                      "example": 10
-                    },
-                    "totalPages": {
-                      "type": "integer",
-                      "example": 5
-                    },
-                    "total": {
-                      "type": "integer",
-                      "example": 50
-                    },
+                    "page": { "type": "integer" },
+                    "pageSize": { "type": "integer" },
+                    "totalPages": { "type": "integer" },
+                    "total": { "type": "integer" },
                     "events": {
                       "type": "array",
                       "items": {
                         "type": "object",
                         "properties": {
-                          "state": {
-                            "type": "string",
-                            "example": "CONNECTED"
-                          },
-                          "time": {
-                            "type": "string",
-                            "format": "date-time",
-                            "example": "2024-03-18T14:30:00Z"
-                          },
-                          "method": {
-                            "type": "string",
-                            "example": "User Request"
-                          },
-                          "type": {
-                            "type": "string",
-                            "example": "Connection"
-                          },
-                          "switch": {
-                            "type": "string",
-                            "example": "00:1A:2B:3C:4D:5E_s1"
-                          },
-                          "switchName": {
-                            "type": "string",
-                            "example": "Living Room Light"
-                          }
+                          "state": { "type": "string" },
+                          "time": { "type": "string", "format": "date-time" },
+                          "method": { "type": "string" },
+                          "type": { "type": "string" },
+                          "switch": { "type": "string", "nullable": true },
+                          "switchName": { "type": "string", "nullable": true }
                         }
                       }
                     }
@@ -6508,38 +6626,17 @@ const Swaggerdoc = {
             }
           },
           "403": {
-            "description": "Unauthorized access to this device",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Unauthorized access to this device"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Unauthorized access to this device."
           },
           "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string",
-                      "example": "Internal Server Error"
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Internal Server Error"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
 "/app/shared/access/{entity_type}": {
