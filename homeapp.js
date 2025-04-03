@@ -3127,9 +3127,8 @@ homeapp.get("/api/device/devicelog/:thingmac",
         const page = parseInt(req.query.page, 10) || 1;
         const pageSize = parseInt(req.query.pageSize, 10) || 10;
         const offset = (page - 1) * pageSize;
-        const fromDate = req.query.fromDate ? req.query.fromDate + "T00:00:00.000Z" : null;
-        const toDate = req.query.toDate ? req.query.toDate + "T23:59:59.999Z" : null;
-
+        const fromDate = req.query.fromDate ? req.query.fromDate : null;
+        const toDate = req.query.toDate ? req.query.toDate  : null;
 
         try {
             // Query audit logs with date filtering
