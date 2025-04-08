@@ -151,9 +151,14 @@ testapp.post("/app/addThing",
             const modelCheckResult = await client.query(modelCheckQuery, [thing.model]);
 
             if (modelCheckResult.rows.length === 0) {
-                throw new Error(`Model ${thing.model} does not exist in the price table. 
-                         Please add it here: [Add Model](https://13.200.215.17:3000/dashboard/api/create/model_details)`);   
+                return res.status(400).json({
+                    success: false,
+                    message: `Model ${thing.model} does not exist in the model table.`,
+                    actionUrl: "https://13.200.215.17:3000/dashboard/api/create/model_details",
+                    actionLabel: "Add Model"
+                });
             }
+            
             //  Find associated raw materials for the model
             const rawMaterialsQuery = `
                       SELECT 
