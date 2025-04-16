@@ -10,7 +10,7 @@ const options = {
   },
   servers: [
     {
-      url: "https://13.200.215.17:3000/",
+      url: "https://api.aizoteq.com:3000/",
     },
   ],
   paths: {
