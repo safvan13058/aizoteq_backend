@@ -26,7 +26,7 @@ const allowedOrigins = [
 
 testapp.use((req, res, next) => {
     const origin = req.headers.origin;
-    
+
     // console.log("🔹 Incoming Request:");
     // console.log(`🔸 Origin: ${origin}`);
     // console.log(`🔸 Method: ${req.method}`);
@@ -98,12 +98,27 @@ testapp.post("/app/addThing",
                 thing.macaddress,
                 thing.type || null,
                 thing.securitykey,
-                new Date() 
+                new Date()
             ]);
             const thingId = thingResult.rows[0].id; // Retrieve the inserted thing ID
             console.log(thingResult);
 
             // Insert Attributes and Devices
+            const deviceOrder = ["light", "fan", "gate", "rgb", "h_relay", "trm", "curtain", "bell", "socket"];
+
+            // Create a map for known type order
+            const orderMap = new Map();
+            deviceOrder.forEach((type, index) => orderMap.set(type, index));
+
+            // Sort attributes: known types first, others follow
+            attributes.sort((a, b) => {
+                const aType = a.attributeName.toLowerCase();
+                const bType = b.attributeName.toLowerCase();
+                const aIndex = orderMap.has(aType) ? orderMap.get(aType) : Number.MAX_SAFE_INTEGER;
+                const bIndex = orderMap.has(bType) ? orderMap.get(bType) : Number.MAX_SAFE_INTEGER;
+                return aIndex - bIndex;
+            });
+
             let counter = 1;
             for (const attr of attributes) {
                 // Insert ThingAttributes
@@ -158,7 +173,7 @@ testapp.post("/app/addThing",
                     actionLabel: "Add Model"
                 });
             }
-            
+
             //  Find associated raw materials for the model
             const rawMaterialsQuery = `
                       SELECT 
@@ -267,24 +282,24 @@ testapp.post("/app/addThing",
 testapp.get('/api/devices/things/:thingId',
     validateJwt,
     authorizeRoles("admin", "staff"),
-     async (req, res) => {
-    const { thingId } = req.params; // Extract thingId from the URL
-    try {
-        const result = await db.query('SELECT * FROM Devices WHERE thingId = $1', [thingId]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No devices found for the given thingId' });
+    async (req, res) => {
+        const { thingId } = req.params; // Extract thingId from the URL
+        try {
+            const result = await db.query('SELECT * FROM Devices WHERE thingId = $1', [thingId]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'No devices found for the given thingId' });
+            }
+            res.status(200).json(result.rows);
+        } catch (error) {
+            console.error('Error fetching devices:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
         }
-        res.status(200).json(result.rows);
-    } catch (error) {
-        console.error('Error fetching devices:', error);
-        res.status(500).json({ error: 'Internal Server Error' });
-    }
-});
+    });
 
 //display all things     
 testapp.get('/api/display/things',
     validateJwt,
-    authorizeRoles('admin,staff'), 
+    authorizeRoles('admin,staff'),
     async (req, res) => {
         try {
             // Get `page` and `limit` query parameters, with default values if not provided
@@ -324,7 +339,7 @@ testapp.get('/api/display/things',
 
 // display things with id 
 testapp.get('/api/display/things/:id',
-     validateJwt,
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
         const id = req.params.id;
@@ -350,61 +365,61 @@ testapp.get('/api/display/things/:id',
 
 //count the stock item with status is new , rework etc
 testapp.get('/api/adminstock/:status/count',
-     validateJwt,
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
-    try {
-        console.log("working admin stock");
-        const { status } = req.params;
+        try {
+            console.log("working admin stock");
+            const { status } = req.params;
 
-        // Ensure the status parameter is not empty and is a valid string
-        if (!status || typeof status !== 'string') {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Invalid or missing status parameter',
-            });
-        }
+            // Ensure the status parameter is not empty and is a valid string
+            if (!status || typeof status !== 'string') {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Invalid or missing status parameter',
+                });
+            }
 
-        // SQL query with parameterized value to prevent SQL injection
-        const query = `
+            // SQL query with parameterized value to prevent SQL injection
+            const query = `
             SELECT COUNT(*) AS count
             FROM AdminStock
             WHERE status = $1
         `;
 
-        // Execute the query with the status parameter
-        const result = await db.query(query, [status]);
+            // Execute the query with the status parameter
+            const result = await db.query(query, [status]);
 
-        // Check if result is returned
-        if (result.rows.length > 0) {
-            // Return the count of the records with the given status
-            console.log("working success");
-            res.status(200).json({
-                status: 'success',
-                count: result.rows[0].count,
-            });
-        } else {
+            // Check if result is returned
+            if (result.rows.length > 0) {
+                // Return the count of the records with the given status
+                console.log("working success");
+                res.status(200).json({
+                    status: 'success',
+                    count: result.rows[0].count,
+                });
+            } else {
 
-            res.status(404).json({
+                res.status(404).json({
+                    status: 'error',
+                    message: 'No records found with the specified status',
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching count:', error);
+
+            // Return an internal server error response
+            res.status(500).json({
                 status: 'error',
-                message: 'No records found with the specified status',
+                message: 'Internal server error',
+                details: error.message, // Include error details for debugging
             });
         }
-    } catch (error) {
-        console.error('Error fetching count:', error);
-
-        // Return an internal server error response
-        res.status(500).json({
-            status: 'error',
-            message: 'Internal server error',
-            details: error.message, // Include error details for debugging
-        });
-    }
-});
+    });
 
 testapp.get('/app/searchThings/:status',
     validateJwt,
-    authorizeRoles("admin", "staff"), 
+    authorizeRoles("admin", "staff"),
     async (req, res) => {
         const { status } = req.params;
         const { limit, offset } = req.query; // Get status, limit, and offset from query parameters
@@ -474,17 +489,17 @@ testapp.get('/app/searchThings/:status',
     });
 
 //display thing with status "new","rework",etc.. and search on serialno
-testapp.get('/api/searchThings/working/:status', 
-     validateJwt,
+testapp.get('/api/searchThings/working/:status',
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
-    const { serialno } = req.query;
-    const { status } = req.params;
+        const { serialno } = req.query;
+        const { status } = req.params;
 
 
-    try {
-        // Default to showing all records with 'rework' status if no serialno is provided
-        let query = `
+        try {
+            // Default to showing all records with 'rework' status if no serialno is provided
+            let query = `
             SELECT 
                 t.id AS thing_id,
                 t.thingName,
@@ -506,38 +521,38 @@ testapp.get('/api/searchThings/working/:status',
             WHERE a.status = $1
         `;
 
-        // If serialno is provided, modify the query to filter by serialno using ILIKE
-        if (serialno) {
-            query += ` AND t.serialno ILIKE $2`;
+            // If serialno is provided, modify the query to filter by serialno using ILIKE
+            if (serialno) {
+                query += ` AND t.serialno ILIKE $2`;
+            }
+
+            // Log the query and parameters for debugging
+            console.log('Executing query:', query);
+            console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
+
+            // Execute the query with appropriate parameters
+            const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
+
+            // Check if results exist
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'No matching records found' });
+            }
+
+            // Return results
+            res.json(result.rows);
+        } catch (err) {
+            // Log the full error for debugging
+            console.error('Error executing query', err);
+
+            // Respond with more detailed error information
+            res.status(500).json({ error: 'Internal Server Error', details: err.message });
         }
-
-        // Log the query and parameters for debugging
-        console.log('Executing query:', query);
-        console.log('Query parameters:', serialno ? [status, `%${serialno}%`] : [status]);
-
-        // Execute the query with appropriate parameters
-        const result = await db.query(query, serialno ? [status, `%${serialno}%`] : [status]);
-
-        // Check if results exist
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No matching records found' });
-        }
-
-        // Return results
-        res.json(result.rows);
-    } catch (err) {
-        // Log the full error for debugging
-        console.error('Error executing query', err);
-
-        // Respond with more detailed error information
-        res.status(500).json({ error: 'Internal Server Error', details: err.message });
-    }
-});
+    });
 
 // 
 testapp.get('/api/adminstock/search/:model',
     validateJwt,
-    authorizeRoles("admin", "staff"), 
+    authorizeRoles("admin", "staff"),
     async (req, res) => {
         const { page = 1, limit = 10, status } = req.query; // Extract query params with defaults
         const { model } = req.params;
@@ -677,84 +692,84 @@ testapp.get('/api/adminstock/search/:model',
 //     }
 //   });
 testapp.put("/api/update_adminstock/status/:macAddress",
-     validateJwt,
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
-    const { macAddress } = req.params;
-    const { status } = req.body;
-    const fixedBy = req.user?.username || req.body.fixedBy;
+        const { macAddress } = req.params;
+        const { status } = req.body;
+        const fixedBy = req.user?.username || req.body.fixedBy;
 
-    // Input validation
-    if (!status || !fixedBy) {
-        return res.status(400).json({ error: "status and fixedBy are required" });
-    }
-
-    const client = await db.connect();
-    try {
-        await client.query("BEGIN"); // Start transaction
-
-        // Fetch thingId based on macAddress
-        const thingQuery = `SELECT id FROM things WHERE macaddress = $1`;
-        const thingResult = await client.query(thingQuery, [macAddress]);
-        const thingId = thingResult.rows[0]?.id;
-
-        if (!thingId) {
-            await client.query("ROLLBACK"); // Rollback transaction
-            return res.status(404).json({ error: "No matching record found for the provided macAddress" });
+        // Input validation
+        if (!status || !fixedBy) {
+            return res.status(400).json({ error: "status and fixedBy are required" });
         }
 
-        // Update status in AdminStock
-        const updateAdminStockQuery = `
+        const client = await db.connect();
+        try {
+            await client.query("BEGIN"); // Start transaction
+
+            // Fetch thingId based on macAddress
+            const thingQuery = `SELECT id FROM things WHERE macaddress = $1`;
+            const thingResult = await client.query(thingQuery, [macAddress]);
+            const thingId = thingResult.rows[0]?.id;
+
+            if (!thingId) {
+                await client.query("ROLLBACK"); // Rollback transaction
+                return res.status(404).json({ error: "No matching record found for the provided macAddress" });
+            }
+
+            // Update status in AdminStock
+            const updateAdminStockQuery = `
             UPDATE AdminStock
             SET status = $1
             WHERE thingId = $2
         `;
-        const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
+            const adminStockResult = await client.query(updateAdminStockQuery, [status, thingId]);
 
-        if (adminStockResult.rowCount === 0) {
-            throw new Error("No matching record found in AdminStock for the given thingId");
-        }
+            if (adminStockResult.rowCount === 0) {
+                throw new Error("No matching record found in AdminStock for the given thingId");
+            }
 
-        // Update fixed_by in TestFailedDevices
-        const updateTestFailedDevicesQuery = `
+            // Update fixed_by in TestFailedDevices
+            const updateTestFailedDevicesQuery = `
             UPDATE TestFailedDevices
             SET fixed_by = $1
             WHERE thingId = $2
         `;
-        const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
+            const testFailedDevicesResult = await client.query(updateTestFailedDevicesQuery, [fixedBy, thingId]);
 
-        if (testFailedDevicesResult.rowCount === 0) {
-            throw new Error("No matching record found in TestFailedDevices for the given thingId");
+            if (testFailedDevicesResult.rowCount === 0) {
+                throw new Error("No matching record found in TestFailedDevices for the given thingId");
+            }
+
+            await client.query("COMMIT"); // Commit transaction
+            res.status(200).json({
+                message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
+            });
+        } catch (err) {
+            await client.query("ROLLBACK"); // Rollback transaction on error
+            console.error("Error:", err.message);
+            res.status(500).json({ error: "An error occurred", details: err.message });
+        } finally {
+            client.release(); // Release DB client
         }
-
-        await client.query("COMMIT"); // Commit transaction
-        res.status(200).json({
-            message: "AdminStock status and TestFailedDevices fixed_by updated successfully",
-        });
-    } catch (err) {
-        await client.query("ROLLBACK"); // Rollback transaction on error
-        console.error("Error:", err.message);
-        res.status(500).json({ error: "An error occurred", details: err.message });
-    } finally {
-        client.release(); // Release DB client
-    }
-});
+    });
 
 testapp.get('/api/recent/adminstock/activities',
-     validateJwt,
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
-    try {
-        const page = parseInt(req.query.page, 10) || 1; // Default to page 1
-        const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
+        try {
+            const page = parseInt(req.query.page, 10) || 1; // Default to page 1
+            const limit = parseInt(req.query.limit, 10) || 10; // Default to 10 records per page
 
-        if (page < 1 || limit < 1) {
-            return res.status(400).json({ error: 'Invalid page or limit value. Both must be positive integers.' });
-        }
+            if (page < 1 || limit < 1) {
+                return res.status(400).json({ error: 'Invalid page or limit value. Both must be positive integers.' });
+            }
 
-        const offset = (page - 1) * limit;
+            const offset = (page - 1) * limit;
 
-        const dataQuery = `
+            const dataQuery = `
             SELECT 
                 t.id AS thing_id,
                 t.thingName,
@@ -774,42 +789,42 @@ testapp.get('/api/recent/adminstock/activities',
             ORDER BY a.addedAt DESC
             LIMIT $1 OFFSET $2;
         `;
-        const result = await db.query(dataQuery, [limit, offset]);
+            const result = await db.query(dataQuery, [limit, offset]);
 
-        const countQuery = `
+            const countQuery = `
             SELECT COUNT(*) AS total
             FROM AdminStock a
             JOIN Things t ON a.thingId = t.id
             LEFT JOIN TestFailedDevices tf ON t.id = tf.thingId;
         `;
-        const countResult = await db.query(countQuery);
-        const total = parseInt(countResult.rows[0].total, 10);
-        const totalPages = Math.ceil(total / limit);
+            const countResult = await db.query(countQuery);
+            const total = parseInt(countResult.rows[0].total, 10);
+            const totalPages = Math.ceil(total / limit);
 
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'No devices found in AdminStock' });
+            if (result.rows.length === 0) {
+                return res.status(404).json({ message: 'No devices found in AdminStock' });
+            }
+
+            res.status(200).json({
+                page,
+                limit,
+                total,
+                totalPages,
+                data: result.rows,
+            });
+        } catch (error) {
+            console.error('Error fetching data from database:', error.message);
+            res.status(500).json({
+                error: 'Internal Server Error',
+                details: error.message,
+            });
         }
-
-        res.status(200).json({
-            page,
-            limit,
-            total,
-            totalPages,
-            data: result.rows,
-        });
-    } catch (error) {
-        console.error('Error fetching data from database:', error.message);
-        res.status(500).json({
-            error: 'Internal Server Error',
-            details: error.message,
-        });
-    }
-});
+    });
 
 // DELETE endpoint to delete a Thing by ID
 testapp.delete('/api/delete/things/:id',
     validateJwt,
-    authorizeRoles("admin", "staff"), 
+    authorizeRoles("admin", "staff"),
     async (req, res) => {
         const { id } = req.params;
 
@@ -855,22 +870,22 @@ testapp.delete('/api/delete/all/things',
 
 //search details of thing adminstock test with 
 testapp.get('/api/search/things',
-     validateJwt,
+    validateJwt,
     authorizeRoles("admin", "staff"),
     async (req, res) => {
-    const { searchTerm, page = 1, pageSize = 10 } = req.query;
+        const { searchTerm, page = 1, pageSize = 10 } = req.query;
 
-    if (!searchTerm) {
-        return res.status(400).json({ error: 'Search term is required' });
-    }
+        if (!searchTerm) {
+            return res.status(400).json({ error: 'Search term is required' });
+        }
 
-    const offset = (page - 1) * pageSize;
-    const limit = parseInt(pageSize, 10);
+        const offset = (page - 1) * pageSize;
+        const limit = parseInt(pageSize, 10);
 
-    try {
-        // Query to fetch the paginated results along with the total count
-        const result = await db.query(
-            `
+        try {
+            // Query to fetch the paginated results along with the total count
+            const result = await db.query(
+                `
         WITH search_results AS (
           SELECT
             t.id AS thingId,
@@ -918,28 +933,28 @@ testapp.get('/api/search/things',
           thingId
         LIMIT $2 OFFSET $3;
         `,
-            [`%${searchTerm}%`, limit, offset]
-        );
+                [`%${searchTerm}%`, limit, offset]
+            );
 
-        const rows = result.rows;
-        console.log(rows)
-        const totalCount = rows.length;
-        console.log(totalCount)
-        res.status(200).json({
+            const rows = result.rows;
+            console.log(rows)
+            const totalCount = rows.length;
+            console.log(totalCount)
+            res.status(200).json({
 
-            pagination: {
-                page: parseInt(page, 10),
-                pageSize: limit,
-                totalCount,
-                totalPages: Math.ceil(totalCount / limit),
-            },
-            data: rows,
-        });
-    } catch (err) {
-        console.error('Error querying database:', err.message);
-        res.status(500).json({ error: 'An error occurred while searching', details: err.message });
-    }
-});
+                pagination: {
+                    page: parseInt(page, 10),
+                    pageSize: limit,
+                    totalCount,
+                    totalPages: Math.ceil(totalCount / limit),
+                },
+                data: rows,
+            });
+        } catch (err) {
+            console.error('Error querying database:', err.message);
+            res.status(500).json({ error: 'An error occurred while searching', details: err.message });
+        }
+    });
 
 testapp.get('/api/display/thingattribute/:serialno',
     validateJwt,
@@ -1084,7 +1099,7 @@ testapp.get('/api/display/status/:status',
 //display devices with thingid
 testapp.get('/api/display/devices/:thingid',
     validateJwt,
-    authorizeRoles('admin','staff'),
+    authorizeRoles('admin', 'staff'),
     async (req, res) => {
         const thingid = req.params.thingid; // Extract the thingid from the route parameter
         try {
